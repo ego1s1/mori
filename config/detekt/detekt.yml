@@ -1,0 +1,12 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+
+complexity:
+  TooManyFunctions:
+    active: false
