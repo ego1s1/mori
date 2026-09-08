@@ -1,0 +1,14 @@
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+
+class MoriAndroidApplicationPlugin : Plugin<Project> {
+    override fun apply(target: Project) {
+        with(target) {
+            with(pluginManager) {
+                apply("com.android.application")
+                apply("org.jetbrains.kotlin.android")
+            }
+            configureAndroidApplicationDefaults()
+        }
+    }
+}

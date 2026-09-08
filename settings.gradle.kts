@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -22,5 +23,20 @@ dependencyResolutionManagement {
 
 rootProject.name = "mori"
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 include(":comic-core")
 include(":comic-ocr")
+include(":app")
+include(":core:model")
+include(":core:common")
+include(":core:testing")
+include(":core:designsystem")
+include(":feature:onboarding:api")
+include(":feature:onboarding:impl")
+include(":feature:library:api")
+include(":feature:library:impl")
+include(":feature:detail:api")
+include(":feature:detail:impl")
+include(":feature:reader:api")
+include(":feature:reader:impl")
