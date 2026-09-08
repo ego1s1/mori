@@ -24,4 +24,22 @@ object Fixtures {
     fun solidCbr(): File = resourceToTempFile("com/mori/comic/fixtures/solid.cbr")
 
     fun lockedCbr(): File = resourceToTempFile("com/mori/comic/fixtures/locked.cbr")
+
+    /** Real JPEG fixtures committed under `fixtures/images/`. */
+    object Images {
+        val extent: String = "com/mori/comic/fixtures/images"
+
+        fun bytes(name: String): ByteArray =
+            javaClass.classLoader!!.getResourceAsStream("$extent/$name")
+                ?.use { it.readBytes() }
+                ?: throw IllegalStateException("Missing image resource: $name")
+
+        fun landscapeJpg(): ByteArray = bytes("landscape.jpg")
+
+        fun portraitJpg(): ByteArray = bytes("portrait.jpg")
+
+        fun progressiveJpg(): ByteArray = bytes("progressive.jpg")
+
+        fun comicWebp(): ByteArray = bytes("comic.webp")
+    }
 }

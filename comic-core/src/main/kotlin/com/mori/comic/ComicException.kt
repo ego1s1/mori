@@ -25,3 +25,6 @@ class PageNotFoundException(message: String) : ComicException(message)
 
 /** The archive has already been closed. */
 class ArchiveClosedException(message: String) : ComicException(message)
+
+/** A page's image data cannot be decoded (corrupt or unsupported image bytes). */
+class DecodeException(message: String, cause: Throwable? = null) : ComicException(message, cause)
