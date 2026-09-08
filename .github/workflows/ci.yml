@@ -32,5 +32,8 @@ jobs:
       - name: Run detekt
         run: ./gradlew detekt
 
+      - name: Check public API surface
+        run: ./gradlew apiCheck
+
       - name: Assemble debug AARs
         run: ./gradlew assembleDebug

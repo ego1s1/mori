@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.binary.compatibility.validator)
     id("maven-publish")
 }
 
@@ -14,6 +15,7 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 35
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {

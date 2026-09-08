@@ -17,10 +17,10 @@ This project is built in phases. See the plan in the repository history and the 
 tracker for the full roadmap.
 
 - [x] Phase 0 — Scaffold, CI, tooling, natural-order page sorting
-- [ ] Phase 1 — Core decode (CBZ / CBR / folders, ComicInfo.xml, typed errors)
-- [ ] Phase 2 — Image decode hardening (subsample, regions, EXIF, OOM safety)
-- [ ] Phase 3 — OCR abstraction + Tesseract backend
-- [ ] Phase 4 — Production hardening & 1.0
+- [x] Phase 1 — Core decode (CBZ / CBR / folders, ComicInfo.xml, typed errors)
+- [x] Phase 2 — Image decode hardening (subsample, regions, EXIF, OOM safety)
+- [x] Phase 3 — OCR abstraction + Tesseract backend
+- [x] Phase 4 — Production hardening & 1.0
 - [ ] Phase 5 — Reader UI, CB7/CBT/PDF, ML Kit/PaddleOCR backends, KMP
 
 ## Requirements
@@ -34,6 +34,7 @@ tracker for the full roadmap.
 ./gradlew test          # unit tests
 ./gradlew lint          # Android lint
 ./gradlew detekt        # static analysis
+./gradlew apiCheck      # public API compatibility
 ./gradlew assembleDebug # build AARs
 ```
 
