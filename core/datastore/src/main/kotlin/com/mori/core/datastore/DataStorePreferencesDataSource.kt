@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
@@ -85,6 +86,24 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         }
     }
 
+    override val motionStyle: Flow<MotionStyle> =
+        dataStore.data.map { prefs ->
+            prefs[MOTION_STYLE]?.let {
+                runCatching { MotionStyle.valueOf(it) }.getOrDefault(MotionStyle.EXPRESSIVE)
+            } ?: MotionStyle.EXPRESSIVE
+        }
+
+    override suspend fun updateMotionStyle(style: MotionStyle) {
+        dataStore.edit { it[MOTION_STYLE] = style.name }
+    }
+
+    override val readerOverviewSeen: Flow<Boolean> =
+        dataStore.data.map { it[READER_OVERVIEW_SEEN] ?: false }
+
+    override suspend fun setReaderOverviewSeen() {
+        dataStore.edit { it[READER_OVERVIEW_SEEN] = true }
+    }
+
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val SOURCE_TREE_URI = stringPreferencesKey("source_tree_uri")
@@ -97,5 +116,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val AMOLED = booleanPreferencesKey("amoled")
+        val MOTION_STYLE = stringPreferencesKey("motion_style")
+        val READER_OVERVIEW_SEEN = booleanPreferencesKey("reader_overview_seen")
     }
 }

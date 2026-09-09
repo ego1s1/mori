@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,6 +28,10 @@ import javax.inject.Inject
  * Navigation position lives in [navigation] (route argument first, then user movement)
  * so repository re-emissions — including our own progress saves — never yank the pager
  * back. Progress saves debounce 500ms after the page settles.
+ *
+ * On the very first reader open the chrome (top bar, controls) stays up for a brief
+ * overview beat before fading, then the moment is persisted so later opens fall back
+ * to the stillness auto-hide in [ReaderContent].
  */
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
@@ -44,6 +49,19 @@ class ReaderViewModel @Inject constructor(
     private val navigation = MutableStateFlow<Int?>(null)
 
     private var saveJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            if (!preferences.readerOverviewSeen.first()) {
+                delay(READER_OVERVIEW_MS)
+                // Never yank chrome out from under the open settings sheet.
+                if (!chrome.value.settingsOpen) {
+                    chrome.value = chrome.value.copy(visible = false)
+                }
+                preferences.setReaderOverviewSeen()
+            }
+        }
+    }
 
     val uiState: StateFlow<ReaderUiState> = combine(
         repository.observeComic(args.comicId),
@@ -165,7 +183,10 @@ class ReaderViewModel @Inject constructor(
         val showTapZones: Boolean = false,
     )
 
-    private companion object {
-        const val PROGRESS_SAVE_DEBOUNCE_MS = 500L
+    companion object {
+        private const val PROGRESS_SAVE_DEBOUNCE_MS = 500L
+
+        /** First-launch overview beat: chrome stays up this long, then fades. */
+        internal const val READER_OVERVIEW_MS = 2000L
     }
 }

@@ -38,6 +38,16 @@ class DataStorePreferencesDataSourceTest {
     }
 
     @Test
+    fun readerOverviewDefaultsToUnseenThenPersists() = runTest {
+        val dataSource = dataSource()
+        dataSource.readerOverviewSeen.test {
+            assertEquals(false, awaitItem())
+            dataSource.setReaderOverviewSeen()
+            assertEquals(true, awaitItem())
+        }
+    }
+
+    @Test
     fun sourceTreeUriRoundTripsIncludingNull() = runTest {
         val dataSource = dataSource()
         dataSource.sourceTreeUri.test {

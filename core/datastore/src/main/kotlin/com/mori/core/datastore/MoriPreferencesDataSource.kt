@@ -1,6 +1,7 @@
 package com.mori.core.datastore
 
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 
@@ -20,6 +21,12 @@ interface MoriPreferencesDataSource {
     /** App theme preferences (mode, dynamic color, AMOLED black). */
     val themePreferences: Flow<ThemePreferences>
 
+    /** Motion personality (spring physics vs calm fades). */
+    val motionStyle: Flow<MotionStyle>
+
+    /** True once the reader's first-launch overview has faded (chrome shown 2s). */
+    val readerOverviewSeen: Flow<Boolean>
+
     suspend fun setOnboardingCompleted(completed: Boolean)
 
     suspend fun setSourceTreeUri(uri: String?)
@@ -27,4 +34,8 @@ interface MoriPreferencesDataSource {
     suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences)
 
     suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences)
+
+    suspend fun updateMotionStyle(style: MotionStyle)
+
+    suspend fun setReaderOverviewSeen()
 }

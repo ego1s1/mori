@@ -7,6 +7,7 @@ import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,10 @@ internal class TestPreferencesDataSource(
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
+    private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
+    override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
+    private val overviewSeenFlow = MutableStateFlow(true)
+    override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         this.completed.value = completed
@@ -43,6 +48,14 @@ internal class TestPreferencesDataSource(
 
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
         themePreferencesFlow.value = transform(themePreferencesFlow.value)
+    }
+
+    override suspend fun updateMotionStyle(style: MotionStyle) {
+        motionStyleFlow.value = style
+    }
+
+    override suspend fun setReaderOverviewSeen() {
+        overviewSeenFlow.value = true
     }
 }
 

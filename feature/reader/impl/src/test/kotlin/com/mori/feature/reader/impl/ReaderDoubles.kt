@@ -7,6 +7,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,18 +91,25 @@ internal class TestComicsRepository(
 /** In-memory preferences double. */
 internal class TestPreferencesDataSource(
     initial: ReaderPreferences = ReaderPreferences(),
+    overviewSeen: Boolean = true,
 ) : MoriPreferencesDataSource {
 
     private val completed = MutableStateFlow(false)
     private val treeUri = MutableStateFlow<String?>(null)
     private val readerPreferencesFlow = MutableStateFlow(initial)
     private val themePreferencesFlow = MutableStateFlow(ThemePreferences())
+    private val overviewSeenFlow = MutableStateFlow(overviewSeen)
     val updates = mutableListOf<ReaderPreferences>()
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
+    private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
+    override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
+    override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
+
+    fun isOverviewSeen(): Boolean = overviewSeenFlow.value
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         this.completed.value = completed
@@ -119,5 +127,13 @@ internal class TestPreferencesDataSource(
 
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
         themePreferencesFlow.value = transform(themePreferencesFlow.value)
+    }
+
+    override suspend fun updateMotionStyle(style: MotionStyle) {
+        motionStyleFlow.value = style
+    }
+
+    override suspend fun setReaderOverviewSeen() {
+        overviewSeenFlow.value = true
     }
 }

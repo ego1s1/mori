@@ -5,6 +5,7 @@ import com.mori.core.data.ComicImporter
 import com.mori.core.data.ImportCandidate
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
@@ -72,6 +73,10 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
+    private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
+    override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
+    private val overviewSeenFlow = MutableStateFlow(true)
+    override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         this.completed.value = completed
@@ -87,5 +92,13 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
         themePreferencesFlow.value = transform(themePreferencesFlow.value)
+    }
+
+    override suspend fun updateMotionStyle(style: MotionStyle) {
+        motionStyleFlow.value = style
+    }
+
+    override suspend fun setReaderOverviewSeen() {
+        overviewSeenFlow.value = true
     }
 }

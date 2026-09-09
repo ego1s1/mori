@@ -184,6 +184,50 @@ class ReaderViewModelTest {
         }
     }
 
+    @Test
+    fun firstLaunchShowsOverviewThenFades() = runTest {
+        // The overview beat itself is pinned: chrome stays up 2s, then fades.
+        assertEquals(2_000L, ReaderViewModel.READER_OVERVIEW_MS)
+        val preferences = TestPreferencesDataSource(overviewSeen = false)
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().chromeVisible)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(false, awaitReadyWhere { !it.chromeVisible }.chromeVisible)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(true, preferences.isOverviewSeen())
+    }
+
+    @Test
+    fun laterLaunchesKeepChromeUp() = runTest {
+        val preferences = TestPreferencesDataSource(overviewSeen = true)
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().chromeVisible)
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(10_000L)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(true, preferences.isOverviewSeen())
+    }
+
+    @Test
+    fun overviewDoesNotHideChromeOverOpenSettings() = runTest {
+        val preferences = TestPreferencesDataSource(overviewSeen = false)
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.OpenSettings)
+            val open = awaitReadyWhere { it.settingsOpen }
+            assertEquals(true, open.chromeVisible)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(true, preferences.isOverviewSeen())
+    }
+
     private suspend fun ReceiveTurbine<ReaderUiState>.awaitReady(): ReaderUiState.Ready {
         while (true) {
             when (val next = awaitItem()) {
