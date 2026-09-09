@@ -1,11 +1,14 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -36,6 +39,9 @@ class ReaderScreenTest {
         pageFit = PageFit.WIDTH,
         cropMargins = false,
         settingsOpen = settingsOpen,
+        volumeKeys = false,
+        keepScreenOn = true,
+        showTapZones = false,
     )
 
     @Test
@@ -141,6 +147,9 @@ class ReaderScreenTest {
                     direction = ReadingDirection.LEFT_TO_RIGHT,
                     pageFit = PageFit.WIDTH,
                     cropMargins = false,
+                    volumeKeys = false,
+                    keepScreenOn = true,
+                    showTapZones = false,
                     onAction = {},
                 )
             }
@@ -152,6 +161,62 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithText("Crop margins").assertIsDisplayed()
         composeTestRule.onNodeWithText("Left to right").assertIsDisplayed()
         composeTestRule.onNodeWithText("Width").assertIsDisplayed()
+        // Lower sheet content may sit below the test viewport fold; assert composition.
+        composeTestRule.onNodeWithText("Tap zones").assertExists()
+        composeTestRule.onNodeWithText("Volume keys turn pages").assertExists()
+        composeTestRule.onNodeWithText("Keep screen on").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingLeftZoneDispatchesPrevPage() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            down(0, Offset(bounds.width * 0.1f, bounds.height * 0.5f))
+            up(0)
+        }
+        // Single taps wait out the double-tap timeout before dispatching.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.contains(ReaderAction.PrevPage))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun tappingRightZoneDispatchesNextPage() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            down(0, Offset(bounds.width * 0.9f, bounds.height * 0.5f))
+            up(0)
+        }
+        // Single taps wait out the double-tap timeout before dispatching.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.contains(ReaderAction.NextPage))
     }
 
     @Test

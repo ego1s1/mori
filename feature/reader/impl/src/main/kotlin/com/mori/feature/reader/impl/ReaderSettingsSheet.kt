@@ -35,6 +35,9 @@ internal fun ReaderSettingsSheet(
     direction: ReadingDirection,
     pageFit: PageFit,
     cropMargins: Boolean,
+    volumeKeys: Boolean,
+    keepScreenOn: Boolean,
+    showTapZones: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -46,6 +49,9 @@ internal fun ReaderSettingsSheet(
             direction = direction,
             pageFit = pageFit,
             cropMargins = cropMargins,
+            volumeKeys = volumeKeys,
+            keepScreenOn = keepScreenOn,
+            showTapZones = showTapZones,
             onAction = onAction,
         )
     }
@@ -57,6 +63,9 @@ internal fun ReaderSettingsSheetContent(
     direction: ReadingDirection,
     pageFit: PageFit,
     cropMargins: Boolean,
+    volumeKeys: Boolean,
+    keepScreenOn: Boolean,
+    showTapZones: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,27 +127,69 @@ internal fun ReaderSettingsSheetContent(
             )
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Crop margins",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = "Trim page borders when decoding",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(
-                checked = cropMargins,
-                onCheckedChange = { onAction(ReaderAction.ToggleCrop) },
-            )
-        }
+        SettingSwitch(
+            title = "Crop margins",
+            subtitle = "Trim page borders when decoding",
+            checked = cropMargins,
+            onCheckedChange = { onAction(ReaderAction.ToggleCrop) },
+        )
+
+        Text(
+            text = "Tap zones",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TapZoneLegend(direction = direction)
+        SettingSwitch(
+            title = "Preview tap zones",
+            subtitle = "Overlay the navigation zones on the page",
+            checked = showTapZones,
+            onCheckedChange = { onAction(ReaderAction.ToggleTapZones) },
+        )
+
+        SettingSwitch(
+            title = "Volume keys turn pages",
+            subtitle = "Volume down goes forward, volume up goes back",
+            checked = volumeKeys,
+            onCheckedChange = { onAction(ReaderAction.ToggleVolumeKeys) },
+        )
+        SettingSwitch(
+            title = "Keep screen on",
+            subtitle = "Prevent the display from sleeping while reading",
+            checked = keepScreenOn,
+            onCheckedChange = { onAction(ReaderAction.ToggleKeepScreenOn) },
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SettingSwitch(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }

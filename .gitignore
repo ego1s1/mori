@@ -14,3 +14,7 @@ captures/
 *.class
 .kotlin/
 out/
+# Third-party reference checkouts (e.g. Mihon) are inspiration only and must
+# never be committed: they would bloat history and blur license boundaries.
+# Take design ideas from them; always write our own implementations.
+/reference/

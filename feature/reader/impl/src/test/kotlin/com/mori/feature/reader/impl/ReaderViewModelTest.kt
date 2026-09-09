@@ -97,6 +97,26 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun readerOptionTogglesFlip() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            val initial = awaitItem() as ReaderUiState.Ready
+            assertEquals(false, initial.volumeKeys)
+            assertEquals(true, initial.keepScreenOn)
+            assertEquals(false, initial.showTapZones)
+
+            viewModel.onAction(ReaderAction.ToggleVolumeKeys)
+            assertEquals(true, (awaitItem() as ReaderUiState.Ready).volumeKeys)
+
+            viewModel.onAction(ReaderAction.ToggleKeepScreenOn)
+            assertEquals(false, (awaitItem() as ReaderUiState.Ready).keepScreenOn)
+
+            viewModel.onAction(ReaderAction.ToggleTapZones)
+            assertEquals(true, (awaitItem() as ReaderUiState.Ready).showTapZones)
+        }
+    }
+
+    @Test
     fun settingsOpenCloseAndOptions() = runTest {
         val viewModel = viewModel()
         viewModel.onAction(ReaderAction.OpenSettings)

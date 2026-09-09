@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,18 +22,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReadingDirection
 
 /**
- * A reader page with pinch-to-zoom and double-tap zoom toggle.
+ * A reader page with pinch-to-zoom, double-tap zoom toggle, and zone taps.
  *
- * Single taps are intentionally NOT consumed here so the parent pager can toggle chrome.
+ * Single taps resolve to [ReaderZone] outcomes via [zoneForTap] instead of bubbling to a
+ * parent click handler, so tap navigation and double-tap zoom never double-fire.
  * F2 replaces the placeholder art with Coil-loaded backend-decoded bitmaps.
  */
 @Composable
 internal fun ZoomablePage(
     pageNumber: Int,
     pageFit: PageFit,
+    direction: ReadingDirection,
+    onZoneTap: (ReaderZone) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
@@ -42,10 +48,14 @@ internal fun ZoomablePage(
         offset = if (scale <= 1f) Offset.Zero else offset + panChange
     }
 
-    Box(
+    BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize(),
     ) {
+        val density = LocalDensity.current
+        val widthPx = remember(density, maxWidth) {
+            with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
+        }
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
             shape = MaterialTheme.shapes.medium,
@@ -57,15 +67,22 @@ internal fun ZoomablePage(
                     translationX = offset.x,
                     translationY = offset.y,
                 )
-                .transformable(transformableState)
-                .pointerInput(Unit) {
+                // Tap detection precedes transformable: a clean tap resolves to a zone
+                // before the transform gesture tracker can claim the press, while pinches
+                // (second pointer down) cancel tap tracking and flow to transformable.
+                .pointerInput(direction) {
                     detectTapGestures(
+                        onTap = { tapOffset ->
+                            val fraction = (tapOffset.x / widthPx).coerceIn(0f, 1f)
+                            onZoneTap(zoneForTap(fraction, direction))
+                        },
                         onDoubleTap = {
                             scale = if (scale > 1f) 1f else DOUBLE_TAP_ZOOM
                             offset = Offset.Zero
                         },
                     )
-                },
+                }
+                .transformable(transformableState),
         ) {
             Box(
                 contentAlignment = Alignment.Center,

@@ -6,8 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +30,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,6 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -139,25 +142,56 @@ private fun ReaderContent(
     }
 
     val rtl = state.direction == ReadingDirection.RIGHT_TO_LEFT
+    val context = LocalContext.current
 
-    Box(modifier = modifier.fillMaxSize()) {
+    if (state.keepScreenOn) {
+        DisposableEffect(context) {
+            val window = (context as? android.app.Activity)?.window
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            onDispose {
+                window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                val action = volumeKeyAction(event.key, event.type, state.volumeKeys)
+                if (action != null) {
+                    onAction(action)
+                    true
+                } else {
+                    false
+                }
+            },
+    ) {
         HorizontalPager(
             state = pagerState,
             reverseLayout = rtl,
             beyondViewportPageCount = 1,
+            userScrollEnabled = true,
             modifier = Modifier
                 .fillMaxSize()
-                .testTag(ReaderTestTags.Pager)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { onAction(ReaderAction.ToggleChrome) },
-                ),
+                .testTag(ReaderTestTags.Pager),
         ) { page ->
             ZoomablePage(
                 pageNumber = page + 1,
                 pageFit = state.pageFit,
+                direction = state.direction,
+                onZoneTap = { zone ->
+                    when (zone) {
+                        ReaderZone.PREV -> onAction(ReaderAction.PrevPage)
+                        ReaderZone.NEXT -> onAction(ReaderAction.NextPage)
+                        ReaderZone.MENU -> onAction(ReaderAction.ToggleChrome)
+                    }
+                },
             )
+        }
+
+        if (state.showTapZones) {
+            TapZoneOverlay(direction = state.direction)
         }
 
         AnimatedVisibility(
@@ -194,6 +228,9 @@ private fun ReaderContent(
                 direction = state.direction,
                 pageFit = state.pageFit,
                 cropMargins = state.cropMargins,
+                volumeKeys = state.volumeKeys,
+                keepScreenOn = state.keepScreenOn,
+                showTapZones = state.showTapZones,
                 onAction = onAction,
             )
         }
@@ -442,6 +479,9 @@ private fun ReaderScreenPreview() {
                 pageFit = PageFit.WIDTH,
                 cropMargins = false,
                 settingsOpen = false,
+                volumeKeys = false,
+                keepScreenOn = true,
+                showTapZones = false,
             ),
             onAction = {},
             onBackClick = {},

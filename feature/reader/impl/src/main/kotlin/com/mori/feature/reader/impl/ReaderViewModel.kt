@@ -43,6 +43,9 @@ class ReaderViewModel @Inject constructor(
             pageFit = PageFit.WIDTH,
             cropMargins = false,
             settingsOpen = false,
+            volumeKeys = false,
+            keepScreenOn = true,
+            showTapZones = false,
         )
     }
 
@@ -73,6 +76,9 @@ class ReaderViewModel @Inject constructor(
                 is ReaderAction.SetDirection -> current.copy(direction = action.direction)
                 is ReaderAction.SetPageFit -> current.copy(pageFit = action.fit)
                 ReaderAction.ToggleCrop -> current.copy(cropMargins = !current.cropMargins)
+                ReaderAction.ToggleVolumeKeys -> current.copy(volumeKeys = !current.volumeKeys)
+                ReaderAction.ToggleKeepScreenOn -> current.copy(keepScreenOn = !current.keepScreenOn)
+                ReaderAction.ToggleTapZones -> current.copy(showTapZones = !current.showTapZones)
             }
         }
     }

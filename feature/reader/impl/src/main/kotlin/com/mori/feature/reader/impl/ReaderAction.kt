@@ -28,4 +28,10 @@ sealed interface ReaderAction {
     data class SetPageFit(val fit: PageFit) : ReaderAction
 
     data object ToggleCrop : ReaderAction
+
+    data object ToggleVolumeKeys : ReaderAction
+
+    data object ToggleKeepScreenOn : ReaderAction
+
+    data object ToggleTapZones : ReaderAction
 }
