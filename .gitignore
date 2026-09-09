@@ -2,7 +2,10 @@
 build/
 local.properties
 .idea/
+.vscode/
 *.iml
+*.hprof
+*.log
 .DS_Store
 captures/
 .externalNativeBuild/

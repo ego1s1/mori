@@ -1,51 +1,93 @@
-# mori
+# Mori — Comic Reader Backend & App 🚧 Work in Progress
 
-A highly optimized, Kotlin-first Android library for decoding and serving comic book
-archives (CBZ, CBR, image folders — more formats to come) plus pluggable on-device OCR.
+> **Status: active development, not production-ready.** APIs, screens, and storage
+> layouts may change without notice. See [Roadmap](#roadmap) for what works today.
 
-The library is intentionally split into two artifacts so consumers that do not need OCR
-do not pull in the Tesseract native libraries:
+Mori is a Kotlin-first Android project for reading comic book archives, split in two halves:
 
-| Module              | Purpose                                                     |
-| ------------------- | ----------------------------------------------------------- |
-| `comic-core`        | Archive decoding, page model, image decoding (no UI, no OCR) |
-| `comic-ocr`         | Pluggable `OcrEngine` abstraction + Tesseract backend        |
+| Part | What it is |
+| ---- | ---------- |
+| **Backend** (`comic-core`, `comic-ocr`) | Decoding library for CBZ / CBR / image folders: archive handling, natural page ordering, `ComicInfo.xml` metadata, subsampled + region image decoding with EXIF support, and a pluggable on-device OCR engine (Tesseract default). Published as `com.mori:comic-core` and `com.mori:comic-ocr`. |
+| **App** (`app` + `feature/*` + `core/*`) | Jetpack Compose reader app built on that backend: first-launch folder import, indexed offline-first library grid, comic detail, and an immersive Material 3 Expressive reader. |
 
-## Status
+## Credits & inspiration
 
-This project is built in phases. See the plan in the repository history and the issue
-tracker for the full roadmap.
+The reader and library UX conventions (tap-zone navigation, volume-key page turns,
+slider-pill chapter navigator, badge/display-mode/sort-filter organization) are
+**inspired by [Mihon](https://github.com/mihonapp/mihon)**, an excellent open-source
+manga reader. Mihon served purely as a design reference — **no Mihon code is included
+in this repository; every implementation here is original**, restyled on top of
+Material 3 Expressive components.
 
-- [x] Phase 0 — Scaffold, CI, tooling, natural-order page sorting
-- [x] Phase 1 — Core decode (CBZ / CBR / folders, ComicInfo.xml, typed errors)
-- [x] Phase 2 — Image decode hardening (subsample, regions, EXIF, OOM safety)
-- [x] Phase 3 — OCR abstraction + Tesseract backend
-- [x] Phase 4 — Production hardening & 1.0
-- [ ] Phase 5 — Reader UI, CB7/CBT/PDF, ML Kit/PaddleOCR backends, KMP
+Supporting open-source acknowledgements: Tesseract OCR, junrar, Coil, Jetpack libraries.
 
 ## Requirements
 
 - JDK 17
 - Android SDK (compileSdk 35, minSdk 24)
+- An arm64 device for on-device OCR (the bundled Tesseract native library is arm64-only)
 
-## Build & test
+## Build, test, install
 
 ```bash
-./gradlew test          # unit tests
+./gradlew test          # unit tests (JVM + Robolectric)
 ./gradlew lint          # Android lint
-./gradlew detekt        # static analysis
-./gradlew apiCheck      # public API compatibility
-./gradlew assembleDebug # build AARs
+./gradlew detekt        # static analysis (backend modules)
+./gradlew apiCheck      # public API compatibility (backend modules)
+./gradlew assembleDebug # build backend AARs + app APK
+
+./scripts/install-app.sh  # install the debug APK on a connected device/emulator
 ```
 
-## Publishing
+The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-`comic-core` and `comic-ocr` are published to Maven coordinates
-`com.mori:comic-core` and `com.mori:comic-ocr`. Publish locally with:
+## How it fits together
 
-```bash
-./gradlew publishToMavenLocal
+```text
+app/                          # Hilt app, MainActivity, top-level navigation
+feature/onboarding|library|detail|reader
+  api/                        # type-safe navigation routes (public)
+  impl/                       # screens, ViewModels, UI state (internal)
+core/
+  model/                      # pure-Kotlin domain (Comic, queries, prefs)
+  data/                       # repository, backend bridge, covers, Coil fetchers
+  database/                   # Room index of the library
+  datastore/                  # onboarding + preference flags
+  designsystem/               # M3 Expressive theme, motion, icons
+  common/ testing/            # dispatchers, test rules
+comic-core/ comic-ocr/        # the decoding + OCR backend (see above)
+build-logic/                  # Gradle convention plugins
 ```
+
+Key behaviors:
+
+- **Import, don't link**: onboarding copies CBZ/CBR files via SAF into app-private
+  storage, then indexes them with generated cover thumbnails. Originals are untouched.
+- **Offline-first**: Room is the source of truth; the library grid, detail, and
+  reader all observe it reactively.
+- **Bounded decoding**: covers and pages decode through resolution-capped
+  subsampling and region reads, served to Compose through a Coil fetcher.
+- **Errors are data**: corrupt, password-protected, and empty archives become
+  visible error rows with retry/remove actions instead of crashes.
+
+## Known limitations
+
+- CBR support covers **RAR4** (junrar, the available open-source decoder, does not
+  yet implement RAR5 extraction).
+- OCR runs on-device and is arm64-only; x86_64 emulators can't load it.
+- Reader pages currently render placeholders until real-data wiring lands (see roadmap).
+
+## Roadmap
+
+- [x] Backend 1.0: decode CBZ/CBR/folders, subsample/region/EXIF, Tesseract OCR, hardening
+- [x] App foundation: modular Compose shell, M3 Expressive theme, navigation
+- [x] Onboarding with SAF import flow
+- [x] Reader chrome matching the target mockup (slider pill, toolbar, settings)
+- [x] Data layer: Room index, repository, covers, Coil pipeline
+- [x] Library grid with search/sort/filter
+- [x] Detail screen with page strip and error handling
+- [ ] Reader wired to real pages + saved progress
+- [ ] Polish & release: accessibility, adaptive layouts, storage manager
 
 ## License
 
