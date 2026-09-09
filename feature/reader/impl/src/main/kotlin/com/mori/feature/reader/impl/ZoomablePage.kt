@@ -71,18 +71,26 @@ internal fun ZoomablePage(
         offset = if (scale <= 1f) Offset.Zero else offset + panChange
     }
     // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
-    // so it must read scale through a ref instead of a stale closure.
-    val latestZoomToggle = rememberUpdatedState {
+    // so it must read scale through a ref instead of a stale closure. Zooming in
+    // anchors on the tap point (the tapped art stays under the finger); zooming
+    // out always returns to fit.
+    val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
         val target = zoomTargetForTap(scale)
+        val targetOffset = zoomOffsetForTap(tap, center, target)
+        val startScale = scale
+        val startOffset = offset
         scope.launch {
             animate(
-                initialValue = scale,
-                targetValue = target,
+                initialValue = 0f,
+                targetValue = 1f,
                 animationSpec = tween(
                     durationMillis = DOUBLE_TAP_ZOOM_MS,
                     easing = MoriMotion.EmphasizedDecelerate,
                 ),
-            ) { value, _ -> scale = value }
+            ) { fraction, _ ->
+                scale = startScale + (target - startScale) * fraction
+                offset = startOffset + (targetOffset - startOffset) * fraction
+            }
             if (target <= 1f) {
                 offset = Offset.Zero
             }
@@ -143,7 +151,8 @@ internal fun ZoomablePage(
                             }
                             TapDecision.Zoom -> {
                                 pendingMenuTap = null
-                                latestZoomToggle.value()
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                latestZoomToggle.value(up.position, center)
                             }
                             TapDecision.AwaitSecondTap -> {
                                 pendingMenuTap = TapRecord(
@@ -196,6 +205,16 @@ private const val DOUBLE_TAP_ZOOM_MS = 300
  */
 internal fun zoomTargetForTap(currentScale: Float): Float =
     if (currentScale > 1f) 1f else DOUBLE_TAP_ZOOM
+
+/**
+ * Translation that keeps the tapped art under the finger while zooming in.
+ *
+ * The page scales about its center, so without compensation the tap point drifts
+ * outward; shifting by `(tap - center) * (1 - scale)` cancels the drift exactly.
+ * Zooming out always returns to fit ([Offset.Zero]). Pure for testability.
+ */
+internal fun zoomOffsetForTap(tap: Offset, center: Offset, targetScale: Float): Offset =
+    if (targetScale <= 1f) Offset.Zero else (tap - center) * (1f - targetScale)
 
 /** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */
 private const val READER_MAX_DIMENSION = 1600

@@ -1,5 +1,6 @@
 package com.mori.feature.reader.impl
 
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
@@ -97,6 +98,28 @@ class ReaderViewModelTest {
         assertEquals(1f, zoomTargetForTap(2.5f))
         assertEquals(1f, zoomTargetForTap(1.5f))
         assertEquals(2.5f, zoomTargetForTap(1f))
+    }
+
+    @Test
+    fun zoomOffsetKeepsTapPointUnderFinger() {
+        // Tapping the center needs no compensation.
+        zoomOffsetForTap(
+            tap = Offset(500f, 800f),
+            center = Offset(500f, 800f),
+            targetScale = 2.5f,
+        ).assertOffset(0f, 0f)
+        // Tapping right/below center shifts content left/up so the art stays put.
+        zoomOffsetForTap(
+            tap = Offset(700f, 1100f),
+            center = Offset(500f, 800f),
+            targetScale = 2.5f,
+        ).assertOffset(-300f, -450f)
+        // Zooming out always returns to fit, wherever the tap landed.
+        zoomOffsetForTap(
+            tap = Offset(700f, 1100f),
+            center = Offset(500f, 800f),
+            targetScale = 1f,
+        ).assertOffset(0f, 0f)
     }
 
     @Test
@@ -228,8 +251,14 @@ class ReaderViewModelTest {
         assertEquals(true, preferences.isOverviewSeen())
     }
 
-    private suspend fun ReceiveTurbine<ReaderUiState>.awaitReady(): ReaderUiState.Ready {
-        while (true) {
+    private fun Offset.assertOffset(x: Float, y: Float) {
+        // Delta comparison: zoom math can yield -0.0f, which boxed-equals rejects
+        // against 0.0f despite rendering identically.
+        assertEquals(x, this.x, 0.001f)
+        assertEquals(y, this.y, 0.001f)
+    }
+
+    private suspend fun ReceiveTurbine<ReaderUiState>.awaitReady(): ReaderUiState.Ready {        while (true) {
             when (val next = awaitItem()) {
                 is ReaderUiState.Ready -> return next
                 else -> Unit
