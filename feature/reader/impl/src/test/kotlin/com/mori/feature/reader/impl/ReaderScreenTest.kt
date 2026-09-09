@@ -1,6 +1,8 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -232,5 +234,71 @@ class ReaderScreenTest {
         }
 
         composeTestRule.onNodeWithText("Archive is corrupt").assertIsDisplayed()
+    }
+
+    @Test
+    fun prevDisabledOnFirstPage() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(pageIndex = 0),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Next).assertIsEnabled()
+    }
+
+    @Test
+    fun nextDisabledOnLastPage() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(pageIndex = 172),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).assertIsEnabled()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Next).assertIsNotEnabled()
+    }
+
+    @Test
+    fun singlePageComicHidesSliderPill() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(pageIndex = 0).copy(pageCount = 1),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Slider).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Next).assertIsDisplayed()
+    }
+
+    @Test
+    fun rtlLeadingButtonAdvances() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(direction = ReadingDirection.RIGHT_TO_LEFT),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        // In RTL the leading control moves forward.
+        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).performClick()
+
+        assert(actions.contains(ReaderAction.NextPage))
     }
 }

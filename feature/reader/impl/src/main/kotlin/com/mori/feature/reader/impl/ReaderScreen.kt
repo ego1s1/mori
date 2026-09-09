@@ -6,10 +6,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +34,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,12 +44,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -133,16 +142,26 @@ private fun ReaderContent(
             onAction(ReaderAction.PageChanged(page))
         }
     }
-    // Auto-hide chrome after a moment of stillness.
-    if (state.chromeVisible && !state.settingsOpen) {
+
+    val rtl = state.direction == ReadingDirection.RIGHT_TO_LEFT
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val sliderInteraction = remember { MutableInteractionSource() }
+    val scrubbing by sliderInteraction.collectIsDraggedAsState()
+
+    // Auto-hide chrome after a moment of stillness, but never mid-scrub.
+    if (state.chromeVisible && !state.settingsOpen && !scrubbing) {
         LaunchedEffect(state.chromeVisible, state.pageIndex) {
             delay(CHROME_AUTO_HIDE_MS)
             onAction(ReaderAction.ToggleChrome)
         }
     }
-
-    val rtl = state.direction == ReadingDirection.RIGHT_TO_LEFT
-    val context = LocalContext.current
+    // Tactile ticks while scrubbing through pages.
+    LaunchedEffect(state.pageIndex) {
+        if (scrubbing) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
 
     if (state.keepScreenOn) {
         DisposableEffect(context) {
@@ -219,6 +238,7 @@ private fun ReaderContent(
                 pageCount = state.pageCount,
                 direction = state.direction,
                 pageFit = state.pageFit,
+                sliderInteraction = sliderInteraction,
                 onAction = onAction,
             )
         }
@@ -258,6 +278,7 @@ private fun ReaderTopBar(
                     ),
                 ),
             )
+            .swallowTaps()
             .padding(top = statusBarPadding.calculateTopPadding())
             .testTag(ReaderTestTags.TopBar),
     ) {
@@ -312,9 +333,29 @@ private fun ReaderBottomChrome(
     pageCount: Int,
     direction: ReadingDirection,
     pageFit: PageFit,
+    sliderInteraction: MutableInteractionSource,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The whole row mirrors in RTL so the forward control stays on the leading side,
+    // matching the pager's own reversal.
+    val rowDirection = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+        LayoutDirection.Rtl
+    } else {
+        LayoutDirection.Ltr
+    }
+    // In RTL the leading control advances; icons follow the visual direction.
+    val leadingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+        ReaderAction.NextPage to MoriIcons.SkipNext
+    } else {
+        ReaderAction.PrevPage to MoriIcons.SkipPrevious
+    }
+    val trailingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+        ReaderAction.PrevPage to MoriIcons.SkipPrevious
+    } else {
+        ReaderAction.NextPage to MoriIcons.SkipNext
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
@@ -327,76 +368,95 @@ private fun ReaderBottomChrome(
                     ),
                 ),
             )
+            .swallowTaps()
             .padding(horizontal = 16.dp)
             .padding(bottom = 20.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            FilledIconButton(
-                onClick = { onAction(ReaderAction.PrevPage) },
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                modifier = Modifier
-                    .size(56.dp)
-                    .testTag(ReaderTestTags.Prev),
+        CompositionLocalProvider(LocalLayoutDirection provides rowDirection) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(
-                    imageVector = MoriIcons.SkipPrevious,
-                    contentDescription = "Previous page",
-                )
-            }
-
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.weight(1f),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                FilledIconButton(
+                    onClick = { onAction(leadingAction.first) },
+                    enabled = isNavigationEnabled(leadingAction.first, pageIndex, pageCount),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .testTag(ReaderTestTags.Prev),
                 ) {
-                    Text(
-                        text = (pageIndex + 1).toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Slider(
-                        value = pageIndex.toFloat(),
-                        onValueChange = { onAction(ReaderAction.SeekPage(it.toInt())) },
-                        valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
-                        steps = (pageCount - 2).coerceAtLeast(0),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag(ReaderTestTags.Slider),
-                    )
-                    Text(
-                        text = pageCount.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icon(
+                        imageVector = leadingAction.second,
+                        contentDescription = "Previous page",
                     )
                 }
-            }
 
-            FilledIconButton(
-                onClick = { onAction(ReaderAction.NextPage) },
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                modifier = Modifier
-                    .size(56.dp)
-                    .testTag(ReaderTestTags.Next),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.SkipNext,
-                    contentDescription = "Next page",
-                )
+                if (pageCount > 1) {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        ) {
+                            // Transparent widest-length text behind the current number keeps
+                            // the slider from shifting as digit counts change.
+                            Box(contentAlignment = Alignment.CenterEnd) {
+                                Text(
+                                    text = (pageIndex + 1).toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = pageCount.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.Transparent,
+                                )
+                            }
+                            Slider(
+                                value = pageIndex.toFloat(),
+                                onValueChange = { onAction(ReaderAction.SeekPage(it.toInt())) },
+                                valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
+                                steps = (pageCount - 2).coerceAtLeast(0),
+                                interactionSource = sliderInteraction,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag(ReaderTestTags.Slider),
+                            )
+                            Text(
+                                text = pageCount.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                FilledIconButton(
+                    onClick = { onAction(trailingAction.first) },
+                    enabled = isNavigationEnabled(trailingAction.first, pageIndex, pageCount),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .testTag(ReaderTestTags.Next),
+                ) {
+                    Icon(
+                        imageVector = trailingAction.second,
+                        contentDescription = "Next page",
+                    )
+                }
             }
         }
 
@@ -490,3 +550,26 @@ private fun ReaderScreenPreview() {
 }
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
+
+/**
+ * Whether a navigation action can move anywhere from [pageIndex].
+ *
+ * Buttons render disabled at the ends instead of clamping silently, so position is
+ * always visible.
+ */
+private fun isNavigationEnabled(action: ReaderAction, pageIndex: Int, pageCount: Int): Boolean =
+    when (action) {
+        ReaderAction.PrevPage -> pageIndex > 0
+        ReaderAction.NextPage -> pageIndex < pageCount - 1
+        else -> true
+    }
+
+/**
+ * Consumes taps on chrome containers so they never fall through to the page zones
+ * beneath (which would turn pages when the user meant to scrub or open settings).
+ */
+private fun Modifier.swallowTaps(): Modifier = clickable(
+    interactionSource = null,
+    indication = null,
+    onClick = {},
+)
