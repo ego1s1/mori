@@ -41,7 +41,11 @@ internal fun Project.configureAndroidLibraryDefaults() {
             targetSdk = TARGET_SDK
             testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
+        testOptions {
+            unitTests.isIncludeAndroidResources = true
+        }
     }
+    disableReleaseUnitTests()
 }
 
 internal fun Project.configureAndroidApplicationDefaults() {
@@ -49,6 +53,21 @@ internal fun Project.configureAndroidApplicationDefaults() {
         configureAndroidCommon(this)
         defaultConfig {
             targetSdk = TARGET_SDK
+        }
+    }
+    disableReleaseUnitTests()
+}
+
+/**
+ * Debug and release unit tests compile and run the same `src/test` sources (unit tests are
+ * never minified), so the release variant run is redundant. It is disabled so `./gradlew
+ * test` stays green — notably, `debugImplementation`-scoped test manifests (Compose UI
+ * test activity) are invisible to the release variant's Robolectric manifest resolution.
+ */
+internal fun Project.disableReleaseUnitTests() {
+    tasks.configureEach {
+        if (name.endsWith("ReleaseUnitTest")) {
+            enabled = false
         }
     }
 }

@@ -23,6 +23,14 @@ class MoriAndroidFeaturePlugin : Plugin<Project> {
                 add("implementation", libs.findLibrary("androidx-lifecycle-viewmodel-compose").get())
                 add("implementation", libs.findLibrary("androidx-navigation-compose").get())
                 add("implementation", libs.findLibrary("kotlinx-coroutines-android").get())
+
+                add("testImplementation", libs.findLibrary("junit").get())
+                add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())
+                add("testImplementation", libs.findLibrary("turbine").get())
+                add("testImplementation", project(":core:testing"))
+                add("testImplementation", libs.findLibrary("robolectric").get())
+                add("testImplementation", libs.findLibrary("androidx-compose-ui-test-junit4").get())
+                add("debugImplementation", libs.findLibrary("androidx-compose-ui-test-manifest").get())
             }
         }
     }
