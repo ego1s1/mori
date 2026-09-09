@@ -1,5 +1,12 @@
 package com.mori.feature.library.impl
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -53,7 +60,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
@@ -161,7 +170,11 @@ private fun LibraryContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            if (searchOpen) {
+            AnimatedVisibility(
+                visible = searchOpen,
+                enter = searchEnter(),
+                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+            ) {
                 OutlinedTextField(
                     value = state.query.text,
                     onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
@@ -189,38 +202,83 @@ private fun LibraryContent(
             )
         }
 
-        FloatingToolbar(
-            onSearchClick = { searchOpen = !searchOpen },
-            onSettingsClick = onSettingsClick,
-            onAction = onAction,
+        AnimatedVisibility(
+            visible = true,
+            enter = toolbarEnter(),
+            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),
-        )
+        ) {
+            FloatingToolbar(
+                onSearchClick = { searchOpen = !searchOpen },
+                onSettingsClick = onSettingsClick,
+                onAction = onAction,
+            )
+        }
 
         val resume = state.resumeTarget
-        if (resume != null) {
-            FilledIconButton(
-                onClick = { onReadClick(resume.id, resume.lastPageIndex) },
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                ),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 96.dp)
-                    .size(64.dp)
-                    .testTag(LibraryTestTags.ResumeFab),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.PlayArrow,
-                    contentDescription = "Resume ${resume.title}",
-                    modifier = Modifier.size(32.dp),
-                )
+        AnimatedVisibility(
+            visible = resume != null,
+            enter = resumeEnter(),
+            exit = scaleOut(animationSpec = MoriMotion.calmFade()) +
+                fadeOut(animationSpec = MoriMotion.calmFade()),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 96.dp),
+        ) {
+            if (resume != null) {
+                FilledIconButton(
+                    onClick = { onReadClick(resume.id, resume.lastPageIndex) },
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                    modifier = Modifier
+                        .size(64.dp)
+                        .testTag(LibraryTestTags.ResumeFab),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.PlayArrow,
+                        contentDescription = "Resume ${resume.title}",
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
             }
         }
     }
 }
+
+/**
+ * Motion-aware entrances: expressive springs, calm fades. Read from
+ * [LocalExpressiveMotionEnabled] so the settings toggle applies everywhere.
+ */
+@Composable
+private fun searchEnter() =
+    if (LocalExpressiveMotionEnabled.current) {
+        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+            expandVertically(animationSpec = MoriMotion.chromeSpring())
+    } else {
+        fadeIn(animationSpec = MoriMotion.calmFade())
+    }
+
+@Composable
+private fun toolbarEnter() =
+    if (LocalExpressiveMotionEnabled.current) {
+        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+            slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 }
+    } else {
+        fadeIn(animationSpec = MoriMotion.calmFade())
+    }
+
+@Composable
+private fun resumeEnter() =
+    if (LocalExpressiveMotionEnabled.current) {
+        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+            scaleIn(animationSpec = MoriMotion.heroSpring(), initialScale = 0.6f)
+    } else {
+        fadeIn(animationSpec = MoriMotion.calmFade())
+    }
 
 /**
  * M3 large app bar: emphasized collapsing headline with a live collection subtitle.
