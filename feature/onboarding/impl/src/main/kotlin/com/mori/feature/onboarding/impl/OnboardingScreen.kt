@@ -3,6 +3,10 @@ package com.mori.feature.onboarding.impl
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +36,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.ImportReport
@@ -115,53 +122,73 @@ private fun WelcomeContent(
     onPickFiles: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp),
+    AnimatedVisibility(
+        visible = true,
+        enter = welcomeEnter(),
+        exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+        modifier = modifier.fillMaxSize(),
     ) {
-        Icon(
-            imageVector = MoriIcons.FolderOpen,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(72.dp),
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Where are your comics?",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Pick a folder and Mori copies your CBZ and CBR files into its " +
-                "private library. Your originals stay exactly where they are.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onPickFolder,
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth()
-                .testTag(OnboardingTestTags.PickFolder),
+                .fillMaxSize()
+                .padding(32.dp),
         ) {
-            Text("Choose folder")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(
-            onClick = onPickFiles,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(OnboardingTestTags.PickFiles),
-        ) {
-            Text("Pick individual files")
+            Icon(
+                imageVector = MoriIcons.FolderOpen,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Where are your comics?",
+                style = MoriEmphasized.headlineMedium,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Pick a folder and Mori copies your CBZ and CBR files into its " +
+                    "private library. Your originals stay exactly where they are.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onPickFolder,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(OnboardingTestTags.PickFolder),
+            ) {
+                Text("Choose folder")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onPickFiles,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(OnboardingTestTags.PickFiles),
+            ) {
+                Text("Pick individual files")
+            }
         }
     }
 }
+
+/**
+ * Welcome entrance: content rises gently on the chrome spring, or fades quietly
+ * under the calm setting.
+ */
+@Composable
+private fun welcomeEnter() =
+    if (LocalExpressiveMotionEnabled.current) {
+        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+            slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 4 }
+    } else {
+        fadeIn(animationSpec = MoriMotion.calmFade())
+    }
 
 @Composable
 private fun ImportingContent(
@@ -184,7 +211,7 @@ private fun ImportingContent(
         } else {
             Text(
                 text = "Copying $done of $total",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MoriEmphasized.headlineSmall,
             )
             Spacer(modifier = Modifier.height(16.dp))
             LinearProgressIndicator(
@@ -224,7 +251,7 @@ private fun DoneContent(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Imported ${report.succeeded} of ${report.total}",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MoriEmphasized.headlineSmall,
             textAlign = TextAlign.Center,
         )
         if (report.failed > 0) {
