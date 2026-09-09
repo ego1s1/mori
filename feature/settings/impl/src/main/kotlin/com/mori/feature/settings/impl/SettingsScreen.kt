@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -41,6 +42,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import com.mori.feature.settings.api.SettingsRoute
@@ -101,6 +103,7 @@ internal fun SettingsScreen(
                 is SettingsUiState.Ready -> SettingsContent(
                     theme = uiState.theme,
                     reader = uiState.reader,
+                    storage = uiState.storage,
                     onAction = onAction,
                 )
             }
@@ -112,6 +115,7 @@ internal fun SettingsScreen(
 internal fun SettingsContent(
     theme: ThemePreferences,
     reader: ReaderPreferences,
+    storage: StorageUsage?,
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -221,9 +225,26 @@ internal fun SettingsContent(
         )
 
         SectionTitle("Storage", topPadding = 20.dp)
-        PlaceholderRow(
-            title = "Clear thumbnail cache",
-            subtitle = "Coming soon",
+        if (storage != null) {
+            Text(
+                text = "${storage.comicCount} comics • " +
+                    "${formatBytes(storage.libraryBytes)} library • " +
+                    "${formatBytes(storage.coversBytes)} covers",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        OutlinedButton(
+            onClick = { onAction(SettingsAction.ClearThumbnailCache) },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Clear thumbnail cache")
+        }
+        Text(
+            text = "Covers regenerate the next time each comic is indexed.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         PlaceholderRow(
             title = "Library location",
@@ -347,9 +368,29 @@ private fun SettingsScreenPreview() {
             uiState = SettingsUiState.Ready(
                 theme = ThemePreferences(),
                 reader = ReaderPreferences(),
+                storage = StorageUsage(comicCount = 12, libraryBytes = 480_000_000L, coversBytes = 6_000_000L),
             ),
             onAction = {},
             onBackClick = {},
         )
+    }
+}
+
+/** Human-readable byte counts for the storage manager (B/KB/MB/GB, one decimal). */
+internal fun formatBytes(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val units = listOf("KB", "MB", "GB")
+    var value = bytes.toDouble() / 1024
+    var unit = units[0]
+    for (next in units.drop(1)) {
+        if (value < 1024) break
+        value /= 1024
+        unit = next
+    }
+    val rounded = (value * 10).toLong() / 10.0
+    return if (rounded == rounded.toLong().toDouble()) {
+        "${rounded.toLong()} $unit"
+    } else {
+        "$rounded $unit"
     }
 }

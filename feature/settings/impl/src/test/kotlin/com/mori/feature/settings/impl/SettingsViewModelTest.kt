@@ -3,6 +3,7 @@ package com.mori.feature.settings.impl
 import app.cash.turbine.test
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
@@ -23,7 +24,7 @@ class SettingsViewModelTest {
 
     @Test
     fun emitsCurrentPreferences() = runTest {
-        val viewModel = SettingsViewModel(TestPreferencesDataSource())
+        val viewModel = SettingsViewModel(TestPreferencesDataSource(), TestComicsRepository())
         viewModel.uiState.test {
             val state = awaitItem()
             assertTrue(state is SettingsUiState.Ready)
@@ -33,7 +34,7 @@ class SettingsViewModelTest {
     @Test
     fun themeActionsPersist() = runTest {
         val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences)
+        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
         viewModel.uiState.test {
             awaitItem() // initial (Loading or first Ready)
             viewModel.onAction(SettingsAction.SetThemeMode(ThemeMode.DARK))
@@ -47,9 +48,8 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun readerActionsPersist() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences)
+    fun readerActionsPersist() = runTest {        val preferences = TestPreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
         viewModel.uiState.test {
             awaitReady()
             viewModel.onAction(SettingsAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT))
@@ -63,6 +63,33 @@ class SettingsViewModelTest {
             }
             assertEquals(ReadingDirection.RIGHT_TO_LEFT, settled.reader.direction)
         }
+    }
+
+    @Test
+    fun storageUsageLoadsOnStart() = runTest {
+        val repository = TestComicsRepository(
+            StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L),
+        )
+        val viewModel = SettingsViewModel(TestPreferencesDataSource(), repository)
+        viewModel.uiState.test {
+            val settled = awaitReadyWhere { it.storage != null }
+            assertEquals(3, settled.storage?.comicCount)
+        }
+    }
+
+    @Test
+    fun clearThumbnailCacheRefreshesUsage() = runTest {
+        val repository = TestComicsRepository(
+            StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L),
+        )
+        val viewModel = SettingsViewModel(TestPreferencesDataSource(), repository)
+        viewModel.uiState.test {
+            awaitReadyWhere { it.storage != null }
+            viewModel.onAction(SettingsAction.ClearThumbnailCache)
+            val cleared = awaitReadyWhere { it.storage?.coversBytes == 0L }
+            assertEquals(0L, cleared.storage?.coversBytes)
+        }
+        assertEquals(1, repository.clearCacheCalls)
     }
 
     private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready {

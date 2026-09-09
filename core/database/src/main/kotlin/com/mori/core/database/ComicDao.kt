@@ -31,6 +31,9 @@ interface ComicDao {
     @Query("UPDATE comics SET bookmarked = :bookmarked, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateBookmark(id: String, bookmarked: Boolean, updatedAt: Long)
 
+    @Query("UPDATE comics SET coverPath = NULL")
+    suspend fun clearCovers()
+
     @Query("DELETE FROM comics WHERE id = :id")
     suspend fun deleteById(id: String)
 

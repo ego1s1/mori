@@ -1,11 +1,17 @@
 package com.mori.feature.settings.impl
 
+import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.Comic
+import com.mori.core.model.IndexReport
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 /** In-memory preferences double for settings tests. */
 internal class TestPreferencesDataSource(
@@ -38,4 +44,37 @@ internal class TestPreferencesDataSource(
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
         themePreferencesFlow.value = transform(themePreferencesFlow.value)
     }
+}
+
+/** Minimal repository double: storage + cache clearing only. */
+internal class TestComicsRepository(
+    private var usage: StorageUsage = StorageUsage(0, 0L, 0L),
+) : ComicsRepository {
+
+    var clearCacheCalls = 0
+
+    override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
+        MutableStateFlow(emptyList<Comic>()).asStateFlow()
+
+    override fun observeComic(id: String): Flow<Comic?> =
+        MutableStateFlow<Comic?>(null).asStateFlow()
+
+    override suspend fun getComic(id: String): Comic? = null
+
+    override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
+
+    override suspend fun refreshComic(id: String): Comic? = null
+
+    override suspend fun removeComic(id: String) = Unit
+
+    override suspend fun saveProgress(id: String, pageIndex: Int) = Unit
+
+    override suspend fun toggleBookmark(id: String) = Unit
+
+    override suspend fun clearThumbnailCache() {
+        clearCacheCalls += 1
+        usage = usage.copy(coversBytes = 0L)
+    }
+
+    override suspend fun storageUsage(): StorageUsage = usage
 }

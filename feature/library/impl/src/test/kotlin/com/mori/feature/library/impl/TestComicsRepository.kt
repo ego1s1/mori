@@ -78,4 +78,10 @@ internal class TestComicsRepository(
             updatedAt = updatedAt,
         )
     }
+
+    override suspend fun clearThumbnailCache() {
+    }
+
+    override suspend fun storageUsage(): com.mori.core.model.StorageUsage =
+        com.mori.core.model.StorageUsage(0, 0L, 0L)
 }

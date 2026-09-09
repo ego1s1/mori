@@ -3,6 +3,7 @@ package com.mori.core.data
 import com.mori.core.model.Comic
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.StorageUsage
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -33,4 +34,10 @@ interface ComicsRepository {
     suspend fun saveProgress(id: String, pageIndex: Int)
 
     suspend fun toggleBookmark(id: String)
+
+    /** Deletes generated covers and clears their index references (regenerated on rescan). */
+    suspend fun clearThumbnailCache()
+
+    /** Measures the app-private library footprint for the storage manager. */
+    suspend fun storageUsage(): StorageUsage
 }

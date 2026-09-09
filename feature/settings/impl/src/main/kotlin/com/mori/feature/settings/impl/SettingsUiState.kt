@@ -3,6 +3,7 @@ package com.mori.feature.settings.impl
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 
@@ -12,6 +13,7 @@ sealed interface SettingsUiState {
     data class Ready(
         val theme: ThemePreferences,
         val reader: ReaderPreferences,
+        val storage: StorageUsage?,
     ) : SettingsUiState
 }
 
@@ -29,4 +31,6 @@ sealed interface SettingsAction {
     data object ToggleVolumeKeys : SettingsAction
 
     data object ToggleKeepScreenOn : SettingsAction
+
+    data object ClearThumbnailCache : SettingsAction
 }

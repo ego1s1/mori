@@ -6,8 +6,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import org.junit.Rule
 import org.junit.Test
@@ -30,6 +32,7 @@ class SettingsScreenTest {
                 SettingsContent(
                     theme = ThemePreferences(),
                     reader = ReaderPreferences(),
+                    storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     onAction = actions::add,
                 )
             }
@@ -43,8 +46,8 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Appearance").assertIsDisplayed()
         composeTestRule.onNodeWithText("Reader defaults").assertExists()
         composeTestRule.onNodeWithText("Storage").assertExists()
-        // Section title plus two placeholder subtitles.
-        composeTestRule.onAllNodesWithText("Coming soon").assertCountEquals(3)
+        // Section title only; placeholder rows carry specific subtitles.
+        composeTestRule.onAllNodesWithText("Coming soon").assertCountEquals(2)
         composeTestRule.onNodeWithText("About").assertExists()
     }
 
@@ -78,6 +81,28 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("OCR text layer").assertExists()
     }
 
+    @Test
+    fun storageSectionShowsUsageAndClearDispatches() {
+        val actions = mutableListOf<SettingsAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                SettingsContent(
+                    theme = ThemePreferences(),
+                    reader = ReaderPreferences(),
+                    storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("2 comics • 2 KB library • 512 B covers").assertExists()
+        // Below-fold content only measures once scrolled into view under Robolectric.
+        composeTestRule.onNodeWithText("Clear thumbnail cache").performScrollTo()
+        composeTestRule.onNodeWithText("Clear thumbnail cache").performClick()
+
+        assert(actions.contains(SettingsAction.ClearThumbnailCache))
+    }
+
     private fun setFullScreen() {
         composeTestRule.setContent {
             MoriTheme {
@@ -85,6 +110,7 @@ class SettingsScreenTest {
                     uiState = SettingsUiState.Ready(
                         theme = ThemePreferences(),
                         reader = ReaderPreferences(),
+                        storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     ),
                     onAction = {},
                     onBackClick = {},

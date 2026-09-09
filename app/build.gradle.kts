@@ -20,7 +20,14 @@ android {
 
     buildTypes {
         release {
+            // Minification stays off until release builds are verified on device (F6).
+            // proguard-rules.pro is ready for that day (Hilt/Room/Coil/serialization).
             isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

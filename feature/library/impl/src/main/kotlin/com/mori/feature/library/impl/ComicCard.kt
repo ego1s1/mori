@@ -51,7 +51,12 @@ internal fun ComicCard(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .testTag(LibraryTestTags.cardFor(comic.id))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(
+                onClick = onClick,
+                onClickLabel = "Read ${comic.title}",
+                onLongClick = onLongClick,
+                onLongClickLabel = "Comic details",
+            ),
     ) {
         Box(modifier = Modifier.aspectRatio(COVER_ASPECT)) {
             CoverArt(title = comic.title, coverPath = comic.coverPath)

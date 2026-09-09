@@ -86,8 +86,8 @@ Key behaviors:
 - [x] Data layer: Room index, repository, covers, Coil pipeline
 - [x] Library grid with search/sort/filter
 - [x] Detail screen with page strip and error handling
-- [ ] Reader wired to real pages + saved progress
-- [ ] Polish & release: accessibility, adaptive layouts, storage manager
+- [x] Reader wired to real pages + saved progress
+- [x] Polish & release: accessibility, adaptive layouts, storage manager
 
 ## License
 

@@ -57,6 +57,12 @@ internal class FakeComicsRepository(
         }
     }
 
+    override suspend fun clearThumbnailCache() {
+    }
+
+    override suspend fun storageUsage(): com.mori.core.model.StorageUsage =
+        com.mori.core.model.StorageUsage(0, 0L, 0L)
+
     companion object {
         fun comic(
             id: String,

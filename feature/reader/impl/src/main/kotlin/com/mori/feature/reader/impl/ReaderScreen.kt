@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,8 +55,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -189,15 +194,23 @@ private fun ReaderContent(
                 }
             },
     ) {
-        HorizontalPager(
-            state = pagerState,
-            reverseLayout = rtl,
-            beyondViewportPageCount = 1,
-            userScrollEnabled = true,
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag(ReaderTestTags.Pager),
-        ) { page ->
+        // Constrain the page well on expanded windows (M3 guidance caps gallery
+        // content around 840dp); phones stay full-bleed.
+        androidx.compose.foundation.layout.BoxWithConstraints(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            val pageWidth = minOf(maxWidth, EXPANDED_CONTENT_MAX_WIDTH)
+            HorizontalPager(
+                state = pagerState,
+                reverseLayout = rtl,
+                beyondViewportPageCount = 1,
+                userScrollEnabled = true,
+                modifier = Modifier
+                    .width(pageWidth)
+                    .fillMaxHeight()
+                    .testTag(ReaderTestTags.Pager),
+            ) { page ->
             // Expressive page transform: neighbors shrink and fade like a carousel,
             // giving swipe momentum a physical feel.
             val pageOffset = (
@@ -223,6 +236,7 @@ private fun ReaderContent(
                     }
                 },
             )
+            }
         }
 
         if (state.showTapZones) {
@@ -448,7 +462,10 @@ private fun ReaderBottomChrome(
                                 interactionSource = sliderInteraction,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .testTag(ReaderTestTags.Slider),
+                                    .testTag(ReaderTestTags.Slider)
+                                    .semantics {
+                                        contentDescription = "Page ${pageIndex + 1} of $pageCount"
+                                    },
                             )
                             Text(
                                 text = pageCount.toString(),
@@ -571,6 +588,9 @@ private fun ReaderScreenPreview() {
 }
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
+
+/** Content width cap on expanded windows (M3 readability guidance). */
+private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
 
 /** Neighbor pages shrink by this fraction at full offset (carousel feel). */
 private const val PAGE_SHRINK = 0.08f

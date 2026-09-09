@@ -195,8 +195,7 @@ class OfflineFirstComicsRepositoryTest {
     }
 
     @Test
-    fun toggleBookmarkFlipsPersistedFlag() = runTest {
-        writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+    fun toggleBookmarkFlipsPersistedFlag() = runTest {        writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
         val backend = FakeComicBackendDataSource(
             inspected = mapOf("alpha.cbz" to FakeComicBackendDataSource.inspected("001.jpg")),
         )
@@ -208,6 +207,41 @@ class OfflineFirstComicsRepositoryTest {
         assertEquals(true, repository.getComic("alpha.cbz")?.bookmarked)
         repository.toggleBookmark("alpha.cbz")
         assertEquals(false, repository.getComic("alpha.cbz")?.bookmarked)
+    }
+
+    @Test
+    fun clearThumbnailCacheDeletesCoversAndNullsReferences() = runTest {
+        writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+        val backend = FakeComicBackendDataSource(
+            inspected = mapOf("alpha.cbz" to FakeComicBackendDataSource.inspected("001.jpg")),
+        )
+        val repository = repository(backend)
+        repository.refreshLibrary()
+        val cover = repository.getComic("alpha.cbz")?.coverPath
+        assertTrue(cover != null && File(cover).isFile)
+
+        repository.clearThumbnailCache()
+
+        assertTrue(File(cover!!).exists().not())
+        assertNull(repository.getComic("alpha.cbz")?.coverPath)
+    }
+
+    @Test
+    fun storageUsageSumsLibraryAndCovers() = runTest {
+        val alpha = writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+        val backend = FakeComicBackendDataSource(
+            inspected = mapOf("alpha.cbz" to FakeComicBackendDataSource.inspected("001.jpg")),
+        )
+        val repository = repository(backend)
+        repository.refreshLibrary()
+        val coverBytes = repository.getComic("alpha.cbz")?.coverPath?.let { File(it).length() } ?: 0L
+
+        val usage = repository.storageUsage()
+
+        assertEquals(1, usage.comicCount)
+        assertEquals(alpha.length(), usage.libraryBytes)
+        assertEquals(coverBytes, usage.coversBytes)
+        assertEquals(alpha.length() + coverBytes, usage.totalBytes)
     }
 
     @Test

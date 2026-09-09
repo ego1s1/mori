@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -175,13 +176,20 @@ private fun DetailContent(
     onReadClick: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+    // Centered readable column on expanded windows; phones stay full-bleed.
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        contentAlignment = Alignment.Center,
+        modifier = modifier.fillMaxSize(),
     ) {
+        val contentWidth = minOf(maxWidth, EXPANDED_CONTENT_MAX_WIDTH)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .width(contentWidth)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
@@ -294,6 +302,9 @@ private fun DetailContent(
         }
     }
 }
+    }
+
+private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
 
 @Composable
 private fun MetadataRows(comic: Comic, modifier: Modifier = Modifier) {

@@ -11,6 +11,7 @@ import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.StorageUsage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -88,6 +89,25 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     override suspend fun toggleBookmark(id: String) {
         val row = dao.getById(id) ?: return
         dao.updateBookmark(id, !row.bookmarked, System.currentTimeMillis())
+    }
+
+    override suspend fun clearThumbnailCache() = withContext(Dispatchers.IO) {
+        val coversDir = File(context.filesDir, CoverGenerator.COVERS_DIR)
+        runCatching {
+            coversDir.listFiles()?.forEach { it.delete() }
+        }
+        dao.clearCovers()
+        Unit
+    }
+
+    override suspend fun storageUsage(): StorageUsage = withContext(Dispatchers.IO) {
+        val libraryDir = File(context.filesDir, LIBRARY_DIR)
+        val coversDir = File(context.filesDir, CoverGenerator.COVERS_DIR)
+        StorageUsage(
+            comicCount = dao.getIds().size,
+            libraryBytes = libraryDir.walkTopDown().filter { it.isFile }.sumOf { it.length() },
+            coversBytes = coversDir.walkTopDown().filter { it.isFile }.sumOf { it.length() },
+        )
     }
 
     private suspend fun indexFile(file: File, existing: ComicEntity? = null): ComicEntity {
