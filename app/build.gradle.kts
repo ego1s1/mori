@@ -36,11 +36,13 @@ dependencies {
     implementation(project(":feature:reader:api"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
+    implementation(project(":core:datastore"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material3.windowsize)
     implementation(libs.kotlinx.coroutines.android)
 }

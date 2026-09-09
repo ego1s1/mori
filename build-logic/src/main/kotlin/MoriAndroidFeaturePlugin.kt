@@ -17,6 +17,7 @@ class MoriAndroidFeaturePlugin : Plugin<Project> {
 
             dependencies {
                 add("implementation", project(":core:designsystem"))
+                add("implementation", libs.findLibrary("androidx-activity-compose").get())
                 add("implementation", libs.findLibrary("androidx-compose-material-icons-core").get())
                 add("implementation", libs.findLibrary("androidx-hilt-navigation-compose").get())
                 add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())
@@ -29,6 +30,7 @@ class MoriAndroidFeaturePlugin : Plugin<Project> {
                 add("testImplementation", libs.findLibrary("turbine").get())
                 add("testImplementation", project(":core:testing"))
                 add("testImplementation", libs.findLibrary("robolectric").get())
+                add("testImplementation", libs.findLibrary("androidx-test-core").get())
                 add("testImplementation", libs.findLibrary("androidx-compose-ui-test-junit4").get())
                 add("debugImplementation", libs.findLibrary("androidx-compose-ui-test-manifest").get())
             }
