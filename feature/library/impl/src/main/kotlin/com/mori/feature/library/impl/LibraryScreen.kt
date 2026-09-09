@@ -69,8 +69,13 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.LibraryQuery
 
+/**
+ * Public tab content for the main viewport pager. The navigation destination
+ * ([libraryScreen]) stays the single NavHost entry; this exposes the same Route
+ * for embedding without going through navigation.
+ */
 @Composable
-internal fun LibraryRoute(
+fun LibraryTabContent(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
@@ -85,6 +90,23 @@ internal fun LibraryRoute(
         onComicLongClick = onComicLongClick,
         onSettingsClick = onSettingsClick,
         modifier = modifier,
+    )
+}
+
+@Composable
+internal fun LibraryRoute(
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
+    LibraryTabContent(
+        onReadClick = onReadClick,
+        onComicLongClick = onComicLongClick,
+        onSettingsClick = onSettingsClick,
+        modifier = modifier,
+        viewModel = viewModel,
     )
 }
 

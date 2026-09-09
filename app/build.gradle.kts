@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.mori.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mori.android.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)

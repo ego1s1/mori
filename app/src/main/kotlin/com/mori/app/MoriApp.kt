@@ -1,5 +1,9 @@
 package com.mori.app
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.rememberSystemReduceMotion
 import com.mori.core.designsystem.resolveExpressiveMotionEnabled
@@ -24,16 +29,10 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemeMode
 import com.mori.feature.detail.api.navigateToDetail
 import com.mori.feature.detail.impl.detailScreen
-import com.mori.feature.library.api.LibraryRoute
-import com.mori.feature.library.api.navigateToLibrary
-import com.mori.feature.library.impl.libraryScreen
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.onboarding.impl.onboardingScreen
 import com.mori.feature.reader.api.navigateToReader
 import com.mori.feature.reader.impl.readerScreen
-import com.mori.feature.settings.api.SettingsRoute
-import com.mori.feature.settings.api.navigateToSettings
-import com.mori.feature.settings.impl.settingsScreen
 
 /**
  * App entry point: theme + top-level navigation.
@@ -83,23 +82,80 @@ fun MoriApp(
 
             LaunchedEffect(completed, backStackEntry) {
                 if (completed == true && backStackEntry?.destination?.route == OnboardingRoute::class.qualifiedName) {
-                    navController.navigateToLibrary()
+                    navController.navigateToMain()
                 }
             }
 
+            // Screen transitions ride the shared emphasized curves so every
+                // destination enters/exits with the same motion personality.
             NavHost(
                 navController = navController,
-                startDestination = if (completed == true) LibraryRoute else OnboardingRoute,
+                startDestination = if (completed == true) MainRoute else OnboardingRoute,
+                enterTransition = {
+                    fadeIn(
+                        animationSpec = tween(
+                            MoriMotion.EnterScreenMs,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                    ) + slideIntoContainer(
+                        animationSpec = tween(
+                            MoriMotion.EnterScreenMs,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                    )
+                },
+                exitTransition = {
+                    fadeOut(
+                        animationSpec = tween(
+                            MoriMotion.ExitScreenMs,
+                            easing = MoriMotion.EmphasizedAccelerate,
+                        ),
+                    ) + slideOutOfContainer(
+                        animationSpec = tween(
+                            MoriMotion.ExitScreenMs,
+                            easing = MoriMotion.EmphasizedAccelerate,
+                        ),
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                    )
+                },
+                popEnterTransition = {
+                    fadeIn(
+                        animationSpec = tween(
+                            MoriMotion.EnterScreenMs,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                    ) + slideIntoContainer(
+                        animationSpec = tween(
+                            MoriMotion.EnterScreenMs,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                    )
+                },
+                popExitTransition = {
+                    fadeOut(
+                        animationSpec = tween(
+                            MoriMotion.ExitScreenMs,
+                            easing = MoriMotion.EmphasizedAccelerate,
+                        ),
+                    ) + slideOutOfContainer(
+                        animationSpec = tween(
+                            MoriMotion.ExitScreenMs,
+                            easing = MoriMotion.EmphasizedAccelerate,
+                        ),
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                    )
+                },
             ) {
                 onboardingScreen(
-                    onOnboardingComplete = { navController.navigateToLibrary() },
+                    onOnboardingComplete = { navController.navigateToMain() },
                 )
-                libraryScreen(
+                mainScreen(
                     onReadClick = { comicId, pageIndex ->
                         navController.navigateToReader(comicId, pageIndex)
                     },
                     onComicLongClick = { navController.navigateToDetail(it) },
-                    onSettingsClick = { navController.navigateToSettings() },
                 )
                 detailScreen(
                     onBackClick = { navController.popBackStack() },
@@ -108,9 +164,6 @@ fun MoriApp(
                     },
                 )
                 readerScreen(
-                    onBackClick = { navController.popBackStack() },
-                )
-                settingsScreen(
                     onBackClick = { navController.popBackStack() },
                 )
             }

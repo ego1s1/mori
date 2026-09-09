@@ -36,8 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
@@ -48,16 +46,9 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
-import com.mori.feature.settings.api.SettingsRoute
-
-fun NavGraphBuilder.settingsScreen(onBackClick: () -> Unit) {
-    composable<SettingsRoute> {
-        SettingsRoute(onBackClick = onBackClick)
-    }
-}
 
 @Composable
-internal fun SettingsRoute(
+fun SettingsTabContent(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -68,6 +59,19 @@ internal fun SettingsRoute(
         onAction = viewModel::onAction,
         onBackClick = onBackClick,
         modifier = modifier,
+    )
+}
+
+@Composable
+internal fun SettingsRoute(
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    SettingsTabContent(
+        onBackClick = onBackClick,
+        modifier = modifier,
+        viewModel = viewModel,
     )
 }
 
