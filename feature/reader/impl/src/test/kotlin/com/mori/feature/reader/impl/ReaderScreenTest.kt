@@ -4,13 +4,16 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pressKey
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -301,5 +304,57 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.Prev).performClick()
 
         assert(actions.contains(ReaderAction.NextPage))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun volumeKeysTurnPagesWhenEnabled() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(volumeKeys = true),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performKeyInput {
+            pressKey(Key.VolumeDown)
+        }
+        assert(actions.contains(ReaderAction.NextPage))
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performKeyInput {
+            pressKey(Key.VolumeUp)
+        }
+        assert(actions.contains(ReaderAction.PrevPage))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun volumeKeysIgnoredWhenDisabled() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(volumeKeys = false),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performKeyInput {
+            pressKey(Key.VolumeDown)
+        }
+
+        // The initial pager settle may dispatch PageChanged; volume keys must
+        // not navigate.
+        assert(
+            actions.none {
+                it == ReaderAction.NextPage || it == ReaderAction.PrevPage
+            },
+        )
     }
 }

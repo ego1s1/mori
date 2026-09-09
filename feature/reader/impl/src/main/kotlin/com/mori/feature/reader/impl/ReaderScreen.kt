@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -164,6 +167,10 @@ private fun ReaderContent(
     val haptic = LocalHapticFeedback.current
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     // Predictive back: the page shrinks and fades with the gesture, and the app
     // only leaves the reader when the gesture commits. Cancelled gestures snap
@@ -210,6 +217,10 @@ private fun ReaderContent(
     Box(
         modifier = modifier
             .fillMaxSize()
+            // Key input (volume keys) needs a focused node: the reader takes focus
+            // on entry so page turns work with no tappable focused first.
+            .focusRequester(focusRequester)
+            .focusable()
             .graphicsLayer {
                 val scale = predictiveBackScale(backProgress)
                 scaleX = scale
