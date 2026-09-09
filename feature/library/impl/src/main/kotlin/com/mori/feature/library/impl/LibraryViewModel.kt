@@ -1,19 +1,87 @@
 package com.mori.feature.library.impl
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.mori.core.data.ComicsRepository
+import com.mori.core.model.Comic
+import com.mori.core.model.LibraryQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LibraryViewModel @Inject constructor() : ViewModel() {
+class LibraryViewModel @Inject constructor(
+    private val repository: ComicsRepository,
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<LibraryUiState>(LibraryUiState.Loading)
-    val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
+    private val query = MutableStateFlow(LibraryQuery())
+    private val refreshing = MutableStateFlow(false)
+    private val filterOpen = MutableStateFlow(false)
+    private val snackbar = MutableStateFlow<String?>(null)
 
-    init {
-        _uiState.value = LibraryUiState.Ready("Library coming in F3")
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<LibraryUiState> = combine(
+        query.flatMapLatest { repository.observeLibrary(it) },
+        query,
+        refreshing,
+        filterOpen,
+        snackbar,
+        ::toUiState,
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = LibraryUiState.Loading,
+    )
+
+    private fun toUiState(
+        comics: List<Comic>,
+        query: LibraryQuery,
+        refreshing: Boolean,
+        filterOpen: Boolean,
+        snackbar: String?,
+    ): LibraryUiState = LibraryUiState.Success(
+        comics = comics,
+        query = query,
+        refreshing = refreshing,
+        filterOpen = filterOpen,
+        snackbar = snackbar,
+    )
+
+    fun onAction(action: LibraryAction) {
+        when (action) {
+            is LibraryAction.SearchTextChanged -> query.update { it.copy(text = action.text) }
+            is LibraryAction.SortSelected -> query.update { it.copy(sortOrder = action.sort) }
+            is LibraryAction.FilterSelected -> query.update { it.copy(filter = action.filter) }
+            is LibraryAction.ToggleHideErrors -> query.update { it.copy(hideErrors = action.hide) }
+            LibraryAction.OpenFilter -> filterOpen.value = true
+            LibraryAction.CloseFilter -> filterOpen.value = false
+            LibraryAction.Refresh -> refresh()
+            LibraryAction.DismissSnackbar -> snackbar.value = null
+        }
+    }
+
+    private fun refresh() {
+        if (refreshing.value) return
+        viewModelScope.launch {
+            refreshing.value = true
+            try {
+                val report = repository.refreshLibrary()
+                if (report.failed > 0) {
+                    snackbar.value = "${report.failed} file(s) could not be indexed"
+                }
+            } catch (e: Exception) {
+                snackbar.value = e.message ?: "Refresh failed"
+            } finally {
+                refreshing.value = false
+            }
+        }
     }
 }

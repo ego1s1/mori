@@ -8,8 +8,9 @@ import com.mori.core.model.LibrarySortOrder
 /**
  * Applies a [LibraryQuery] to in-memory rows. Kept out of SQL so sorting/filtering stays
  * unit-testable without a database; library sizes (hundreds of rows) make this cheap.
+ * Public so feature tests and future consumers share one semantic.
  */
-internal fun List<Comic>.applyQuery(query: LibraryQuery): List<Comic> {
+fun List<Comic>.applyQuery(query: LibraryQuery): List<Comic> {
     var result = this
     if (query.hideErrors) {
         result = result.filter { it.error == null }

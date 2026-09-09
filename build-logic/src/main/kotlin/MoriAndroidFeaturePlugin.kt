@@ -24,6 +24,7 @@ class MoriAndroidFeaturePlugin : Plugin<Project> {
                 add("implementation", libs.findLibrary("androidx-lifecycle-viewmodel-compose").get())
                 add("implementation", libs.findLibrary("androidx-navigation-compose").get())
                 add("implementation", libs.findLibrary("kotlinx-coroutines-android").get())
+                add("implementation", libs.findLibrary("coil-compose").get())
 
                 add("testImplementation", platform(libs.findLibrary("androidx-compose-bom").get()))
                 add("testImplementation", libs.findLibrary("junit").get())

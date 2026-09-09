@@ -16,10 +16,12 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ScreenRotation
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.ZoomIn
@@ -44,10 +46,12 @@ object MoriIcons {
     val List = Icons.Rounded.List
     val MenuBook = Icons.Rounded.MenuBook
     val More = Icons.Rounded.MoreVert
+    val PlayArrow = Icons.Rounded.PlayArrow
     val Refresh = Icons.Rounded.Refresh
     val ScreenRotation = Icons.Rounded.ScreenRotation
     val Search = Icons.Rounded.Search
     val Settings = Icons.Rounded.Settings
+    val Tune = Icons.Rounded.Tune
     val SkipNext = Icons.Rounded.SkipNext
     val SkipPrevious = Icons.Rounded.SkipPrevious
     val ZoomIn = Icons.Rounded.ZoomIn
