@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -80,7 +81,7 @@ internal fun ReaderSettingsSheetContent(
     ) {
         Text(
             text = "Reading settings",
-            style = MaterialTheme.typography.titleLarge,
+            style = MoriEmphasized.titleLarge,
         )
 
         Text(

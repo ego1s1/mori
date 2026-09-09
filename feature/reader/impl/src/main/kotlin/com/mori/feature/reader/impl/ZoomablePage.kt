@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import coil3.compose.AsyncImage
 import com.mori.core.data.ComicPageKey
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -173,7 +174,7 @@ internal fun ZoomablePage(
         ) {
             Text(
                 text = pageNumber.toString(),
-                style = MaterialTheme.typography.displayLarge,
+                style = MoriEmphasized.displaySmall,
                 color = Color.White.copy(alpha = 0.6f),
             )
             AsyncImage(

@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
@@ -451,7 +452,7 @@ private fun LibraryEmptyState(
         )
         Text(
             text = if (searching) "No comics match your search" else "Your library is empty",
-            style = MaterialTheme.typography.titleLarge,
+            style = MoriEmphasized.titleLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp),
         )

@@ -95,7 +95,7 @@ internal fun ComicCard(
                 ) {
                     Text(
                         text = comic.title,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         maxLines = 2,
                         minLines = 1,
