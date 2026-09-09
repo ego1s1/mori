@@ -1,14 +1,10 @@
 package com.mori.feature.reader.impl
 
-import android.os.SystemClock
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -29,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import coil3.compose.AsyncImage
@@ -38,8 +33,6 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -121,55 +114,16 @@ internal fun ZoomablePage(
                 // Tap detection precedes transformable: a clean tap resolves to a zone
                 // before the transform gesture tracker can claim the press, while pinches
                 // (second pointer down) cancel tap tracking and flow to transformable.
-                //
-                // Edge taps dispatch on tap-up with no double-tap wait, so rapid taps
-                // mid page-turn animation still turn pages. Only center taps hold for
-                // the double-tap window: a second center tap zooms, otherwise chrome
-                // toggles when the window expires.
-                .pointerInput(direction, widthPx) {
-                    val touchSlop = viewConfiguration.touchSlop
-                    var pendingMenuTap: TapRecord? = null
-                    var menuJob: Job? = null
-                    awaitEachGesture {
-                        awaitFirstDown()
-                        val up = waitForUpOrCancellation() ?: return@awaitEachGesture
-                        val fraction = (up.position.x / widthPx).coerceIn(0f, 1f)
-                        val zone = zoneForTap(fraction, direction)
-                        menuJob?.cancel()
-                        menuJob = null
-                        when (
-                            decideTap(
-                                previous = pendingMenuTap,
-                                nowMs = SystemClock.uptimeMillis(),
-                                position = up.position,
-                                zone = zone,
-                                touchSlopPx = touchSlop,
-                            )
-                        ) {
-                            is TapDecision.Dispatch -> {
-                                pendingMenuTap = null
-                                onZoneTap(zone)
-                            }
-                            TapDecision.Zoom -> {
-                                pendingMenuTap = null
-                                val center = Offset(size.width / 2f, size.height / 2f)
-                                latestZoomToggle.value(up.position, center)
-                            }
-                            TapDecision.AwaitSecondTap -> {
-                                pendingMenuTap = TapRecord(
-                                    timeMs = SystemClock.uptimeMillis(),
-                                    position = up.position,
-                                    zone = zone,
-                                )
-                                menuJob = scope.launch {
-                                    delay(DOUBLE_TAP_TIMEOUT_MS)
-                                    pendingMenuTap = null
-                                    onZoneTap(ReaderZone.MENU)
-                                }
-                            }
-                        }
-                    }
-                }
+                // Claimed tap-ups are consumed so the reader-level fallback detector
+                // (see ReaderContent) stands down and each tap dispatches exactly once.
+                .zoneTaps(
+                    widthPx = widthPx,
+                    direction = direction,
+                    scope = scope,
+                    onZoneTap = onZoneTap,
+                    onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
+                    consumeUp = true,
+                )
                 .transformable(transformableState),
         ) {
             Text(

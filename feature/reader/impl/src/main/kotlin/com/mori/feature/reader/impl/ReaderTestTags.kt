@@ -13,4 +13,5 @@ object ReaderTestTags {
     const val DirectionButton = "readerDirectionButton"
     const val FitButton = "readerFitButton"
     const val CropButton = "readerCropButton"
+    const val PageCounter = "readerPageCounter"
 }

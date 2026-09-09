@@ -207,6 +207,35 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun rapidPageTurnsAccumulateWithoutWaitingForState() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(0, awaitReady().pageIndex)
+            // Two taps in the same frame: the second must build on the first,
+            // not on the still-stale combined state.
+            viewModel.onAction(ReaderAction.NextPage)
+            viewModel.onAction(ReaderAction.NextPage)
+            assertEquals(2, awaitReadyWhere { it.pageIndex == 2 }.pageIndex)
+            viewModel.onAction(ReaderAction.PrevPage)
+            viewModel.onAction(ReaderAction.PrevPage)
+            assertEquals(0, awaitReadyWhere { it.pageIndex == 0 }.pageIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun pageCounterTogglePersistsToPreferences() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().showPageCounter)
+            viewModel.onAction(ReaderAction.TogglePageCounter)
+            assertEquals(false, awaitReadyWhere { !it.showPageCounter }.showPageCounter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun persistedPreferencesDriveInitialState() = runTest {
         val preferences = TestPreferencesDataSource(
             ReaderPreferences(direction = ReadingDirection.RIGHT_TO_LEFT),

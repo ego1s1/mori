@@ -46,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
@@ -60,6 +61,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -167,6 +169,7 @@ private fun ReaderContent(
     val haptic = LocalHapticFeedback.current
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
+    val contentScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -197,6 +200,16 @@ private fun ReaderContent(
     LaunchedEffect(state.pageIndex) {
         if (scrubbing) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+
+    // Single zone dispatcher shared by pages and the container fallback below,
+    // so every tap resolves exactly once.
+    val handleZone: (ReaderZone) -> Unit = { zone ->
+        when (zone) {
+            ReaderZone.PREV -> onAction(ReaderAction.PrevPage)
+            ReaderZone.NEXT -> onAction(ReaderAction.NextPage)
+            ReaderZone.MENU -> onAction(ReaderAction.ToggleChrome)
         }
     }
 
@@ -243,42 +256,59 @@ private fun ReaderContent(
             contentAlignment = Alignment.Center,
             modifier = Modifier.fillMaxSize(),
         ) {
+            // Container-level fallback: taps that miss every page (black bed
+            // between pages mid page-turn, letterbox margins on wide screens)
+            // still resolve to a zone. Page taps are consumed by the pages
+            // themselves, and chrome taps by their clickables, so each tap
+            // dispatches exactly once. Mirrors the pager-level detection in
+            // the reference reader, where taps resolve against the viewport
+            // rather than individual page views.
+            val containerWidthPx = with(LocalDensity.current) {
+                maxWidth.toPx()
+            }.coerceAtLeast(1f)
             val pageWidth = minOf(maxWidth, EXPANDED_CONTENT_MAX_WIDTH)
-            HorizontalPager(
-                state = pagerState,
-                reverseLayout = rtl,
-                beyondViewportPageCount = 1,
-                userScrollEnabled = true,
+            Box(
                 modifier = Modifier
-                    .width(pageWidth)
-                    .fillMaxHeight()
-                    .testTag(ReaderTestTags.Pager),
-            ) { page ->
-            // Expressive page transform: neighbors shrink and fade like a carousel,
-            // giving swipe momentum a physical feel.
-            val pageOffset = (
-                (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                ).absoluteValue
-            ZoomablePage(
-                comicId = state.comicId,
-                pageIndex = page,
-                pageNumber = page + 1,
-                pageFit = state.pageFit,
-                direction = state.direction,
-                modifier = Modifier.graphicsLayer {
-                    val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
-                    scaleX = scale
-                    scaleY = scale
-                    alpha = 1f - (pageOffset * PAGE_FADE).coerceIn(0f, PAGE_FADE)
-                },
-                onZoneTap = { zone ->
-                    when (zone) {
-                        ReaderZone.PREV -> onAction(ReaderAction.PrevPage)
-                        ReaderZone.NEXT -> onAction(ReaderAction.NextPage)
-                        ReaderZone.MENU -> onAction(ReaderAction.ToggleChrome)
+                    .fillMaxSize()
+                    .zoneTaps(
+                        widthPx = containerWidthPx,
+                        direction = state.direction,
+                        scope = contentScope,
+                        onZoneTap = handleZone,
+                        onZoom = { _, _ -> handleZone(ReaderZone.MENU) },
+                        consumeUp = false,
+                    ),
+            ) {
+                HorizontalPager(
+                        state = pagerState,
+                        reverseLayout = rtl,
+                        beyondViewportPageCount = 1,
+                        userScrollEnabled = true,
+                        modifier = Modifier
+                            .width(pageWidth)
+                            .fillMaxHeight()
+                            .testTag(ReaderTestTags.Pager),
+                    ) { page ->
+                    // Expressive page transform: neighbors shrink and fade like a carousel,
+                    // giving swipe momentum a physical feel.
+                    val pageOffset = (
+                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                        ).absoluteValue
+                    ZoomablePage(
+                        comicId = state.comicId,
+                        pageIndex = page,
+                        pageNumber = page + 1,
+                        pageFit = state.pageFit,
+                        direction = state.direction,
+                        modifier = Modifier.graphicsLayer {
+                            val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = 1f - (pageOffset * PAGE_FADE).coerceIn(0f, PAGE_FADE)
+                        },
+                        onZoneTap = handleZone,
+                    )
                     }
-                },
-            )
             }
         }
 
@@ -324,8 +354,33 @@ private fun ReaderContent(
                 volumeKeys = state.volumeKeys,
                 keepScreenOn = state.keepScreenOn,
                 showTapZones = state.showTapZones,
+                showPageCounter = state.showPageCounter,
                 onAction = onAction,
             )
+        }
+
+        // Mini page counter while the chrome is away (Mihon's show-page-number):
+        // the one orientation cue readers keep when controls hide.
+        AnimatedVisibility(
+            visible = !state.chromeVisible && !state.settingsOpen && state.showPageCounter,
+            enter = fadeIn(animationSpec = MoriMotion.calmFade()),
+            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = Color.Black.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .padding(bottom = 24.dp)
+                    .testTag(ReaderTestTags.PageCounter),
+            ) {
+                Text(
+                    text = "${state.currentPage} / ${state.pageCount}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }
@@ -619,6 +674,7 @@ private fun ReaderScreenPreview() {
                 volumeKeys = false,
                 keepScreenOn = true,
                 showTapZones = false,
+                showPageCounter = true,
             ),
             onAction = {},
             onBackClick = {},

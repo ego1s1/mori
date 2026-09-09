@@ -41,6 +41,7 @@ internal fun ReaderSettingsSheet(
     volumeKeys: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
+    showPageCounter: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -55,6 +56,7 @@ internal fun ReaderSettingsSheet(
             volumeKeys = volumeKeys,
             keepScreenOn = keepScreenOn,
             showTapZones = showTapZones,
+            showPageCounter = showPageCounter,
             onAction = onAction,
         )
     }
@@ -69,6 +71,7 @@ internal fun ReaderSettingsSheetContent(
     volumeKeys: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
+    showPageCounter: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -161,6 +164,12 @@ internal fun ReaderSettingsSheetContent(
             subtitle = "Prevent the display from sleeping while reading",
             checked = keepScreenOn,
             onCheckedChange = { onAction(ReaderAction.ToggleKeepScreenOn) },
+        )
+        SettingSwitch(
+            title = "Page counter",
+            subtitle = "Show the current page number when controls hide",
+            checked = showPageCounter,
+            onCheckedChange = { onAction(ReaderAction.TogglePageCounter) },
         )
 
         Spacer(modifier = Modifier.height(8.dp))

@@ -1,0 +1,83 @@
+package com.mori.feature.reader.impl
+
+import android.os.SystemClock
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import com.mori.core.model.ReadingDirection
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+/**
+ * Zone-tap detector shared by reader pages and the reader container.
+ *
+ * Tap zones are resolved against the full [widthPx] the detector spans, so a tap
+ * anywhere — on a page, on the black bed between pages mid page-turn, or in the
+ * letterbox margins on wide screens — always navigates. Edge taps (previous/next)
+ * dispatch on tap-up with no double-tap wait, so rapid taps mid animation still
+ * turn pages; only center taps hold the double-tap window ([decideTap]), where a
+ * second center tap zooms and a lone one toggles chrome.
+ *
+ * When [consumeUp] is true the tap-up is consumed after handling, so an outer
+ * detector further up the hit path ignores taps already claimed by a page. Taps
+ * swallowed by chrome clickables never reach a detector at all.
+ */
+internal fun Modifier.zoneTaps(
+    widthPx: Float,
+    direction: ReadingDirection,
+    scope: CoroutineScope,
+    onZoneTap: (ReaderZone) -> Unit,
+    onZoom: (tap: Offset, center: Offset) -> Unit,
+    consumeUp: Boolean,
+): Modifier = pointerInput(direction, widthPx) {
+    val touchSlop = viewConfiguration.touchSlop
+    var pendingMenuTap: TapRecord? = null
+    var menuJob: Job? = null
+    awaitEachGesture {
+        awaitFirstDown()
+        val up = waitForUpOrCancellation() ?: return@awaitEachGesture
+        if (consumeUp) {
+            up.consume()
+        }
+        val fraction = (up.position.x / widthPx).coerceIn(0f, 1f)
+        val zone = zoneForTap(fraction, direction)
+        menuJob?.cancel()
+        menuJob = null
+        when (
+            decideTap(
+                previous = pendingMenuTap,
+                nowMs = SystemClock.uptimeMillis(),
+                position = up.position,
+                zone = zone,
+                touchSlopPx = touchSlop,
+            )
+        ) {
+            is TapDecision.Dispatch -> {
+                pendingMenuTap = null
+                onZoneTap(zone)
+            }
+            TapDecision.Zoom -> {
+                pendingMenuTap = null
+                val center = Offset(size.width / 2f, size.height / 2f)
+                onZoom(up.position, center)
+            }
+            TapDecision.AwaitSecondTap -> {
+                pendingMenuTap = TapRecord(
+                    timeMs = SystemClock.uptimeMillis(),
+                    position = up.position,
+                    zone = zone,
+                )
+                menuJob = scope.launch {
+                    delay(DOUBLE_TAP_TIMEOUT_MS)
+                    pendingMenuTap = null
+                    onZoneTap(ReaderZone.MENU)
+                }
+            }
+        }
+    }
+}

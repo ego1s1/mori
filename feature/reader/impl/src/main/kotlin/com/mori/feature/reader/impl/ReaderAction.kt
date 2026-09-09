@@ -34,4 +34,6 @@ sealed interface ReaderAction {
     data object ToggleKeepScreenOn : ReaderAction
 
     data object ToggleTapZones : ReaderAction
+
+    data object TogglePageCounter : ReaderAction
 }

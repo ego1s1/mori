@@ -21,6 +21,7 @@ sealed interface ReaderUiState {
         val volumeKeys: Boolean,
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,
+        val showPageCounter: Boolean,
     ) : ReaderUiState {
         /** 1-based page number shown in the UI. */
         val currentPage: Int get() = pageIndex + 1

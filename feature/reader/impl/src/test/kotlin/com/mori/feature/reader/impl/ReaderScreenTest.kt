@@ -17,6 +17,7 @@ import androidx.compose.ui.test.pressKey
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,6 +49,7 @@ class ReaderScreenTest {
         volumeKeys = false,
         keepScreenOn = true,
         showTapZones = false,
+        showPageCounter = true,
     )
 
     @Test
@@ -156,6 +158,7 @@ class ReaderScreenTest {
                     volumeKeys = false,
                     keepScreenOn = true,
                     showTapZones = false,
+                    showPageCounter = true,
                     onAction = {},
                 )
             }
@@ -171,6 +174,7 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithText("Tap zones").assertExists()
         composeTestRule.onNodeWithText("Volume keys turn pages").assertExists()
         composeTestRule.onNodeWithText("Keep screen on").assertExists()
+        composeTestRule.onNodeWithText("Page counter").assertExists()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -223,6 +227,79 @@ class ReaderScreenTest {
         composeTestRule.mainClock.advanceTimeBy(1_000)
 
         assert(actions.contains(ReaderAction.NextPage))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun pageTapDispatchesExactlyOnce() {
+        // The page detector and the container fallback both observe the tap;
+        // the page consumes its tap-up so the fallback stands down.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        repeat(3) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, Offset(bounds.width * 0.9f, bounds.height * 0.5f))
+                up(0)
+            }
+            composeTestRule.mainClock.advanceTimeBy(1_000)
+        }
+
+        assertEquals(3, actions.filterIsInstance<ReaderAction.NextPage>().size)
+    }
+
+    @Test
+    fun pageCounterShowsWhenChromeHidden() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(chromeVisible = false),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.PageCounter).assertIsDisplayed()
+        composeTestRule.onNodeWithText("13 / 173").assertIsDisplayed()
+    }
+
+    @Test
+    fun pageCounterHiddenWithChrome() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(chromeVisible = true),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithTag(ReaderTestTags.PageCounter).assertDoesNotExist()
+    }
+
+    @Test
+    fun pageCounterHiddenWhenDisabled() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready().copy(chromeVisible = false, showPageCounter = false),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithTag(ReaderTestTags.PageCounter).assertDoesNotExist()
     }
 
     @Test
