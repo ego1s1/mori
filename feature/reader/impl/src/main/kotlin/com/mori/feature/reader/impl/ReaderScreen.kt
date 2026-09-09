@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.ThemePreviews
@@ -359,7 +360,7 @@ private fun ReaderTopBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title.ifBlank { "Untitled comic" },
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MoriEmphasized.headlineSmall,
                     color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -472,7 +473,7 @@ private fun ReaderBottomChrome(
                             Box(contentAlignment = Alignment.CenterEnd) {
                                 Text(
                                     text = (pageIndex + 1).toString(),
-                                    style = MaterialTheme.typography.titleMedium,
+                                    style = MoriEmphasized.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Text(
