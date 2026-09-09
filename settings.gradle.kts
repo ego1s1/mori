@@ -26,7 +26,6 @@ rootProject.name = "mori"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":comic-core")
-include(":comic-ocr")
 include(":app")
 include(":core:model")
 include(":core:common")

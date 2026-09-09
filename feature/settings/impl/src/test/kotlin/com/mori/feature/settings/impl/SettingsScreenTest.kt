@@ -100,7 +100,6 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Clear thumbnail cache").assertExists()
         composeTestRule.onNodeWithText("CB7 and CBT support").assertExists()
         composeTestRule.onNodeWithText("Cloud sync").assertExists()
-        composeTestRule.onNodeWithText("OCR text layer").assertExists()
     }
 
     @Test

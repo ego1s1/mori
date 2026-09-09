@@ -43,7 +43,6 @@ reading direction, page fit, margin crop, keep-screen-on, and tap-zone guides.
 - **CBZ** fully supported, including `ComicInfo.xml` metadata and natural page order.
 - **CBR** supported for RAR4 archives; RAR5 is not yet decodable with open-source
   libraries.
-- **On-device text recognition** (OCR) works on arm64 phones and tablets.
 - Corrupt, password-protected, or empty files show a clear message with
   retry/remove actions instead of crashing.
 
@@ -51,8 +50,8 @@ reading direction, page fit, margin crop, keep-screen-on, and tap-zone guides.
 
 Reader and library conventions (tap zones, volume-key turns, slider navigator)
 are inspired by [Mihon](https://github.com/mihonapp/mihon) — used purely as a
-design reference; every line here is original. Thanks also to the Tesseract,
-junrar, Coil, and Jetpack open-source projects.
+design reference; every line here is original. Thanks also to the junrar,
+Coil, and Jetpack open-source projects.
 
 ## License
 

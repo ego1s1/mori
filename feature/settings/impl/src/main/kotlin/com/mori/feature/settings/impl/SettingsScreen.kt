@@ -286,10 +286,6 @@ internal fun SettingsContent(
             subtitle = "More archive formats",
         )
         PlaceholderRow(
-            title = "OCR text layer",
-            subtitle = "Searchable page text",
-        )
-        PlaceholderRow(
             title = "Cloud sync",
             subtitle = "Progress across devices",
         )

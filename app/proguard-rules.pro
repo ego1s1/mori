@@ -20,6 +20,3 @@
 
 # Navigation type-safe routes.
 -keep class com.mori.feature.**.api.** { *; }
-
-# Tesseract JNI bridge (arm64 native library in comic-ocr).
--keep class dev.ffmpegkit.tesseract.** { *; }
