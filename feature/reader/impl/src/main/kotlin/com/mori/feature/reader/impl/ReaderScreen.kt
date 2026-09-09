@@ -2,6 +2,8 @@ package com.mori.feature.reader.impl
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -68,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
@@ -189,6 +192,10 @@ private fun ReaderContent(
         }
     }
 
+    // Chrome entrances follow the motion setting: expressive springs, calm fades.
+    val (topChromeEnter, topChromeExit) = chromeTransitions(top = true)
+    val (bottomChromeEnter, bottomChromeExit) = chromeTransitions(top = false)
+
     if (state.keepScreenOn) {
         DisposableEffect(context) {
             val window = (context as? android.app.Activity)?.window
@@ -269,10 +276,8 @@ private fun ReaderContent(
 
         AnimatedVisibility(
             visible = state.chromeVisible,
-            enter = fadeIn(animationSpec = MoriMotion.chromeSpring()) +
-                slideInVertically(animationSpec = MoriMotion.chromeSpring()) { -it / 2 },
-            exit = fadeOut(animationSpec = MoriMotion.chromeSpring()) +
-                slideOutVertically(animationSpec = MoriMotion.chromeSpring()) { -it / 2 },
+            enter = topChromeEnter,
+            exit = topChromeExit,
         ) {
             ReaderTopBar(
                 title = state.title,
@@ -285,10 +290,8 @@ private fun ReaderContent(
 
         AnimatedVisibility(
             visible = state.chromeVisible,
-            enter = fadeIn(animationSpec = MoriMotion.chromeSpring()) +
-                slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 },
-            exit = fadeOut(animationSpec = MoriMotion.chromeSpring()) +
-                slideOutVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 },
+            enter = bottomChromeEnter,
+            exit = bottomChromeExit,
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             ReaderBottomChrome(
@@ -618,6 +621,31 @@ private const val PREDICTIVE_BACK_SHRINK = 0.08f
 
 /** Page fade at a fully-committed predictive back gesture. */
 private const val PREDICTIVE_BACK_FADE = 0.25f
+
+/**
+ * Chrome enter/exit pair for the top (`top = true`) or bottom bar.
+ *
+ * Expressive motion slides on the chrome spring; calm motion (or system reduced
+ * motion) fades quietly. Read from [LocalExpressiveMotionEnabled] so the settings
+ * toggle takes effect without threading flags through state.
+ */
+@Composable
+private fun chromeTransitions(top: Boolean): Pair<EnterTransition, ExitTransition> {
+    val expressive = LocalExpressiveMotionEnabled.current
+    return remember(expressive, top) {
+        if (expressive) {
+            val offset = if (top) -1 else 1
+            val enter = fadeIn(animationSpec = MoriMotion.chromeSpring()) +
+                slideInVertically(animationSpec = MoriMotion.chromeSpring()) { offset * it / 2 }
+            val exit = fadeOut(animationSpec = MoriMotion.chromeSpring()) +
+                slideOutVertically(animationSpec = MoriMotion.chromeSpring()) { offset * it / 2 }
+            enter to exit
+        } else {
+            fadeIn(animationSpec = MoriMotion.calmFade()) to
+                fadeOut(animationSpec = MoriMotion.calmFade())
+        }
+    }
+}
 
 /**
  * Page scale for a predictive back [progress] (`0f` at rest, `1f` committed).
