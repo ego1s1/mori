@@ -10,10 +10,16 @@ plugins {
 android {
     namespace = "com.mori.app"
 
-    defaultConfig {
-        applicationId = "com.mori.reader"
-        versionCode = 1
-        versionName = "1.0"
+    defaultConfig {        applicationId = "com.mori.reader"
+        // Version precedence: explicit -PappVersionName/-PappVersionCode (used by the
+        // release workflow) win; otherwise every commit gets an incremental alpha
+        // derived from the git commit count, e.g. 1.0.0-alpha.23; without git it
+        // falls back to 1 / 1.0.0-alpha.0.
+        val commitCount = gitCommitCount()
+        versionCode = (project.findProperty("appVersionCode") as String?)
+            ?.toIntOrNull() ?: commitCount.coerceAtLeast(1)
+        versionName = (project.findProperty("appVersionName") as String?)
+            ?.removePrefix("v") ?: "1.0.0-alpha.$commitCount"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -62,4 +68,23 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+}
+
+/**
+ * Number of commits reachable from HEAD; drives the incremental alpha version so
+ * every commit produces a distinct, monotonically increasing versionCode and a
+ * `1.0.0-alpha.N` versionName. Returns 0 when git is unavailable (shallow
+ * checkouts should use fetch-depth 0; see .github/workflows).
+ */
+fun gitCommitCount(): Int {
+    return try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        if (process.waitFor() == 0) output.toInt() else 0
+    } catch (_: Exception) {
+        0
+    }
 }

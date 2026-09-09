@@ -41,6 +41,34 @@ Supporting open-source acknowledgements: Tesseract OCR, junrar, Coil, Jetpack li
 
 The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
+Every commit builds as `1.0.0-alpha.N` (N = commit count) so installs stay
+ordered; explicit `-PappVersionName=` / `-PappVersionCode=` override it.
+
+## App releases
+
+Pushing a `v*` tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) triggers the
+`Release` workflow, which builds a signed release APK and attaches it to a GitHub
+Release with auto-generated notes. It can also be started manually from the Actions
+tab. Version name comes from the tag; version code from the run number.
+
+One-time setup — create a single permanent keystore (rotating it breaks updates)
+and store these repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+| ------ | ----- |
+| `KEYSTORE_BASE64` | base64 of the `.jks` file |
+| `KEY_ALIAS` | key alias |
+| `KEY_PASSWORD` | key password |
+| `STORE_PASSWORD` | keystore password |
+
+```bash
+keytool -genkeypair -v -keystore mori-release.jks \
+  -alias mori -keyalg RSA -keysize 2048 -validity 10000
+base64 -i mori-release.jks | pbcopy
+```
+
+The workflow fails fast with a clear message when secrets are missing.
+
 ## How it fits together
 
 ```text

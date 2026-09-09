@@ -1,0 +1,138 @@
+name: Release
+
+# Cuts a GitHub Release with a signed APK whenever a version tag is pushed:
+#   git tag v1.0.0 && git push origin v1.0.0
+# Can also be run manually from the Actions tab (workflow_dispatch).
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   KEYSTORE_BASE64  - base64 of the .jks/.keystore file used for all releases.
+#                      Keep ONE keystore forever; rotating it breaks updates.
+#                      Generate once with:
+#                        keytool -genkeypair -v -keystore mori-release.jks \
+#                          -alias mori -keyalg RSA -keysize 2048 -validity 10000
+#                      then: base64 -i mori-release.jks | pbcopy
+#   KEY_ALIAS        - key alias inside the keystore (e.g. "mori")
+#   KEY_PASSWORD     - password for the key
+#   STORE_PASSWORD   - password for the keystore
+#
+# The workflow fails fast with a clear message when secrets are missing.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (must already exist, e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      apk: ${{ steps.sign.outputs.apk }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          # Full history for release notes generation.
+          fetch-depth: 0
+
+      - name: Resolve tag and versions
+        id: resolve
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          # versionName drops the leading 'v'; versionCode defaults to the run
+          # number so every release is installable over the previous one.
+          echo "Releasing $TAG"
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          missing=""
+          for var in KEYSTORE_BASE64 KEY_ALIAS KEY_PASSWORD STORE_PASSWORD; do
+            if [ -z "${!var}" ]; then missing="$missing $var"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing signing secrets:$missing. See release.yml header for setup."
+            exit 1
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble release APK (unsigned)
+        run: ./gradlew :app:assembleRelease -PappVersionName="${{ steps.resolve.outputs.tag }}" -PappVersionCode="${{ github.run_number }}"
+
+      - name: Sign APK
+        id: sign
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          UNSIGNED=$(ls app/build/outputs/apk/release/app-release-unsigned.apk)
+          ALIGNED=app-release-aligned.apk
+          SIGNED="mori-${{ steps.resolve.outputs.tag }}.apk"
+          "$BUILD_TOOLS/zipalign" -f 4 "$UNSIGNED" "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks release.keystore \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass "pass:$STORE_PASSWORD" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out "$SIGNED" "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$SIGNED" | head -5
+          rm -f release.keystore "$ALIGNED"
+          echo "apk=$SIGNED" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ${{ steps.sign.outputs.apk }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Mori ${{ needs.build.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ contains(needs.build.outputs.tag, 'beta') || contains(needs.build.outputs.tag, 'rc') || contains(needs.build.outputs.tag, 'alpha') }}
+          files: ${{ needs.build.outputs.apk }}
