@@ -17,6 +17,6 @@ android {
 dependencies {
     api(project(":feature:onboarding:api"))
     implementation(project(":core:model"))
+    implementation(project(":core:data"))
     implementation(project(":core:datastore"))
-    implementation(libs.androidx.documentfile)
 }

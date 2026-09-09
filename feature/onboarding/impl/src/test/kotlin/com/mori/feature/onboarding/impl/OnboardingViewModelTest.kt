@@ -3,6 +3,7 @@ package com.mori.feature.onboarding.impl
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import com.mori.core.data.ComicImporter
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

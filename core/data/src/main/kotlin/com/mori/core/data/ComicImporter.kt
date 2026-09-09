@@ -1,4 +1,4 @@
-package com.mori.feature.onboarding.impl
+package com.mori.core.data
 
 import android.content.Context
 import android.net.Uri
@@ -6,18 +6,13 @@ import androidx.documentfile.provider.DocumentFile
 import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.coroutines.coroutineContext
 
 /**
@@ -27,7 +22,7 @@ import kotlin.coroutines.coroutineContext
  * @property sizeBytes known size or `-1` when the provider does not report one.
  * @property open opens a fresh stream for the content; called at most once per import.
  */
-internal data class ImportCandidate(
+data class ImportCandidate(
     val displayName: String,
     val sizeBytes: Long,
     val open: () -> java.io.InputStream,
@@ -36,10 +31,9 @@ internal data class ImportCandidate(
 /**
  * Copies user-selected comics into app-private storage and reports per-file results.
  *
- * F2 migrates this into `core:data` alongside Room indexing; the interface is already
- * shaped for that move (candidates in, [ImportReport] out).
+ * Lives in `core:data` so onboarding and future rescan flows share one implementation.
  */
-internal interface ComicImporter {
+interface ComicImporter {
     suspend fun importCandidates(
         candidates: List<ImportCandidate>,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
@@ -170,22 +164,4 @@ internal class AppComicImporter @Inject constructor(
                 extension == "cbr" || extension == "rar"
         }
     }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-internal abstract class ImporterModule {
-
-    @Binds
-    abstract fun bindComicImporter(impl: AppComicImporter): ComicImporter
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-internal object LibraryDirModule {
-
-    @Singleton
-    @dagger.Provides
-    fun provideLibraryDir(@ApplicationContext context: Context): File =
-        File(context.filesDir, "comics")
 }

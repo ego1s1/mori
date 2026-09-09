@@ -1,4 +1,4 @@
-package com.mori.feature.onboarding.impl
+package com.mori.core.data
 
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus

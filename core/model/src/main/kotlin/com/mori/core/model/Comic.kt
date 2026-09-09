@@ -19,6 +19,7 @@ data class Comic(
     val sourceDisplayName: String,
     val createdAt: Long,
     val updatedAt: Long,
+    val error: ComicError? = null,
 ) {
     /** True when the user has started but not finished this comic. */
     val isInProgress: Boolean
