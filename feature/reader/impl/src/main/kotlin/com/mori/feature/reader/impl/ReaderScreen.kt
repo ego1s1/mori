@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -262,10 +263,17 @@ private fun ReaderContent(
             .focusRequester(focusRequester)
             .focusable()
             .graphicsLayer {
+                // System-style back preview: shrink, fade, and round corners
+                // with the gesture. The library itself can't render beneath
+                // (single-activity back stack), so the page dips against scrim
+                // exactly like the platform preview.
+                val p = backProgress.coerceIn(0f, 1f)
                 val scale = predictiveBackScale(backProgress)
                 scaleX = scale
                 scaleY = scale
-                alpha = 1f - PREDICTIVE_BACK_FADE * backProgress.coerceIn(0f, 1f)
+                alpha = 1f - PREDICTIVE_BACK_FADE * p
+                shape = RoundedCornerShape((PREDICTIVE_BACK_CORNER_DP * p).dp)
+                clip = p > 0f
             }
             .onPreviewKeyEvent { event ->
                 val action = volumeKeyAction(event.key, event.type, state.volumeKeys)
@@ -716,6 +724,9 @@ private const val PREDICTIVE_BACK_SHRINK = 0.08f
 
 /** Page fade at a fully-committed predictive back gesture. */
 private const val PREDICTIVE_BACK_FADE = 0.25f
+
+/** Corner radius (dp) at a fully-committed predictive back gesture. */
+private const val PREDICTIVE_BACK_CORNER_DP = 28f
 
 /**
  * Chrome enter/exit pair for the top (`top = true`) or bottom bar.
