@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -60,9 +61,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import kotlinx.coroutines.delay
+import kotlin.math.absoluteValue
 
 @Composable
 internal fun ReaderRoute(
@@ -195,12 +198,23 @@ private fun ReaderContent(
                 .fillMaxSize()
                 .testTag(ReaderTestTags.Pager),
         ) { page ->
+            // Expressive page transform: neighbors shrink and fade like a carousel,
+            // giving swipe momentum a physical feel.
+            val pageOffset = (
+                (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                ).absoluteValue
             ZoomablePage(
                 comicId = state.comicId,
                 pageIndex = page,
                 pageNumber = page + 1,
                 pageFit = state.pageFit,
                 direction = state.direction,
+                modifier = Modifier.graphicsLayer {
+                    val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = 1f - (pageOffset * PAGE_FADE).coerceIn(0f, PAGE_FADE)
+                },
                 onZoneTap = { zone ->
                     when (zone) {
                         ReaderZone.PREV -> onAction(ReaderAction.PrevPage)
@@ -217,8 +231,10 @@ private fun ReaderContent(
 
         AnimatedVisibility(
             visible = state.chromeVisible,
-            enter = fadeIn() + slideInVertically { -it / 2 },
-            exit = fadeOut() + slideOutVertically { -it / 2 },
+            enter = fadeIn(animationSpec = MoriMotion.chromeSpring()) +
+                slideInVertically(animationSpec = MoriMotion.chromeSpring()) { -it / 2 },
+            exit = fadeOut(animationSpec = MoriMotion.chromeSpring()) +
+                slideOutVertically(animationSpec = MoriMotion.chromeSpring()) { -it / 2 },
         ) {
             ReaderTopBar(
                 title = state.title,
@@ -231,8 +247,10 @@ private fun ReaderContent(
 
         AnimatedVisibility(
             visible = state.chromeVisible,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
+            enter = fadeIn(animationSpec = MoriMotion.chromeSpring()) +
+                slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 },
+            exit = fadeOut(animationSpec = MoriMotion.chromeSpring()) +
+                slideOutVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 },
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             ReaderBottomChrome(
@@ -553,6 +571,12 @@ private fun ReaderScreenPreview() {
 }
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
+
+/** Neighbor pages shrink by this fraction at full offset (carousel feel). */
+private const val PAGE_SHRINK = 0.08f
+
+/** Neighbor pages fade by this fraction at full offset. */
+private const val PAGE_FADE = 0.4f
 
 /**
  * Whether a navigation action can move anywhere from [pageIndex].

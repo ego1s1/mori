@@ -23,8 +23,7 @@ class LibraryViewModelTest {
 
     private fun viewModel(
         repository: TestComicsRepository = TestComicsRepository(),
-        preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
-    ) = LibraryViewModel(repository, preferences)
+    ) = LibraryViewModel(repository)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
@@ -54,23 +53,6 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.SearchTextChanged("app"))
             val filtered = awaitSuccessWhere { it.comics.map { comic -> comic.id } == listOf("a") }
             assertEquals(listOf("a"), filtered.comics.map { it.id })
-        }
-    }
-
-    @Test
-    fun themeActionsPersistToPreferences() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = viewModel(preferences = preferences)
-        viewModel.uiState.test {
-            awaitSuccess()
-            viewModel.onAction(LibraryAction.SetThemeMode(com.mori.core.model.ThemeMode.DARK))
-            viewModel.onAction(LibraryAction.SetDynamicColor(false))
-            viewModel.onAction(LibraryAction.SetAmoled(true))
-            val settled = awaitSuccessWhere {
-                it.theme.mode == com.mori.core.model.ThemeMode.DARK &&
-                    !it.theme.dynamicColor && it.theme.amoled
-            }
-            assertEquals(com.mori.core.model.ThemeMode.DARK, settled.theme.mode)
         }
     }
 

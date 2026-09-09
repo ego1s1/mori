@@ -26,6 +26,9 @@ import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.onboarding.impl.onboardingScreen
 import com.mori.feature.reader.api.navigateToReader
 import com.mori.feature.reader.impl.readerScreen
+import com.mori.feature.settings.api.SettingsRoute
+import com.mori.feature.settings.api.navigateToSettings
+import com.mori.feature.settings.impl.settingsScreen
 
 /**
  * App entry point: theme + top-level navigation.
@@ -83,6 +86,7 @@ fun MoriApp(
                         navController.navigateToReader(comicId, pageIndex)
                     },
                     onComicLongClick = { navController.navigateToDetail(it) },
+                    onSettingsClick = { navController.navigateToSettings() },
                 )
                 detailScreen(
                     onBackClick = { navController.popBackStack() },
@@ -91,6 +95,9 @@ fun MoriApp(
                     },
                 )
                 readerScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+                settingsScreen(
                     onBackClick = { navController.popBackStack() },
                 )
             }

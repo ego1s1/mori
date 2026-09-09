@@ -7,11 +7,13 @@ import com.mori.feature.library.api.LibraryRoute
 fun NavGraphBuilder.libraryScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     composable<LibraryRoute> {
         LibraryRoute(
             onReadClick = onReadClick,
             onComicLongClick = onComicLongClick,
+            onSettingsClick = onSettingsClick,
         )
     }
 }

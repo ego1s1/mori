@@ -1,12 +1,16 @@
 package com.mori.core.designsystem
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.IntOffset
 
 /**
- * M3 Expressive motion tokens for screen transitions.
+ * M3 Expressive motion tokens for screen transitions, plus spring presets in the
+ * expressive spirit (physics-based, slightly bouncy for hero moments; the full
+ * MotionScheme API needs material3 1.4+, so springs are applied directly here).
  *
  * Component-level spring physics come from the Material3 expressive APIs where the BOM
  * provides them; these emphasized easings cover enter/exit/shared transitions.
@@ -19,6 +23,18 @@ object MoriMotion {
     const val EnterScreenMs = 400
     const val ExitScreenMs = 200
     const val SharedTransitionMs = 500
+
+    /** Gentle expressive spring for chrome entrances (bottom bars, sheets content). */
+    fun <T> chromeSpring(): androidx.compose.animation.core.FiniteAnimationSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium,
+    )
+
+    /** Playful expressive spring for hero moments (FABs, covers, toggles). */
+    fun <T> heroSpring(): androidx.compose.animation.core.FiniteAnimationSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMediumLow,
+    )
 
     @Composable
     fun enterTween() = tween<IntOffset>(EnterScreenMs, easing = EmphasizedDecelerate)

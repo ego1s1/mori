@@ -1,4 +1,4 @@
-package com.mori.feature.library.impl
+package com.mori.feature.settings.impl
 
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.ReaderPreferences
@@ -7,14 +7,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** In-memory preferences double for library tests. */
+/** In-memory preferences double for settings tests. */
 internal class TestPreferencesDataSource(
     theme: ThemePreferences = ThemePreferences(),
+    reader: ReaderPreferences = ReaderPreferences(),
 ) : MoriPreferencesDataSource {
 
     private val completed = MutableStateFlow(false)
     private val treeUri = MutableStateFlow<String?>(null)
-    private val readerPreferencesFlow = MutableStateFlow(ReaderPreferences())
+    private val readerPreferencesFlow = MutableStateFlow(reader)
     private val themePreferencesFlow = MutableStateFlow(theme)
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()

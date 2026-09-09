@@ -60,6 +60,7 @@ import com.mori.core.model.LibraryQuery
 internal fun LibraryRoute(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -69,6 +70,7 @@ internal fun LibraryRoute(
         onAction = viewModel::onAction,
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
+        onSettingsClick = onSettingsClick,
         modifier = modifier,
     )
 }
@@ -80,6 +82,7 @@ internal fun LibraryScreen(
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -117,16 +120,11 @@ internal fun LibraryScreen(
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
+                        onSettingsClick = onSettingsClick,
                     )
                     if (uiState.filterOpen) {
                         LibrarySortFilterSheet(
                             query = uiState.query,
-                            onAction = onAction,
-                        )
-                    }
-                    if (uiState.settingsOpen) {
-                        LibrarySettingsSheet(
-                            theme = uiState.theme,
                             onAction = onAction,
                         )
                     }
@@ -142,6 +140,7 @@ private fun LibraryContent(
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var searchOpen by remember { mutableStateOf(false) }
@@ -166,6 +165,7 @@ private fun LibraryContent(
 
         FloatingToolbar(
             onSearchClick = { searchOpen = !searchOpen },
+            onSettingsClick = onSettingsClick,
             onAction = onAction,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -267,6 +267,7 @@ private fun LibraryHeader(
 @Composable
 private fun FloatingToolbar(
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -313,7 +314,7 @@ private fun FloatingToolbar(
                 )
             }
             IconButton(
-                onClick = { onAction(LibraryAction.OpenSettings) },
+                onClick = onSettingsClick,
                 modifier = Modifier.testTag(LibraryTestTags.SettingsButton),
             ) {
                 Icon(
@@ -430,13 +431,12 @@ private fun LibraryScreenPreview() {
                 query = com.mori.core.model.LibraryQuery(),
                 refreshing = false,
                 filterOpen = false,
-                settingsOpen = false,
-                theme = com.mori.core.model.ThemePreferences(),
                 snackbar = null,
             ),
             onAction = {},
             onReadClick = { _, _ -> },
             onComicLongClick = {},
+            onSettingsClick = {},
         )
     }
 }

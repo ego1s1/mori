@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.LibraryQuery
-import com.mori.core.model.ThemePreferences
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,7 +31,6 @@ class LibraryScreenTest {
         query: LibraryQuery = LibraryQuery(),
         refreshing: Boolean = false,
         filterOpen: Boolean = false,
-        settingsOpen: Boolean = false,
     ) = LibraryUiState.Success(
         comics = listOf(
             TestComicsRepository.comic("a", title = "Apple"),
@@ -41,8 +39,6 @@ class LibraryScreenTest {
         query = query,
         refreshing = refreshing,
         filterOpen = filterOpen,
-        settingsOpen = settingsOpen,
-        theme = ThemePreferences(),
         snackbar = null,
     )
 
@@ -51,6 +47,7 @@ class LibraryScreenTest {
         actions: MutableList<LibraryAction> = mutableListOf(),
         onReadClick: (String, Int) -> Unit = { _, _ -> },
         onComicLongClick: (String) -> Unit = {},
+        onSettingsClick: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             MoriTheme {
@@ -59,6 +56,7 @@ class LibraryScreenTest {
                     onAction = actions::add,
                     onReadClick = onReadClick,
                     onComicLongClick = onComicLongClick,
+                    onSettingsClick = onSettingsClick,
                 )
             }
         }
@@ -134,11 +132,9 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.Toolbar).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.FilterButton).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.RefreshButton).performClick()
-        composeTestRule.onNodeWithTag(LibraryTestTags.SettingsButton).performClick()
 
         assert(actions.contains(LibraryAction.OpenFilter))
         assert(actions.contains(LibraryAction.Refresh))
-        assert(actions.contains(LibraryAction.OpenSettings))
     }
 
     @Test
@@ -196,20 +192,12 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun settingsSheetContentRendersOptions() {
-        val actions = mutableListOf<LibraryAction>()
-        composeTestRule.setContent {
-            MoriTheme {
-                LibrarySettingsSheetContent(
-                    theme = ThemePreferences(),
-                    onAction = actions::add,
-                )
-            }
-        }
+    fun settingsButtonNavigatesToSettings() {
+        var settingsOpened = false
+        setScreen(success(), onSettingsClick = { settingsOpened = true })
 
-        composeTestRule.onNodeWithText("Appearance").assertIsDisplayed()
-        composeTestRule.onNodeWithText("System").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Dynamic color").assertIsDisplayed()
-        composeTestRule.onNodeWithText("AMOLED black").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.SettingsButton).performClick()
+
+        assert(settingsOpened)
     }
 }

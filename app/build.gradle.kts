@@ -30,6 +30,8 @@ dependencies {
     implementation(project(":feature:library:impl"))
     implementation(project(":feature:detail:impl"))
     implementation(project(":feature:reader:impl"))
+    implementation(project(":feature:settings:api"))
+    implementation(project(":feature:settings:impl"))
     implementation(project(":feature:onboarding:api"))
     implementation(project(":feature:library:api"))
     implementation(project(":feature:detail:api"))
