@@ -1,5 +1,6 @@
 package com.mori.feature.reader.impl
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,7 +41,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +72,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
@@ -157,6 +161,20 @@ private fun ReaderContent(
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
 
+    // Predictive back: the page shrinks and fades with the gesture, and the app
+    // only leaves the reader when the gesture commits. Cancelled gestures snap
+    // back. Disabled over the settings sheet so back dismisses the sheet first.
+    var backProgress by remember { mutableFloatStateOf(0f) }
+    PredictiveBackHandler(enabled = !state.settingsOpen) { progress ->
+        try {
+            progress.collect { event -> backProgress = event.progress }
+            backProgress = 0f
+            onBackClick()
+        } catch (_: CancellationException) {
+            backProgress = 0f
+        }
+    }
+
     // Auto-hide chrome after a moment of stillness, but never mid-scrub.
     if (state.chromeVisible && !state.settingsOpen && !scrubbing) {
         LaunchedEffect(state.chromeVisible, state.pageIndex) {
@@ -184,6 +202,12 @@ private fun ReaderContent(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer {
+                val scale = predictiveBackScale(backProgress)
+                scaleX = scale
+                scaleY = scale
+                alpha = 1f - PREDICTIVE_BACK_FADE * backProgress.coerceIn(0f, 1f)
+            }
             .onPreviewKeyEvent { event ->
                 val action = volumeKeyAction(event.key, event.type, state.volumeKeys)
                 if (action != null) {
@@ -589,6 +613,21 @@ private fun ReaderScreenPreview() {
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
 
+/** Page shrink at a fully-committed predictive back gesture. */
+private const val PREDICTIVE_BACK_SHRINK = 0.08f
+
+/** Page fade at a fully-committed predictive back gesture. */
+private const val PREDICTIVE_BACK_FADE = 0.25f
+
+/**
+ * Page scale for a predictive back [progress] (`0f` at rest, `1f` committed).
+ *
+ * The reader dips slightly as the gesture drives home, mirroring the system
+ * back preview without ever leaving the page on a cancelled gesture. Pure for
+ * testability.
+ */
+internal fun predictiveBackScale(progress: Float): Float =
+    1f - PREDICTIVE_BACK_SHRINK * progress.coerceIn(0f, 1f)
 /** Content width cap on expanded windows (M3 readability guidance). */
 private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
 
