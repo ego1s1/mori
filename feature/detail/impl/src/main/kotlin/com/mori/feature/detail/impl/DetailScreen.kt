@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
@@ -226,7 +227,7 @@ private fun DetailContent(
             ) {
                 Text(
                     text = comic.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MoriEmphasized.headlineSmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
