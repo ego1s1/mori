@@ -1,5 +1,7 @@
 package com.mori.core.datastore
 
+import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -12,7 +14,17 @@ interface MoriPreferencesDataSource {
     /** The last-selected SAF source tree URI, if the user granted one for rescans. */
     val sourceTreeUri: Flow<String?>
 
+    /** Reader preferences (direction, fit, toggles). */
+    val readerPreferences: Flow<ReaderPreferences>
+
+    /** App theme preferences (mode, dynamic color, AMOLED black). */
+    val themePreferences: Flow<ThemePreferences>
+
     suspend fun setOnboardingCompleted(completed: Boolean)
 
     suspend fun setSourceTreeUri(uri: String?)
+
+    suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences)
+
+    suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences)
 }

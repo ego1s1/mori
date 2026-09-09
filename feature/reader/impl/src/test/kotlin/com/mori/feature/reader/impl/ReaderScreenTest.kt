@@ -31,6 +31,7 @@ class ReaderScreenTest {
         pageIndex: Int = 12,
         settingsOpen: Boolean = false,
     ) = ReaderUiState.Ready(
+        comicId = "batman",
         title = "Batman",
         subtitle = "Court of Owls (2012)",
         bookmarked = false,

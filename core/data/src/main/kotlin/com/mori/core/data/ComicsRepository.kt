@@ -31,4 +31,6 @@ interface ComicsRepository {
     suspend fun removeComic(id: String)
 
     suspend fun saveProgress(id: String, pageIndex: Int)
+
+    suspend fun toggleBookmark(id: String)
 }

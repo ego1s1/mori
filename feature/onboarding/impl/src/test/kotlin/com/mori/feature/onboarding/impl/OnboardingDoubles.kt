@@ -4,6 +4,8 @@ import android.net.Uri
 import com.mori.core.data.ComicImporter
 import com.mori.core.data.ImportCandidate
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.ThemePreferences
 import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus
@@ -63,9 +65,13 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     private val completed = MutableStateFlow(false)
     private val treeUri = MutableStateFlow<String?>(null)
+    private val readerPreferencesFlow = MutableStateFlow(ReaderPreferences())
+    private val themePreferencesFlow = MutableStateFlow(ThemePreferences())
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
+    override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
+    override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         this.completed.value = completed
@@ -73,5 +79,13 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override suspend fun setSourceTreeUri(uri: String?) {
         treeUri.value = uri
+    }
+
+    override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {
+        readerPreferencesFlow.value = transform(readerPreferencesFlow.value)
+    }
+
+    override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
+        themePreferencesFlow.value = transform(themePreferencesFlow.value)
     }
 }

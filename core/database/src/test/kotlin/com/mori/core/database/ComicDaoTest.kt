@@ -86,6 +86,15 @@ class ComicDaoTest {
     }
 
     @Test
+    fun updateBookmarkFlipsFlag() = runTest {
+        dao.upsert(entity("a"))
+        dao.updateBookmark("a", true, 50L)
+        val row = dao.getById("a")
+        assertEquals(true, row?.bookmarked)
+        assertEquals(50L, row?.updatedAt)
+    }
+
+    @Test
     fun deleteByIdRemovesRow() = runTest {
         dao.upsertAll(listOf(entity("a"), entity("b")))
         dao.deleteById("a")

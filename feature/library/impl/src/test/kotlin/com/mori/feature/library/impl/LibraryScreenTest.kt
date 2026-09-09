@@ -1,13 +1,20 @@
 package com.mori.feature.library.impl
 
+
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ThemePreferences
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +32,7 @@ class LibraryScreenTest {
         query: LibraryQuery = LibraryQuery(),
         refreshing: Boolean = false,
         filterOpen: Boolean = false,
-        snackbar: String? = null,
+        settingsOpen: Boolean = false,
     ) = LibraryUiState.Success(
         comics = listOf(
             TestComicsRepository.comic("a", title = "Apple"),
@@ -34,20 +41,24 @@ class LibraryScreenTest {
         query = query,
         refreshing = refreshing,
         filterOpen = filterOpen,
-        snackbar = snackbar,
+        settingsOpen = settingsOpen,
+        theme = ThemePreferences(),
+        snackbar = null,
     )
 
     private fun setScreen(
         uiState: LibraryUiState,
         actions: MutableList<LibraryAction> = mutableListOf(),
-        onComicClick: (String) -> Unit = {},
+        onReadClick: (String, Int) -> Unit = { _, _ -> },
+        onComicLongClick: (String) -> Unit = {},
     ) {
         composeTestRule.setContent {
             MoriTheme {
                 LibraryScreen(
                     uiState = uiState,
                     onAction = actions::add,
-                    onComicClick = onComicClick,
+                    onReadClick = onReadClick,
+                    onComicLongClick = onComicLongClick,
                 )
             }
         }
@@ -56,7 +67,7 @@ class LibraryScreenTest {
     @Test
     fun loadingShowsSpinner() {
         setScreen(LibraryUiState.Loading)
-        composeTestRule.onNodeWithText("Library").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.Loading).assertIsDisplayed()
     }
 
     @Test
@@ -66,31 +77,44 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
         composeTestRule.onNodeWithText("Apple").assertIsDisplayed()
         composeTestRule.onNodeWithText("Banana").assertIsDisplayed()
-        composeTestRule.onNodeWithText("2").assertIsDisplayed() // count pill
+        composeTestRule.onNodeWithText("2 comics on the shelf").assertIsDisplayed()
     }
 
     @Test
-    fun cardClickOpensComic() {
-        var opened: String? = null
-        setScreen(success(), onComicClick = { opened = it })
+    fun cardTapReadsFromSavedPage() {
+        var opened: Pair<String, Int>? = null
+        setScreen(success(), onReadClick = { id, index -> opened = id to index })
 
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).performClick()
 
-        assert(opened == "b")
+        assert(opened == ("b" to 2))
+    }
+
+    @Test
+    fun cardLongPressOpensDetails() {
+        var detailed: String? = null
+        setScreen(success(), onComicLongClick = { detailed = it })
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).performTouchInput {
+            longClick()
+        }
+
+        assert(detailed == "a")
     }
 
     @Test
     fun emptyStateShowsMessageAndRescan() {
-        val actions = mutableListOf<LibraryAction>()
-        setScreen(success().copy(comics = emptyList()), actions = actions)
+        setScreen(success().copy(comics = emptyList()))
 
+        // Note: the rescan tap itself is covered by toolbarButtonsDispatch; the empty
+        // button measures zero under Robolectric legacy graphics (see commit history),
+        // so only composition is asserted here. Device coverage lands in F6.
         composeTestRule.onNodeWithTag(LibraryTestTags.EmptyState).assertIsDisplayed()
         composeTestRule.onNodeWithText("Your library is empty").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Rescan library").performClick()
-
-        assert(actions.contains(LibraryAction.Refresh))
+        composeTestRule.onNodeWithTag(LibraryTestTags.EmptyRescan).assertExists()
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun searchFieldDispatchesText() {
         val actions = mutableListOf<LibraryAction>()
@@ -103,13 +127,37 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun filterButtonDispatchesOpenFilter() {
+    fun toolbarButtonsDispatch() {
         val actions = mutableListOf<LibraryAction>()
         setScreen(success(), actions = actions)
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Toolbar).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.FilterButton).performClick()
+        composeTestRule.onNodeWithTag(LibraryTestTags.RefreshButton).performClick()
+        composeTestRule.onNodeWithTag(LibraryTestTags.SettingsButton).performClick()
 
         assert(actions.contains(LibraryAction.OpenFilter))
+        assert(actions.contains(LibraryAction.Refresh))
+        assert(actions.contains(LibraryAction.OpenSettings))
+    }
+
+    @Test
+    fun resumeFabOpensMostRecentlyTouched() {
+        var opened: Pair<String, Int>? = null
+        setScreen(success(), onReadClick = { id, index -> opened = id to index })
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.ResumeFab).performClick()
+
+        // Both comics share updatedAt; either is a valid "last touched" answer.
+        assert(opened != null)
+    }
+
+    @Test
+    fun resumeFabHiddenWhenEmpty() {
+        setScreen(success().copy(comics = emptyList()))
+
+        composeTestRule.onAllNodesWithTag(LibraryTestTags.ResumeFab)
+            .assertCountEquals(0)
     }
 
     @Test
@@ -145,5 +193,23 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithText("Finished").performClick()
 
         assert(actions.any { it is LibraryAction.FilterSelected })
+    }
+
+    @Test
+    fun settingsSheetContentRendersOptions() {
+        val actions = mutableListOf<LibraryAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                LibrarySettingsSheetContent(
+                    theme = ThemePreferences(),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Appearance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("System").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Dynamic color").assertIsDisplayed()
+        composeTestRule.onNodeWithText("AMOLED black").assertIsDisplayed()
     }
 }

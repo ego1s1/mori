@@ -85,6 +85,11 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         dao.updateProgress(id, clamped, System.currentTimeMillis())
     }
 
+    override suspend fun toggleBookmark(id: String) {
+        val row = dao.getById(id) ?: return
+        dao.updateBookmark(id, !row.bookmarked, System.currentTimeMillis())
+    }
+
     private suspend fun indexFile(file: File, existing: ComicEntity? = null): ComicEntity {
         val now = System.currentTimeMillis()
         val known = existing ?: dao.getById(file.name)

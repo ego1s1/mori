@@ -196,6 +196,8 @@ private fun ReaderContent(
                 .testTag(ReaderTestTags.Pager),
         ) { page ->
             ZoomablePage(
+                comicId = state.comicId,
+                pageIndex = page,
                 pageNumber = page + 1,
                 pageFit = state.pageFit,
                 direction = state.direction,
@@ -529,6 +531,7 @@ private fun ReaderScreenPreview() {
     MoriTheme {
         ReaderScreen(
             uiState = ReaderUiState.Ready(
+                comicId = "batman",
                 title = "Batman",
                 subtitle = "Court of Owls (2012) (digital) (Minutemen-PhD)",
                 bookmarked = false,

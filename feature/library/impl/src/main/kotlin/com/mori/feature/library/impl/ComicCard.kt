@@ -1,7 +1,8 @@
 package com.mori.feature.library.impl
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -37,10 +38,12 @@ import java.io.File
  * gradient scrim with the title, progress bar for started comics, error pill for failed
  * rows, and a continue affordance while in progress.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ComicCard(
     comic: Comic,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -48,7 +51,7 @@ internal fun ComicCard(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .testTag(LibraryTestTags.cardFor(comic.id))
-            .clickable(onClick = onClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
         Box(modifier = Modifier.aspectRatio(COVER_ASPECT)) {
             CoverArt(title = comic.title, coverPath = comic.coverPath)

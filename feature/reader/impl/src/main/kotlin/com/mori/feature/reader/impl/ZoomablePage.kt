@@ -22,7 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import coil3.compose.AsyncImage
+import com.mori.core.data.ComicPageKey
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -30,11 +33,13 @@ import com.mori.core.model.ReadingDirection
  * A reader page with pinch-to-zoom, double-tap zoom toggle, and zone taps.
  *
  * Single taps resolve to [ReaderZone] outcomes via [zoneForTap] instead of bubbling to a
- * parent click handler, so tap navigation and double-tap zoom never double-fire.
- * F2 replaces the placeholder art with Coil-loaded backend-decoded bitmaps.
+ * parent click handler, so tap navigation and double-tap zoom never double-fire. Artwork
+ * loads through Coil ([ComicPageKey]) with the page number behind as a placeholder.
  */
 @Composable
 internal fun ZoomablePage(
+    comicId: String,
+    pageIndex: Int,
     pageNumber: Int,
     pageFit: PageFit,
     direction: ReadingDirection,
@@ -93,6 +98,12 @@ internal fun ZoomablePage(
                     style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                AsyncImage(
+                    model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION),
+                    contentDescription = "Page $pageNumber",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }
@@ -108,3 +119,6 @@ private const val MAX_ZOOM = 4f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val FILL_FRACTION = 0.94f
 private const val PAGE_ASPECT = 2f / 3f
+
+/** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */
+private const val READER_MAX_DIMENSION = 1600

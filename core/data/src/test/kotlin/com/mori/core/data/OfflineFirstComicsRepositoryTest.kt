@@ -195,6 +195,22 @@ class OfflineFirstComicsRepositoryTest {
     }
 
     @Test
+    fun toggleBookmarkFlipsPersistedFlag() = runTest {
+        writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+        val backend = FakeComicBackendDataSource(
+            inspected = mapOf("alpha.cbz" to FakeComicBackendDataSource.inspected("001.jpg")),
+        )
+        val repository = repository(backend)
+        repository.refreshLibrary()
+
+        assertEquals(false, repository.getComic("alpha.cbz")?.bookmarked)
+        repository.toggleBookmark("alpha.cbz")
+        assertEquals(true, repository.getComic("alpha.cbz")?.bookmarked)
+        repository.toggleBookmark("alpha.cbz")
+        assertEquals(false, repository.getComic("alpha.cbz")?.bookmarked)
+    }
+
+    @Test
     fun refreshComicReturnsNullForUnknownId() = runTest {
         val backend = FakeComicBackendDataSource()
         assertNull(repository(backend).refreshComic("nope"))

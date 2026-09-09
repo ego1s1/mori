@@ -1,10 +1,12 @@
 package com.mori.feature.library.impl
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,12 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -26,7 +32,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,9 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,10 +54,12 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryQuery
 
 @Composable
 internal fun LibraryRoute(
-    onComicClick: (String) -> Unit,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -57,7 +67,8 @@ internal fun LibraryRoute(
     LibraryScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
-        onComicClick = onComicClick,
+        onReadClick = onReadClick,
+        onComicLongClick = onComicLongClick,
         modifier = modifier,
     )
 }
@@ -67,19 +78,13 @@ internal fun LibraryRoute(
 internal fun LibraryScreen(
     uiState: LibraryUiState,
     onAction: (LibraryAction) -> Unit,
-    onComicClick: (String) -> Unit,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
 
     Scaffold(
-        topBar = {
-            LibraryTopBar(
-                comicCount = (uiState as? LibraryUiState.Success)?.comics?.size,
-                queryText = (uiState as? LibraryUiState.Success)?.query?.text.orEmpty(),
-                onAction = onAction,
-            )
-        },
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHost,
@@ -94,7 +99,9 @@ internal fun LibraryScreen(
             when (uiState) {
                 LibraryUiState.Loading -> Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(LibraryTestTags.Loading),
                 ) {
                     CircularProgressIndicator()
                 }
@@ -108,11 +115,18 @@ internal fun LibraryScreen(
                     LibraryContent(
                         state = uiState,
                         onAction = onAction,
-                        onComicClick = onComicClick,
+                        onReadClick = onReadClick,
+                        onComicLongClick = onComicLongClick,
                     )
                     if (uiState.filterOpen) {
                         LibrarySortFilterSheet(
                             query = uiState.query,
+                            onAction = onAction,
+                        )
+                    }
+                    if (uiState.settingsOpen) {
+                        LibrarySettingsSheet(
+                            theme = uiState.theme,
                             onAction = onAction,
                         )
                     }
@@ -122,49 +136,108 @@ internal fun LibraryScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LibraryTopBar(
-    comicCount: Int?,
-    queryText: String,
+private fun LibraryContent(
+    state: LibraryUiState.Success,
     onAction: (LibraryAction) -> Unit,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var searchOpen by remember { mutableStateOf(false) }
-    Column(modifier = modifier.fillMaxWidth()) {
-        TopAppBar(
-            title = {
-                RowTitle(text = "Library", count = comicCount)
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LibraryHeader(
+                comicCount = state.comics.size,
+                queryText = state.query.text,
+                searchOpen = searchOpen,
+                onSearchOpenChange = { searchOpen = it },
+                onAction = onAction,
+            )
+            LibraryBody(
+                state = state,
+                onAction = onAction,
+                onReadClick = onReadClick,
+                onComicLongClick = onComicLongClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        FloatingToolbar(
+            onSearchClick = { searchOpen = !searchOpen },
+            onAction = onAction,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
+        )
+
+        val resume = state.resumeTarget
+        if (resume != null) {
+            FilledIconButton(
+                onClick = { onReadClick(resume.id, resume.lastPageIndex) },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 96.dp)
+                    .size(64.dp)
+                    .testTag(LibraryTestTags.ResumeFab),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.PlayArrow,
+                    contentDescription = "Resume ${resume.title}",
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Big, colorful M3 Expressive header: diagonal tonal gradient band, emphasized
+ * display title, and a live subtitle describing the collection.
+ */
+@Composable
+private fun LibraryHeader(
+    comicCount: Int,
+    queryText: String,
+    searchOpen: Boolean,
+    onSearchOpenChange: (Boolean) -> Unit,
+    onAction: (LibraryAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                ),
+            )
+            .padding(horizontal = 20.dp)
+            .padding(top = 28.dp, bottom = 20.dp),
+    ) {
+        Text(
+            text = "Library",
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = if (comicCount == 0) {
+                "Import comics to start your shelf"
+            } else {
+                "$comicCount comic${if (comicCount == 1) "" else "s"} on the shelf"
             },
-            actions = {
-                IconButton(
-                    onClick = { searchOpen = !searchOpen },
-                    modifier = Modifier.testTag(LibraryTestTags.SearchToggle),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.Search,
-                        contentDescription = "Search library",
-                    )
-                }
-                IconButton(
-                    onClick = { onAction(LibraryAction.OpenFilter) },
-                    modifier = Modifier.testTag(LibraryTestTags.FilterButton),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.Tune,
-                        contentDescription = "Sort and filter",
-                    )
-                }
-                IconButton(
-                    onClick = { onAction(LibraryAction.Refresh) },
-                    modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.Refresh,
-                        contentDescription = "Rescan library",
-                    )
-                }
-            },
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
         )
         if (searchOpen) {
             OutlinedTextField(
@@ -176,35 +249,77 @@ private fun LibraryTopBar(
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { searchOpen = false }),
+                keyboardActions = KeyboardActions(onSearch = { onSearchOpenChange(false) }),
+                shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp)
+                    .padding(top = 12.dp)
                     .testTag(LibraryTestTags.SearchField),
             )
         }
     }
 }
 
+/**
+ * Floating M3 Expressive toolbar: a tonal pill with the primary library actions,
+ * detached from the screen edges.
+ */
 @Composable
-private fun RowTitle(text: String, count: Int?, modifier: Modifier = Modifier) {
-    androidx.compose.foundation.layout.Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier,
+private fun FloatingToolbar(
+    onSearchClick: () -> Unit,
+    onAction: (LibraryAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 3.dp,
+        shadowElevation = 6.dp,
+        modifier = modifier.testTag(LibraryTestTags.Toolbar),
     ) {
-        Text(text = text, style = MaterialTheme.typography.headlineSmall)
-        if (count != null) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            IconButton(
+                onClick = onSearchClick,
+                modifier = Modifier.testTag(LibraryTestTags.SearchToggle),
             ) {
-                Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                Icon(
+                    imageVector = MoriIcons.Search,
+                    contentDescription = "Search library",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            IconButton(
+                onClick = { onAction(LibraryAction.OpenFilter) },
+                modifier = Modifier.testTag(LibraryTestTags.FilterButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Tune,
+                    contentDescription = "Sort and filter",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            IconButton(
+                onClick = { onAction(LibraryAction.Refresh) },
+                modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Refresh,
+                    contentDescription = "Rescan library",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            IconButton(
+                onClick = { onAction(LibraryAction.OpenSettings) },
+                modifier = Modifier.testTag(LibraryTestTags.SettingsButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Settings,
+                    contentDescription = "Library settings",
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -213,10 +328,11 @@ private fun RowTitle(text: String, count: Int?, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-private fun LibraryContent(
+private fun LibraryBody(
     state: LibraryUiState.Success,
     onAction: (LibraryAction) -> Unit,
-    onComicClick: (String) -> Unit,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     PullToRefreshBox(
@@ -232,9 +348,9 @@ private fun LibraryContent(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 96.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag(LibraryTestTags.Grid),
@@ -242,7 +358,8 @@ private fun LibraryContent(
                 items(state.comics, key = { it.id }) { comic ->
                     ComicCard(
                         comic = comic,
-                        onClick = { onComicClick(comic.id) },
+                        onClick = { onReadClick(comic.id, comic.lastPageIndex) },
+                        onLongClick = { onComicLongClick(comic.id) },
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -262,7 +379,8 @@ private fun LibraryEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp)
+            .padding(horizontal = 32.dp)
+            .padding(bottom = 96.dp)
             .testTag(LibraryTestTags.EmptyState),
     ) {
         Icon(
@@ -288,9 +406,11 @@ private fun LibraryEmptyState(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp),
         )
-        OutlinedButton(
+        Button(
             onClick = onRefresh,
-            modifier = Modifier.padding(top = 24.dp),
+            modifier = Modifier
+                .padding(top = 24.dp)
+                .testTag(LibraryTestTags.EmptyRescan),
         ) {
             Text("Rescan library")
         }
@@ -310,10 +430,13 @@ private fun LibraryScreenPreview() {
                 query = com.mori.core.model.LibraryQuery(),
                 refreshing = false,
                 filterOpen = false,
+                settingsOpen = false,
+                theme = com.mori.core.model.ThemePreferences(),
                 snackbar = null,
             ),
             onAction = {},
-            onComicClick = {},
+            onReadClick = { _, _ -> },
+            onComicLongClick = {},
         )
     }
 }

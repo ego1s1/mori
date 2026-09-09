@@ -7,6 +7,7 @@ sealed interface ReaderUiState {
     data object Loading : ReaderUiState
 
     data class Ready(
+        val comicId: String,
         val title: String,
         val subtitle: String,
         val bookmarked: Boolean,

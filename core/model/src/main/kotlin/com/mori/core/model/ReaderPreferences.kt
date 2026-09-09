@@ -17,6 +17,8 @@ enum class PageFit {
 data class ReaderPreferences(
     val direction: ReadingDirection = ReadingDirection.LEFT_TO_RIGHT,
     val pageFit: PageFit = PageFit.WIDTH,
+    val cropMargins: Boolean = false,
+    val volumeKeys: Boolean = false,
     val keepScreenOn: Boolean = true,
     val showPageCounter: Boolean = true,
 )

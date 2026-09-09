@@ -19,4 +19,5 @@ internal fun ComicEntity.toModel(): Comic = Comic(
     createdAt = createdAt,
     updatedAt = updatedAt,
     error = error?.let { runCatching { ComicError.valueOf(it) }.getOrNull() },
+    bookmarked = bookmarked,
 )

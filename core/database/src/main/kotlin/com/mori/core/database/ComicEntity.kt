@@ -1,5 +1,6 @@
 package com.mori.core.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -26,4 +27,6 @@ data class ComicEntity(
     val error: String?,
     val createdAt: Long,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "0")
+    val bookmarked: Boolean = false,
 )

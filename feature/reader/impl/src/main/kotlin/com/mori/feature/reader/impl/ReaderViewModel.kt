@@ -2,89 +2,166 @@ package com.mori.feature.reader.impl
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.mori.core.model.PageFit
-import com.mori.core.model.ReadingDirection
+import com.mori.core.data.ComicsRepository
+import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.Comic
+import com.mori.core.model.ComicError
+import com.mori.core.model.ReaderPreferences
 import com.mori.feature.reader.api.ReaderRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Holds reader UI state.
+ * Reader state holder backed by the real repository and persisted preferences.
  *
- * F2 will back this with `ComicsRepository` (metadata, page count, saved progress);
- * until then it serves clearly-marked placeholder content so the reader chrome,
- * gestures, and settings are fully interactive and testable.
+ * Navigation position lives in [navigation] (route argument first, then user movement)
+ * so repository re-emissions — including our own progress saves — never yank the pager
+ * back. Progress saves debounce 500ms after the page settles.
  */
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val repository: ComicsRepository,
+    private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
     private val args: ReaderRoute = savedStateHandle.toRoute<ReaderRoute>()
 
-    private val _uiState = MutableStateFlow<ReaderUiState>(ReaderUiState.Loading)
-    val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
+    /** Ephemeral chrome state; resets are harmless, so it is not persisted. */
+    private val chrome = MutableStateFlow(ChromeState())
 
-    init {
-        // TODO(F2): load Comic from repository (title, page count, saved page, bookmark).
-        _uiState.value = ReaderUiState.Ready(
-            title = args.comicId,
-            subtitle = "",
-            bookmarked = false,
-            pageIndex = args.pageIndex.coerceIn(0, PLACEHOLDER_PAGE_COUNT - 1),
-            pageCount = PLACEHOLDER_PAGE_COUNT,
-            chromeVisible = true,
-            direction = ReadingDirection.LEFT_TO_RIGHT,
-            pageFit = PageFit.WIDTH,
-            cropMargins = false,
-            settingsOpen = false,
-            volumeKeys = false,
-            keepScreenOn = true,
-            showTapZones = false,
+    /** User-driven position; null until the user navigates (route argument rules). */
+    private val navigation = MutableStateFlow<Int?>(null)
+
+    private var saveJob: Job? = null
+
+    val uiState: StateFlow<ReaderUiState> = combine(
+        repository.observeComic(args.comicId),
+        preferences.readerPreferences,
+        chrome,
+        navigation,
+        ::toUiState,
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = ReaderUiState.Loading,
+    )
+
+    private fun toUiState(
+        comic: Comic?,
+        prefs: ReaderPreferences,
+        chrome: ChromeState,
+        navigation: Int?,
+    ): ReaderUiState {
+        if (comic == null) {
+            return ReaderUiState.Error("This comic is no longer in your library.")
+        }
+        val error = comic.error
+        if (error != null) {
+            return ReaderUiState.Error(errorMessage(error))
+        }
+        val pageCount = comic.pageCount.coerceAtLeast(1)
+        val pageIndex = (navigation ?: args.pageIndex).coerceIn(0, pageCount - 1)
+        return ReaderUiState.Ready(
+            comicId = comic.id,
+            title = comic.title,
+            subtitle = listOfNotNull(comic.series, comic.number).joinToString(" • "),
+            bookmarked = comic.bookmarked,
+            pageIndex = pageIndex,
+            pageCount = pageCount,
+            chromeVisible = chrome.visible,
+            direction = prefs.direction,
+            pageFit = prefs.pageFit,
+            cropMargins = prefs.cropMargins,
+            settingsOpen = chrome.settingsOpen,
+            volumeKeys = prefs.volumeKeys,
+            keepScreenOn = prefs.keepScreenOn,
+            showTapZones = chrome.showTapZones,
         )
     }
 
+    private fun errorMessage(error: ComicError): String = when (error) {
+        ComicError.CORRUPT -> "This file could not be read. It may be damaged."
+        ComicError.PASSWORD_REQUIRED -> "This archive is password protected."
+        ComicError.EMPTY -> "This archive contains no readable pages."
+        ComicError.UNSUPPORTED -> "This format is not supported."
+    }
+
     fun onAction(action: ReaderAction) {
-        val current = _uiState.value
-        if (current !is ReaderUiState.Ready) return
-        _uiState.update {
-            when (action) {
-                ReaderAction.ToggleChrome -> current.copy(chromeVisible = !current.chromeVisible)
-                ReaderAction.NextPage -> current.copy(
-                    pageIndex = (current.pageIndex + 1).coerceAtMost(current.pageCount - 1),
-                    chromeVisible = true,
-                )
-                ReaderAction.PrevPage -> current.copy(
-                    pageIndex = (current.pageIndex - 1).coerceAtLeast(0),
-                    chromeVisible = true,
-                )
-                is ReaderAction.SeekPage -> current.copy(
-                    pageIndex = action.index.coerceIn(0, current.pageCount - 1),
-                    chromeVisible = true,
-                )
-                is ReaderAction.PageChanged -> current.copy(
-                    pageIndex = action.index.coerceIn(0, current.pageCount - 1),
-                )
-                ReaderAction.ToggleBookmark -> current.copy(bookmarked = !current.bookmarked)
-                ReaderAction.OpenSettings -> current.copy(settingsOpen = true, chromeVisible = true)
-                ReaderAction.CloseSettings -> current.copy(settingsOpen = false)
-                is ReaderAction.SetDirection -> current.copy(direction = action.direction)
-                is ReaderAction.SetPageFit -> current.copy(pageFit = action.fit)
-                ReaderAction.ToggleCrop -> current.copy(cropMargins = !current.cropMargins)
-                ReaderAction.ToggleVolumeKeys -> current.copy(volumeKeys = !current.volumeKeys)
-                ReaderAction.ToggleKeepScreenOn -> current.copy(keepScreenOn = !current.keepScreenOn)
-                ReaderAction.ToggleTapZones -> current.copy(showTapZones = !current.showTapZones)
+        when (action) {
+            ReaderAction.ToggleChrome -> chrome.value = chrome.value.copy(
+                visible = !chrome.value.visible,
+            )
+            ReaderAction.NextPage -> moveBy(1)
+            ReaderAction.PrevPage -> moveBy(-1)
+            is ReaderAction.SeekPage -> moveTo(action.index)
+            is ReaderAction.PageChanged -> {
+                navigation.value = action.index
+                scheduleProgressSave(action.index)
             }
+            ReaderAction.ToggleBookmark -> {
+                viewModelScope.launch { repository.toggleBookmark(args.comicId) }
+            }
+            ReaderAction.OpenSettings -> chrome.value = chrome.value.copy(
+                settingsOpen = true,
+                visible = true,
+            )
+            ReaderAction.CloseSettings -> chrome.value = chrome.value.copy(settingsOpen = false)
+            is ReaderAction.SetDirection -> updatePrefs { it.copy(direction = action.direction) }
+            is ReaderAction.SetPageFit -> updatePrefs { it.copy(pageFit = action.fit) }
+            ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
+            ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
+            ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
+            ReaderAction.ToggleTapZones -> chrome.value = chrome.value.copy(
+                showTapZones = !chrome.value.showTapZones,
+            )
         }
     }
 
+    private fun moveBy(delta: Int) {
+        val current = (uiState.value as? ReaderUiState.Ready)?.pageIndex ?: return
+        moveTo(current + delta)
+    }
+
+    private fun moveTo(index: Int) {
+        val ready = uiState.value as? ReaderUiState.Ready ?: return
+        val clamped = index.coerceIn(0, ready.pageCount - 1)
+        navigation.value = clamped
+        chrome.value = chrome.value.copy(visible = true)
+        scheduleProgressSave(clamped)
+    }
+
+    private fun scheduleProgressSave(index: Int) {
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch {
+            delay(PROGRESS_SAVE_DEBOUNCE_MS)
+            repository.saveProgress(args.comicId, index)
+        }
+    }
+
+    private fun updatePrefs(transform: (ReaderPreferences) -> ReaderPreferences) {
+        viewModelScope.launch {
+            preferences.updateReaderPreferences(transform)
+        }
+    }
+
+    private data class ChromeState(
+        val visible: Boolean = true,
+        val settingsOpen: Boolean = false,
+        val showTapZones: Boolean = false,
+    )
+
     private companion object {
-        // Matches the mockup's page count so the slider/pill layout can be verified.
-        const val PLACEHOLDER_PAGE_COUNT = 173
+        const val PROGRESS_SAVE_DEBOUNCE_MS = 500L
     }
 }

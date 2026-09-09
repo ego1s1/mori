@@ -3,8 +3,10 @@ package com.mori.feature.library.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicsRepository
+import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,22 +22,24 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: ComicsRepository,
+    private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
     private val query = MutableStateFlow(LibraryQuery())
     private val refreshing = MutableStateFlow(false)
     private val filterOpen = MutableStateFlow(false)
+    private val settingsOpen = MutableStateFlow(false)
     private val snackbar = MutableStateFlow<String?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<LibraryUiState> = combine(
         query.flatMapLatest { repository.observeLibrary(it) },
         query,
-        refreshing,
-        filterOpen,
-        snackbar,
-        ::toUiState,
-    ).stateIn(
+        combine(refreshing, filterOpen, settingsOpen, snackbar, ::Chrome),
+        preferences.themePreferences,
+    ) { comics, query, chrome, theme ->
+        toUiState(comics, query, chrome, theme)
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryUiState.Loading,
@@ -44,15 +48,16 @@ class LibraryViewModel @Inject constructor(
     private fun toUiState(
         comics: List<Comic>,
         query: LibraryQuery,
-        refreshing: Boolean,
-        filterOpen: Boolean,
-        snackbar: String?,
+        chrome: Chrome,
+        theme: ThemePreferences,
     ): LibraryUiState = LibraryUiState.Success(
         comics = comics,
         query = query,
-        refreshing = refreshing,
-        filterOpen = filterOpen,
-        snackbar = snackbar,
+        refreshing = chrome.refreshing,
+        filterOpen = chrome.filterOpen,
+        settingsOpen = chrome.settingsOpen,
+        theme = theme,
+        snackbar = chrome.snackbar,
     )
 
     fun onAction(action: LibraryAction) {
@@ -63,10 +68,29 @@ class LibraryViewModel @Inject constructor(
             is LibraryAction.ToggleHideErrors -> query.update { it.copy(hideErrors = action.hide) }
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
+            LibraryAction.OpenSettings -> settingsOpen.value = true
+            LibraryAction.CloseSettings -> settingsOpen.value = false
+            is LibraryAction.SetThemeMode -> updateTheme { it.copy(mode = action.mode) }
+            is LibraryAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }
+            is LibraryAction.SetAmoled -> updateTheme { it.copy(amoled = action.enabled) }
             LibraryAction.Refresh -> refresh()
             LibraryAction.DismissSnackbar -> snackbar.value = null
         }
     }
+
+    private fun updateTheme(transform: (ThemePreferences) -> ThemePreferences) {
+        viewModelScope.launch {
+            preferences.updateThemePreferences(transform)
+        }
+    }
+
+    /** Ephemeral chrome state kept out of the query/data flows. */
+    private data class Chrome(
+        val refreshing: Boolean,
+        val filterOpen: Boolean,
+        val settingsOpen: Boolean,
+        val snackbar: String?,
+    )
 
     private fun refresh() {
         if (refreshing.value) return
