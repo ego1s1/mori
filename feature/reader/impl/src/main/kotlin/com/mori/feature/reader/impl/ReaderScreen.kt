@@ -67,6 +67,9 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -151,10 +154,17 @@ private fun ReaderContent(
         pageCount = { state.pageCount },
     )
 
-    // ViewModel -> pager (buttons, slider, external seeks).
-    LaunchedEffect(state.pageIndex) {
+    // ViewModel -> pager (buttons, slider, external seeks). Expressive motion
+    // glides; calm motion jumps instantly (no animation to interrupt, and
+    // rapid taps can never collide with an in-flight scroll).
+    val pagerExpressive = LocalExpressiveMotionEnabled.current
+    LaunchedEffect(state.pageIndex, pagerExpressive) {
         if (pagerState.currentPage != state.pageIndex) {
-            pagerState.animateScrollToPage(state.pageIndex)
+            if (pagerExpressive) {
+                pagerState.animateScrollToPage(state.pageIndex)
+            } else {
+                pagerState.scrollToPage(state.pageIndex)
+            }
         }
     }
     // Pager -> ViewModel (swipes).
@@ -224,6 +234,23 @@ private fun ReaderContent(
             onDispose {
                 window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
+        }
+    }
+
+    // Fullscreen follows chrome: bars hide with the controls for true immersion,
+    // return with them. Transient swipe still reveals bars temporarily (system).
+    DisposableEffect(context, state.chromeVisible) {
+        val window = (context as? android.app.Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+        if (state.chromeVisible) {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
