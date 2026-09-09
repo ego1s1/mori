@@ -24,6 +24,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +33,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,8 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -86,15 +89,26 @@ internal fun LibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        rememberTopAppBarState(),
+    )
 
     Scaffold(
+        topBar = {
+            if (uiState is LibraryUiState.Success) {
+                LibraryTopBar(
+                    comicCount = uiState.comics.size,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+        },
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHost,
                 modifier = Modifier.testTag(LibraryTestTags.Snackbar),
             )
         },
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
         Surface(modifier = Modifier
             .fillMaxSize()
@@ -147,13 +161,25 @@ private fun LibraryContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            LibraryHeader(
-                comicCount = state.comics.size,
-                queryText = state.query.text,
-                searchOpen = searchOpen,
-                onSearchOpenChange = { searchOpen = it },
-                onAction = onAction,
-            )
+            if (searchOpen) {
+                OutlinedTextField(
+                    value = state.query.text,
+                    onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
+                    label = { Text("Search title, series, number") },
+                    leadingIcon = {
+                        Icon(imageVector = MoriIcons.Search, contentDescription = null)
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { searchOpen = false }),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
+                        .testTag(LibraryTestTags.SearchField),
+                )
+            }
             LibraryBody(
                 state = state,
                 onAction = onAction,
@@ -197,67 +223,42 @@ private fun LibraryContent(
 }
 
 /**
- * Big, colorful M3 Expressive header: diagonal tonal gradient band, emphasized
- * display title, and a live subtitle describing the collection.
+ * M3 large app bar: emphasized collapsing headline with a live collection subtitle.
+ * Tonal elevation on scroll comes from TopAppBarDefaults (surface → surfaceContainer),
+ * exactly per spec — no decorative gradients, no alpha-hacked text.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LibraryHeader(
+private fun LibraryTopBar(
     comicCount: Int,
-    queryText: String,
-    searchOpen: Boolean,
-    onSearchOpenChange: (Boolean) -> Unit,
-    onAction: (LibraryAction) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.tertiaryContainer,
-                    ),
-                ),
-            )
-            .padding(horizontal = 20.dp)
-            .padding(top = 28.dp, bottom = 20.dp),
-    ) {
-        Text(
-            text = "Library",
-            style = MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = if (comicCount == 0) {
-                "Import comics to start your shelf"
-            } else {
-                "$comicCount comic${if (comicCount == 1) "" else "s"} on the shelf"
-            },
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-        )
-        if (searchOpen) {
-            OutlinedTextField(
-                value = queryText,
-                onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
-                label = { Text("Search title, series, number") },
-                leadingIcon = {
-                    Icon(imageVector = MoriIcons.Search, contentDescription = null)
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearchOpenChange(false) }),
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .testTag(LibraryTestTags.SearchField),
-            )
-        }
-    }
+    LargeTopAppBar(
+        title = {
+            Column {
+                Text(
+                    text = "Library",
+                    style = MaterialTheme.typography.headlineLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (comicCount == 0) {
+                        "Import comics to start your shelf"
+                    } else {
+                        "$comicCount comic${if (comicCount == 1) "" else "s"} on the shelf"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        scrollBehavior = scrollBehavior,
+        modifier = modifier,
+    )
 }
 
 /**

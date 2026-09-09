@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:data"))
     implementation(project(":core:datastore"))
+    implementation(project(":comic-core"))
     implementation(libs.coil.compose)
 
     implementation(libs.androidx.activity.compose)
@@ -56,4 +57,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material3.windowsize)
     implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
