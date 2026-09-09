@@ -2,22 +2,96 @@ package com.mori.feature.detail.impl
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.mori.core.data.ComicsRepository
+import com.mori.core.model.Comic
 import com.mori.feature.detail.api.DetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val repository: ComicsRepository,
 ) : ViewModel() {
 
     private val args: DetailRoute = savedStateHandle.toRoute<DetailRoute>()
 
-    private val _uiState =
-        MutableStateFlow<DetailUiState>(DetailUiState.Ready("Detail ${args.comicId} coming in F4"))
-    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
+    private val refreshing = MutableStateFlow(false)
+    private val confirmRemove = MutableStateFlow(false)
+    private val removed = MutableStateFlow(false)
+    private val snackbar = MutableStateFlow<String?>(null)
+
+    val uiState: StateFlow<DetailUiState> = combine(
+        repository.observeComic(args.comicId),
+        refreshing,
+        confirmRemove,
+        removed,
+        snackbar,
+        ::toUiState,
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = DetailUiState.Loading,
+    )
+
+    private fun toUiState(
+        comic: Comic?,
+        refreshing: Boolean,
+        confirmRemove: Boolean,
+        removed: Boolean,
+        snackbar: String?,
+    ): DetailUiState {
+        if (removed || comic == null) return DetailUiState.Missing
+        return DetailUiState.Ready(
+            comic = comic,
+            refreshing = refreshing,
+            confirmRemove = confirmRemove,
+            removed = false,
+            snackbar = snackbar,
+        )
+    }
+
+    fun onAction(action: DetailAction) {
+        when (action) {
+            DetailAction.Refresh -> refresh()
+            DetailAction.AskRemove -> confirmRemove.value = true
+            DetailAction.CancelRemove -> confirmRemove.value = false
+            DetailAction.ConfirmRemove -> remove()
+            DetailAction.DismissSnackbar -> snackbar.value = null
+        }
+    }
+
+    private fun refresh() {
+        if (refreshing.value) return
+        viewModelScope.launch {
+            refreshing.value = true
+            try {
+                repository.refreshComic(args.comicId)
+            } catch (e: Exception) {
+                snackbar.value = e.message ?: "Refresh failed"
+            } finally {
+                refreshing.value = false
+            }
+        }
+    }
+
+    private fun remove() {
+        viewModelScope.launch {
+            try {
+                repository.removeComic(args.comicId)
+                removed.value = true
+            } catch (e: Exception) {
+                confirmRemove.value = false
+                snackbar.value = e.message ?: "Remove failed"
+            }
+        }
+    }
 }

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Crop
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GridView
@@ -40,6 +41,7 @@ object MoriIcons {
     val Check = Icons.Rounded.Check
     val Close = Icons.Rounded.Close
     val Crop = Icons.Rounded.Crop
+    val Delete = Icons.Rounded.Delete
     val FitScreen = Icons.Rounded.FitScreen
     val FolderOpen = Icons.Rounded.FolderOpen
     val GridView = Icons.Rounded.GridView

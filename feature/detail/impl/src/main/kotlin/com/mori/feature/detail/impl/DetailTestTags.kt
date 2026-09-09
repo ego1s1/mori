@@ -1,0 +1,15 @@
+package com.mori.feature.detail.impl
+
+/** Test tags for the detail screen. */
+object DetailTestTags {
+    const val Hero = "detailHero"
+    const val ReadButton = "detailRead"
+    const val RefreshButton = "detailRefresh"
+    const val RemoveButton = "detailRemove"
+    const val RemoveDialog = "detailRemoveDialog"
+    const val ConfirmRemove = "detailConfirmRemove"
+    const val PageStrip = "detailPages"
+    const val ErrorCard = "detailError"
+
+    fun pageChip(index: Int): String = "detailPage:$index"
+}
