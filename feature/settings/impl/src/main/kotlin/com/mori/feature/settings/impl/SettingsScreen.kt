@@ -42,6 +42,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
@@ -103,6 +104,7 @@ internal fun SettingsScreen(
                 is SettingsUiState.Ready -> SettingsContent(
                     theme = uiState.theme,
                     reader = uiState.reader,
+                    motion = uiState.motion,
                     storage = uiState.storage,
                     onAction = onAction,
                 )
@@ -115,6 +117,7 @@ internal fun SettingsScreen(
 internal fun SettingsContent(
     theme: ThemePreferences,
     reader: ReaderPreferences,
+    motion: MotionStyle,
     storage: StorageUsage?,
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -164,6 +167,30 @@ internal fun SettingsContent(
             subtitle = "True-black backgrounds in dark mode",
             checked = theme.amoled,
             onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
+        )
+        Text(
+            text = "Motion",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = motion == MotionStyle.EXPRESSIVE,
+                onClick = { onAction(SettingsAction.SetMotionStyle(MotionStyle.EXPRESSIVE)) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                label = { Text("Expressive") },
+            )
+            SegmentedButton(
+                selected = motion == MotionStyle.CALM,
+                onClick = { onAction(SettingsAction.SetMotionStyle(MotionStyle.CALM)) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                label = { Text("Calm") },
+            )
+        }
+        Text(
+            text = "Expressive uses spring physics; calm fades quietly and honors reduced motion.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         SectionTitle("Reader defaults", topPadding = 20.dp)
@@ -368,6 +395,7 @@ private fun SettingsScreenPreview() {
             uiState = SettingsUiState.Ready(
                 theme = ThemePreferences(),
                 reader = ReaderPreferences(),
+                motion = MotionStyle.EXPRESSIVE,
                 storage = StorageUsage(comicCount = 12, libraryBytes = 480_000_000L, coversBytes = 6_000_000L),
             ),
             onAction = {},

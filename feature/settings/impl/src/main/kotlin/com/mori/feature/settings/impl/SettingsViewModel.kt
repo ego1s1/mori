@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
@@ -29,6 +30,7 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         preferences.themePreferences,
         preferences.readerPreferences,
+        preferences.motionStyle,
         storageInfo,
         ::toUiState,
     ).stateIn(
@@ -48,10 +50,12 @@ class SettingsViewModel @Inject constructor(
     private fun toUiState(
         theme: ThemePreferences,
         reader: ReaderPreferences,
+        motion: MotionStyle,
         storage: StorageUsage?,
     ): SettingsUiState = SettingsUiState.Ready(
         theme = theme,
         reader = reader,
+        motion = motion,
         storage = storage,
     )
 
@@ -60,6 +64,7 @@ class SettingsViewModel @Inject constructor(
             is SettingsAction.SetThemeMode -> updateTheme { it.copy(mode = action.mode) }
             is SettingsAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }
             is SettingsAction.SetAmoled -> updateTheme { it.copy(amoled = action.enabled) }
+            is SettingsAction.SetMotionStyle -> updateMotion(action.style)
             is SettingsAction.SetDirection -> updateReader { it.copy(direction = action.direction) }
             is SettingsAction.SetPageFit -> updateReader { it.copy(pageFit = action.fit) }
             SettingsAction.ToggleVolumeKeys -> updateReader { it.copy(volumeKeys = !it.volumeKeys) }
@@ -77,6 +82,12 @@ class SettingsViewModel @Inject constructor(
     private fun updateReader(transform: (ReaderPreferences) -> ReaderPreferences) {
         viewModelScope.launch {
             preferences.updateReaderPreferences(transform)
+        }
+    }
+
+    private fun updateMotion(style: MotionStyle) {
+        viewModelScope.launch {
+            preferences.updateMotionStyle(style)
         }
     }
 

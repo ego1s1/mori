@@ -1,6 +1,8 @@
 package com.mori.feature.settings.impl
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -8,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
@@ -26,17 +29,36 @@ class SettingsScreenTest {
 
     private fun setContent(
         actions: MutableList<SettingsAction> = mutableListOf(),
+        motion: MotionStyle = MotionStyle.EXPRESSIVE,
     ) {
         composeTestRule.setContent {
             MoriTheme {
                 SettingsContent(
                     theme = ThemePreferences(),
                     reader = ReaderPreferences(),
+                    motion = motion,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     onAction = actions::add,
                 )
             }
         }
+    }
+
+    @Test
+    fun motionOptionsRenderWithSelection() {
+        setContent()
+
+        composeTestRule.onNodeWithText("Motion").assertExists()
+        composeTestRule.onNodeWithText("Expressive").assertIsSelected()
+        composeTestRule.onNodeWithText("Calm").assertIsNotSelected()
+    }
+
+    @Test
+    fun motionSelectionFollowsState() {
+        setContent(motion = MotionStyle.CALM)
+
+        composeTestRule.onNodeWithText("Calm").assertIsSelected()
+        composeTestRule.onNodeWithText("Expressive").assertIsNotSelected()
     }
 
     @Test
@@ -89,6 +111,7 @@ class SettingsScreenTest {
                 SettingsContent(
                     theme = ThemePreferences(),
                     reader = ReaderPreferences(),
+                    motion = MotionStyle.EXPRESSIVE,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     onAction = actions::add,
                 )
@@ -110,6 +133,7 @@ class SettingsScreenTest {
                     uiState = SettingsUiState.Ready(
                         theme = ThemePreferences(),
                         reader = ReaderPreferences(),
+                        motion = MotionStyle.EXPRESSIVE,
                         storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     ),
                     onAction = {},
