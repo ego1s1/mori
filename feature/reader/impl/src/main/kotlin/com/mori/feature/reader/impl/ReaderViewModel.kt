@@ -104,9 +104,11 @@ class ReaderViewModel @Inject constructor(
             )
             ReaderAction.NextPage -> moveBy(1)
             ReaderAction.PrevPage -> moveBy(-1)
-            is ReaderAction.SeekPage -> moveTo(action.index)
+            is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false)
             is ReaderAction.PageChanged -> {
                 navigation.value = action.index
+                // Swiping to a new page dismisses chrome, like a page turn.
+                chrome.value = chrome.value.copy(visible = false)
                 scheduleProgressSave(action.index)
             }
             ReaderAction.ToggleBookmark -> {
@@ -130,14 +132,16 @@ class ReaderViewModel @Inject constructor(
 
     private fun moveBy(delta: Int) {
         val current = (uiState.value as? ReaderUiState.Ready)?.pageIndex ?: return
-        moveTo(current + delta)
+        moveTo(current + delta, hideChrome = true)
     }
 
-    private fun moveTo(index: Int) {
+    private fun moveTo(index: Int, hideChrome: Boolean) {
         val ready = uiState.value as? ReaderUiState.Ready ?: return
         val clamped = index.coerceIn(0, ready.pageCount - 1)
         navigation.value = clamped
-        chrome.value = chrome.value.copy(visible = true)
+        // Buttons and zone taps dismiss chrome like a page turn; the slider keeps
+        // chrome up so scrubbing stays visible (auto-hide resumes afterwards).
+        chrome.value = chrome.value.copy(visible = !hideChrome)
         scheduleProgressSave(clamped)
     }
 

@@ -77,6 +77,29 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun pageTurnsHideChromeWhileSliderSeekKeepsIt() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().chromeVisible)
+            viewModel.onAction(ReaderAction.NextPage)
+            // Both fields settle together; the predicate must cover both.
+            assertEquals(false, awaitReadyWhere { it.pageIndex == 1 && !it.chromeVisible }.chromeVisible)
+            viewModel.onAction(ReaderAction.SeekPage(5))
+            val afterSeek = awaitReadyWhere { it.chromeVisible && it.pageIndex == 5 }
+            assertEquals(5, afterSeek.pageIndex)
+            viewModel.onAction(ReaderAction.PageChanged(6))
+            assertEquals(false, awaitReadyWhere { it.pageIndex == 6 && !it.chromeVisible }.chromeVisible)
+        }
+    }
+
+    @Test
+    fun zoomTargetTogglesBetweenFitAndLevel() {
+        assertEquals(1f, zoomTargetForTap(2.5f))
+        assertEquals(1f, zoomTargetForTap(1.5f))
+        assertEquals(2.5f, zoomTargetForTap(1f))
+    }
+
+    @Test
     fun navigationClampsAndSurvivesRepoEmissions() = runTest {
         val repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c")))
         val viewModel = viewModel(repository = repository)
@@ -87,8 +110,9 @@ class ReaderViewModelTest {
             // External repo emission (e.g. our own progress save) must not reset position.
             repository.send(TestComicsRepository.comic("c", lastPageIndex = 0))
             viewModel.onAction(ReaderAction.SeekPage(50))
-            val clamped = awaitItem() as ReaderUiState.Ready
+            val clamped = awaitReadyWhere { it.pageIndex == 9 }
             assertEquals(9, clamped.pageIndex)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
