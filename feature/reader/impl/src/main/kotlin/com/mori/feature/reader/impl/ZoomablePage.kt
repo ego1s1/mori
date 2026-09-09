@@ -1,11 +1,14 @@
 package com.mori.feature.reader.impl
 
+import android.os.SystemClock
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,6 +22,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +37,8 @@ import com.mori.core.data.ComicPageKey
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -41,9 +47,11 @@ import kotlinx.coroutines.launch
  * The page fills the viewport edge to edge on a seamless black bed — no side gaps, no
  * rounded corners, no tonal fillers — so portrait and landscape art alike blend into
  * the reader chrome. Single taps resolve to [ReaderZone] outcomes via [zoneForTap]
- * instead of bubbling to a parent click handler, so tap navigation and double-tap zoom
- * never double-fire. Artwork loads through Coil ([ComicPageKey]) with the page number
- * behind as a placeholder.
+ * instead of bubbling to a parent click handler. Edge taps dispatch on tap-up with
+ * no double-tap wait, so rapid taps mid page-turn animation still turn pages; only
+ * center taps hold for the double-tap window ([decideTap]), where a second center
+ * tap zooms and a lone one toggles chrome. Artwork loads through Coil ([ComicPageKey])
+ * with the page number behind as a placeholder.
  */
 @Composable
 internal fun ZoomablePage(
@@ -61,6 +69,24 @@ internal fun ZoomablePage(
     val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
         scale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
         offset = if (scale <= 1f) Offset.Zero else offset + panChange
+    }
+    // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
+    // so it must read scale through a ref instead of a stale closure.
+    val latestZoomToggle = rememberUpdatedState {
+        val target = zoomTargetForTap(scale)
+        scope.launch {
+            animate(
+                initialValue = scale,
+                targetValue = target,
+                animationSpec = tween(
+                    durationMillis = DOUBLE_TAP_ZOOM_MS,
+                    easing = MoriMotion.EmphasizedDecelerate,
+                ),
+            ) { value, _ -> scale = value }
+            if (target <= 1f) {
+                offset = Offset.Zero
+            }
+        }
     }
 
     BoxWithConstraints(
@@ -86,29 +112,53 @@ internal fun ZoomablePage(
                 // Tap detection precedes transformable: a clean tap resolves to a zone
                 // before the transform gesture tracker can claim the press, while pinches
                 // (second pointer down) cancel tap tracking and flow to transformable.
-                .pointerInput(direction) {
-                    detectTapGestures(
-                        onTap = { tapOffset ->
-                            val fraction = (tapOffset.x / widthPx).coerceIn(0f, 1f)
-                            onZoneTap(zoneForTap(fraction, direction))
-                        },
-                        onDoubleTap = {
-                            val target = zoomTargetForTap(scale)
-                            scope.launch {
-                                animate(
-                                    initialValue = scale,
-                                    targetValue = target,
-                                    animationSpec = tween(
-                                        durationMillis = DOUBLE_TAP_ZOOM_MS,
-                                        easing = MoriMotion.EmphasizedDecelerate,
-                                    ),
-                                ) { value, _ -> scale = value }
-                                if (target <= 1f) {
-                                    offset = Offset.Zero
+                //
+                // Edge taps dispatch on tap-up with no double-tap wait, so rapid taps
+                // mid page-turn animation still turn pages. Only center taps hold for
+                // the double-tap window: a second center tap zooms, otherwise chrome
+                // toggles when the window expires.
+                .pointerInput(direction, widthPx) {
+                    val touchSlop = viewConfiguration.touchSlop
+                    var pendingMenuTap: TapRecord? = null
+                    var menuJob: Job? = null
+                    awaitEachGesture {
+                        awaitFirstDown()
+                        val up = waitForUpOrCancellation() ?: return@awaitEachGesture
+                        val fraction = (up.position.x / widthPx).coerceIn(0f, 1f)
+                        val zone = zoneForTap(fraction, direction)
+                        menuJob?.cancel()
+                        menuJob = null
+                        when (
+                            decideTap(
+                                previous = pendingMenuTap,
+                                nowMs = SystemClock.uptimeMillis(),
+                                position = up.position,
+                                zone = zone,
+                                touchSlopPx = touchSlop,
+                            )
+                        ) {
+                            is TapDecision.Dispatch -> {
+                                pendingMenuTap = null
+                                onZoneTap(zone)
+                            }
+                            TapDecision.Zoom -> {
+                                pendingMenuTap = null
+                                latestZoomToggle.value()
+                            }
+                            TapDecision.AwaitSecondTap -> {
+                                pendingMenuTap = TapRecord(
+                                    timeMs = SystemClock.uptimeMillis(),
+                                    position = up.position,
+                                    zone = zone,
+                                )
+                                menuJob = scope.launch {
+                                    delay(DOUBLE_TAP_TIMEOUT_MS)
+                                    pendingMenuTap = null
+                                    onZoneTap(ReaderZone.MENU)
                                 }
                             }
-                        },
-                    )
+                        }
+                    }
                 }
                 .transformable(transformableState),
         ) {

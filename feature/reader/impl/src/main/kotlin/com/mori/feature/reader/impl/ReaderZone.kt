@@ -1,5 +1,6 @@
 package com.mori.feature.reader.impl
 
+import androidx.compose.ui.geometry.Offset
 import com.mori.core.model.ReadingDirection
 
 /**
@@ -32,3 +33,54 @@ fun zoneForTap(fraction: Float, direction: ReadingDirection): ReaderZone {
 }
 
 private const val ZONE_EDGE = 1f / 3f
+
+/**
+ * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). The page's tap
+ * state machine holds a center tap for this long awaiting a second tap; edge taps
+ * dispatch immediately so rapid page skipping never waits on animation or timeout.
+ */
+internal const val DOUBLE_TAP_TIMEOUT_MS = 300L
+
+/** A tap awaiting its double-tap window. */
+internal data class TapRecord(
+    val timeMs: Long,
+    val position: Offset,
+    val zone: ReaderZone,
+)
+
+/** Outcome of feeding one tap-up through [decideTap]. */
+internal sealed interface TapDecision {
+    /** Dispatch now (page turn, or chrome toggle when no zoom is possible). */
+    data class Dispatch(val zone: ReaderZone) : TapDecision
+
+    /** Center tap: hold chrome and wait out the double-tap window. */
+    data object AwaitSecondTap : TapDecision
+
+    /** Second center tap in-window: zoom instead of toggling chrome. */
+    data object Zoom : TapDecision
+}
+
+/**
+ * Routes a tap-up without ever delaying edge navigation.
+ *
+ * Only a center tap following another center tap — close in time (within
+ * [doubleTapTimeoutMs]) and space (within [touchSlopPx]) — becomes [TapDecision.Zoom].
+ * Everything on the outer thirds dispatches immediately, even back-to-back mid
+ * page-turn animation, so skipping pages fast feels instant.
+ */
+internal fun decideTap(
+    previous: TapRecord?,
+    nowMs: Long,
+    position: Offset,
+    zone: ReaderZone,
+    doubleTapTimeoutMs: Long = DOUBLE_TAP_TIMEOUT_MS,
+    touchSlopPx: Float,
+): TapDecision {
+    if (zone == ReaderZone.MENU && previous?.zone == ReaderZone.MENU &&
+        nowMs - previous.timeMs in 0..doubleTapTimeoutMs &&
+        (position - previous.position).getDistance() <= touchSlopPx
+    ) {
+        return TapDecision.Zoom
+    }
+    return if (zone == ReaderZone.MENU) TapDecision.AwaitSecondTap else TapDecision.Dispatch(zone)
+}
