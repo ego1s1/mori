@@ -41,7 +41,7 @@ Supporting open-source acknowledgements: Tesseract OCR, junrar, Coil, Jetpack li
 
 The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-Every commit builds as `1.0.0-alpha.N` (N = commit count) so installs stay
+Every commit builds as `0.1.N` (N = commit count) so installs stay
 ordered; explicit `-PappVersionName=` / `-PappVersionCode=` override it.
 
 ## App releases

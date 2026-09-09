@@ -127,6 +127,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: apk
+          path: ./dist
+
+      - name: List staged files
+        run: ls -la ./dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -135,4 +139,5 @@ jobs:
           name: Mori ${{ needs.build.outputs.tag }}
           generate_release_notes: true
           prerelease: ${{ contains(needs.build.outputs.tag, 'beta') || contains(needs.build.outputs.tag, 'rc') || contains(needs.build.outputs.tag, 'alpha') }}
-          files: ${{ needs.build.outputs.apk }}
+          files: ./dist/*.apk
+          fail_on_unmatched_files: true
