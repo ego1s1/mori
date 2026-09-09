@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -15,7 +16,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.designsystem.rememberSystemReduceMotion
+import com.mori.core.designsystem.resolveExpressiveMotionEnabled
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemeMode
 import com.mori.feature.detail.api.navigateToDetail
 import com.mori.feature.detail.impl.detailScreen
@@ -42,17 +47,25 @@ fun MoriApp(
     viewModel: MoriAppViewModel = hiltViewModel(),
 ) {
     val theme = viewModel.themePreferences.collectAsStateWithLifecycle().value
+    val motionStyle by viewModel.motionStyle.collectAsStateWithLifecycle()
     val darkTheme = when (theme?.mode ?: ThemeMode.SYSTEM) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
+    val expressiveMotion = resolveExpressiveMotionEnabled(
+        style = motionStyle ?: MotionStyle.EXPRESSIVE,
+        systemReduceMotion = rememberSystemReduceMotion(),
+    )
     MoriTheme(
         darkTheme = darkTheme,
         dynamicColor = theme?.dynamicColor ?: true,
         amoled = theme?.amoled ?: false,
     ) {
-        Surface(modifier = modifier.fillMaxSize()) {
+        CompositionLocalProvider(
+            LocalExpressiveMotionEnabled provides expressiveMotion,
+        ) {
+            Surface(modifier = modifier.fillMaxSize()) {
             val completed by viewModel.onboardingCompleted.collectAsStateWithLifecycle()
 
             if (completed == null) {
@@ -103,4 +116,5 @@ fun MoriApp(
             }
         }
     }
+}
 }

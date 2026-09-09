@@ -3,6 +3,7 @@ package com.mori.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +27,13 @@ class MoriAppViewModel @Inject constructor(
         )
 
     val themePreferences: StateFlow<ThemePreferences?> = preferences.themePreferences
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    val motionStyle: StateFlow<MotionStyle?> = preferences.motionStyle
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

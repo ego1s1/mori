@@ -1,19 +1,23 @@
 package com.mori.core.designsystem
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.IntOffset
+import com.mori.core.model.MotionStyle
 
 /**
- * M3 Expressive motion tokens for screen transitions, plus spring presets in the
- * expressive spirit (physics-based, slightly bouncy for hero moments; the full
- * MotionScheme API needs material3 1.4+, so springs are applied directly here).
+ * M3 Expressive motion tokens: physics springs for spatial changes, emphasized easings
+ * for transitions. The full MotionScheme API needs material3 1.4+, so the skill's
+ * spatial/effects spec system is implemented directly here with stable spring APIs.
  *
- * Component-level spring physics come from the Material3 expressive APIs where the BOM
- * provides them; these emphasized easings cover enter/exit/shared transitions.
+ * Speed table (per skill): fast = small components (switches, chips), default =
+ * buttons/cards/chrome, slow = sheets/dialogs/navigation. Effects specs (color/alpha)
+ * never bounce; spatial specs bounce lightly in expressive mode.
  */
 object MoriMotion {
     val Emphasized = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
@@ -24,17 +28,53 @@ object MoriMotion {
     const val ExitScreenMs = 200
     const val SharedTransitionMs = 500
 
-    /** Gentle expressive spring for chrome entrances (bottom bars, sheets content). */
-    fun <T> chromeSpring(): androidx.compose.animation.core.FiniteAnimationSpec<T> = spring(
+    /** Spatial: small components (switches, chips, icon buttons). */
+    fun <T> fastSpatialSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessHigh,
         dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
     )
 
+    /** Spatial: buttons, cards, chrome, pager transforms. Light expressive bounce. */
+    fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessMedium,
+        dampingRatio = 0.6f,
+    )
+
+    /** Spatial: sheets, dialogs, screen transitions. */
+    fun <T> slowSpatialSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessLow,
+        dampingRatio = 0.7f,
+    )
+
+    /** Effects: instant feedback (press states, focus). */
+    fun <T> fastEffectsSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessHigh,
+        dampingRatio = Spring.DampingRatioNoBouncy,
+    )
+
+    /** Effects: selection, enabled states, scrims. */
+    fun <T> defaultEffectsSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessMedium,
+        dampingRatio = Spring.DampingRatioNoBouncy,
+    )
+
+    /** Effects: theme and background washes. */
+    fun <T> slowEffectsSpec(): FiniteAnimationSpec<T> = spring(
+        stiffness = Spring.StiffnessLow,
+        dampingRatio = Spring.DampingRatioNoBouncy,
+    )
+
+    /** Gentle expressive spring for chrome entrances (bottom bars, sheets content). */
+    fun <T> chromeSpring(): FiniteAnimationSpec<T> = defaultSpatialSpec()
+
     /** Playful expressive spring for hero moments (FABs, covers, toggles). */
-    fun <T> heroSpring(): androidx.compose.animation.core.FiniteAnimationSpec<T> = spring(
+    fun <T> heroSpring(): FiniteAnimationSpec<T> = spring(
         dampingRatio = Spring.DampingRatioLowBouncy,
         stiffness = Spring.StiffnessMediumLow,
     )
+
+    /** Calm fallback: short emphasized fades with no physics. */
+    fun <T> calmFade(): FiniteAnimationSpec<T> = tween(150, easing = Emphasized)
 
     @Composable
     fun enterTween() = tween<IntOffset>(EnterScreenMs, easing = EmphasizedDecelerate)
@@ -42,3 +82,22 @@ object MoriMotion {
     @Composable
     fun exitTween() = tween<IntOffset>(ExitScreenMs, easing = EmphasizedAccelerate)
 }
+
+/**
+ * Whether expressive motion (springs, stagger, shared elements) should run.
+ * Provided near the root from user setting + system reduced-motion state.
+ */
+val LocalExpressiveMotionEnabled = staticCompositionLocalOf { true }
+
+/**
+ * Pure selector: expressive motion runs only when the user chose it AND the system
+ * has not disabled animations. Unit-testable without Android.
+ */
+fun resolveExpressiveMotionEnabled(
+    style: MotionStyle,
+    systemReduceMotion: Boolean,
+): Boolean = style == MotionStyle.EXPRESSIVE && !systemReduceMotion
+
+/** Animator duration scale of 0 means the user disabled system animations. */
+fun isSystemReduceMotionEnabled(animatorDurationScale: Float): Boolean =
+    animatorDurationScale == 0f
