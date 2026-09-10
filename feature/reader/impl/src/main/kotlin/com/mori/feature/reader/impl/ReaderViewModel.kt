@@ -40,7 +40,7 @@ import javax.inject.Inject
  * to the stillness auto-hide in [ReaderContent].
  */
 @HiltViewModel
-class ReaderViewModel @Inject constructor(
+internal class ReaderViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
     private val preferences: MoriPreferencesDataSource,

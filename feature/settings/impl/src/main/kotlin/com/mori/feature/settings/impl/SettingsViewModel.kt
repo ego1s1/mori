@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
+internal class SettingsViewModel @Inject constructor(
     private val preferences: MoriPreferencesDataSource,
     private val repository: ComicsRepository,
 ) : ViewModel() {

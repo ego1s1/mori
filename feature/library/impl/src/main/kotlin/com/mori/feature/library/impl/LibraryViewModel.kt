@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LibraryViewModel @Inject constructor(
+internal class LibraryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
     private val preferences: MoriPreferencesDataSource,

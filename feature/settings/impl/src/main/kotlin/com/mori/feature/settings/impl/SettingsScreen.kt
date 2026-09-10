@@ -59,7 +59,17 @@ import com.mori.core.model.ThemePreferences
 @Composable
 fun SettingsTabContent(
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    SettingsRouteContent(
+        modifier = modifier,
+        viewModel = hiltViewModel(),
+    )
+}
+
+@Composable
+private fun SettingsRouteContent(
+    modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SettingsScreen(

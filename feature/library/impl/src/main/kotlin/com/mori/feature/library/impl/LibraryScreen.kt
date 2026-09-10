@@ -79,9 +79,8 @@ import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 
 /**
- * Public tab content for the main viewport pager. The navigation destination
- * ([libraryScreen]) stays the single NavHost entry; this exposes the same Route
- * for embedding without going through navigation.
+ * Public tab content for the main viewport pager. Route and tab share one
+ * internal content; the ViewModel type never appears in a public signature.
  */
 @Composable
 fun LibraryTabContent(
@@ -89,7 +88,40 @@ fun LibraryTabContent(
     onComicLongClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+) {
+    LibraryRouteContent(
+        onReadClick = onReadClick,
+        onComicLongClick = onComicLongClick,
+        onSettingsClick = onSettingsClick,
+        modifier = modifier,
+        viewModel = hiltViewModel(),
+    )
+}
+
+@Composable
+internal fun LibraryRoute(
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
+) {
+    LibraryRouteContent(
+        onReadClick = onReadClick,
+        onComicLongClick = onComicLongClick,
+        onSettingsClick = onSettingsClick,
+        modifier = modifier,
+        viewModel = viewModel,
+    )
+}
+
+@Composable
+private fun LibraryRouteContent(
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LibraryViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
@@ -106,23 +138,6 @@ fun LibraryTabContent(
         onSettingsClick = onSettingsClick,
         snackbarHost = snackbarHost,
         modifier = modifier,
-    )
-}
-
-@Composable
-internal fun LibraryRoute(
-    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel = hiltViewModel(),
-) {
-    LibraryTabContent(
-        onReadClick = onReadClick,
-        onComicLongClick = onComicLongClick,
-        onSettingsClick = onSettingsClick,
-        modifier = modifier,
-        viewModel = viewModel,
     )
 }
 
