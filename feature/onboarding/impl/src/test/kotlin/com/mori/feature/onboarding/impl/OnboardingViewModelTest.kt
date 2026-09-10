@@ -187,14 +187,11 @@ class OnboardingViewModelTest {
             awaitItem() // Welcome
             viewModel.onAction(OnboardingAction.GetStarted)
             awaitItem() // Storage
-            viewModel.onAction(
-                OnboardingAction.CustomFolderChosen(treeUri(), "Manga"),
-            )
+            viewModel.onAction(OnboardingAction.SelectStorage(StorageLocation.CUSTOM))
             val storage = awaitItem()
             assertTrue(storage is OnboardingUiState.Storage)
             storage as OnboardingUiState.Storage
             assertEquals(StorageLocation.CUSTOM, storage.location)
-            assertEquals("Manga", storage.folderName)
             viewModel.onAction(OnboardingAction.ContinueStep)
             awaitItem() // Appearance
             viewModel.onAction(OnboardingAction.SetThemeMode(ThemeMode.DARK))
@@ -211,9 +208,6 @@ class OnboardingViewModelTest {
         }
         preferences.storageLocation.test {
             assertEquals(StorageLocation.CUSTOM, awaitItem())
-        }
-        preferences.sourceTreeUri.test {
-            assertEquals(treeUri().toString(), awaitItem())
         }
     }
 

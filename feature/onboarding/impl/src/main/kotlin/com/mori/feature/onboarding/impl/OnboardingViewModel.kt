@@ -38,14 +38,12 @@ internal class OnboardingViewModel @Inject constructor(
     }
 
     private val step = MutableStateFlow(Step.WELCOME)
-    private val folderName = MutableStateFlow<String?>(null)
     private val importPhase = MutableStateFlow<ImportPhase?>(null)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         preferences.themePreferences,
         preferences.storageLocation,
-        folderName,
         importPhase,
         ::toUiState,
     ).stateIn(
@@ -58,7 +56,6 @@ internal class OnboardingViewModel @Inject constructor(
         step: Step,
         theme: ThemePreferences,
         location: StorageLocation,
-        folderName: String?,
         phase: ImportPhase?,
     ): OnboardingUiState {
         phase?.let {
@@ -69,9 +66,9 @@ internal class OnboardingViewModel @Inject constructor(
         }
         return when (step) {
             Step.WELCOME -> OnboardingUiState.Welcome
-            Step.STORAGE -> OnboardingUiState.Storage(location, folderName)
+            Step.STORAGE -> OnboardingUiState.Storage(location)
             Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
-            Step.IMPORT -> OnboardingUiState.Import(location, folderName)
+            Step.IMPORT -> OnboardingUiState.Import(location)
         }
     }
 
@@ -96,13 +93,13 @@ internal class OnboardingViewModel @Inject constructor(
             is OnboardingAction.SelectStorage -> viewModelScope.launch {
                 preferences.setStorageLocation(action.location)
             }
-            is OnboardingAction.CustomFolderChosen -> viewModelScope.launch {
-                preferences.setStorageLocation(StorageLocation.CUSTOM)
-                preferences.setSourceTreeUri(action.uri.toString())
-                folderName.value = action.displayName
-            }
-            is OnboardingAction.FolderSelected -> startImport { onProgress ->
-                importer.importTree(action.uri, onProgress)
+            is OnboardingAction.FolderSelected -> {
+                viewModelScope.launch {
+                    preferences.setSourceTreeUri(action.uri.toString())
+                }
+                startImport { onProgress ->
+                    importer.importTree(action.uri, onProgress)
+                }
             }
             is OnboardingAction.FilesSelected -> startImport { onProgress ->
                 importer.importDocuments(action.uris, onProgress)

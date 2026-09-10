@@ -121,28 +121,10 @@ internal fun OnboardingRoute(
             viewModel.onAction(OnboardingAction.FilesSelected(uris))
         }
     }
-    val customFolderLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            val name = runCatching {
-                DocumentFile.fromTreeUri(context, uri)?.name
-            }.getOrNull()
-            viewModel.onAction(OnboardingAction.CustomFolderChosen(uri, name))
-        }
-    }
-
     OnboardingScreen(
         uiState = uiState,
         onPickFolder = { folderLauncher.launch(null) },
         onPickFiles = { filesLauncher.launch(arrayOf("*/*")) },
-        onPickCustomFolder = { customFolderLauncher.launch(null) },
         onAction = viewModel::onAction,
         onOnboardingComplete = onOnboardingComplete,
         modifier = modifier,
@@ -154,7 +136,6 @@ internal fun OnboardingScreen(
     uiState: OnboardingUiState,
     onPickFolder: () -> Unit,
     onPickFiles: () -> Unit,
-    onPickCustomFolder: () -> Unit,
     onAction: (OnboardingAction) -> Unit,
     onOnboardingComplete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -185,9 +166,8 @@ internal fun OnboardingScreen(
             ) {
                 StorageOptions(
                     location = uiState.location,
-                    folderName = uiState.folderName,
                     onSelectApp = { onAction(OnboardingAction.SelectStorage(StorageLocation.APP)) },
-                    onPickCustom = onPickCustomFolder,
+                    onSelectCustom = { onAction(OnboardingAction.SelectStorage(StorageLocation.CUSTOM)) },
                 )
             }
             is OnboardingUiState.Appearance -> WizardStep(
@@ -212,11 +192,7 @@ internal fun OnboardingScreen(
                 stepIndex = 2,
                 totalSteps = 3,
                 title = stringResource(R.string.onboarding_import_title),
-                body = if (uiState.location == StorageLocation.CUSTOM && uiState.folderName != null) {
-                    stringResource(R.string.onboarding_import_body_custom, uiState.folderName)
-                } else {
-                    stringResource(R.string.onboarding_import_body_default)
-                },
+                body = stringResource(R.string.onboarding_import_body_default),
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
                     onAction(OnboardingAction.Skip)
@@ -226,6 +202,7 @@ internal fun OnboardingScreen(
                 continueCaption = "",
             ) {
                 ImportOptions(
+                    customOnly = uiState.location == StorageLocation.CUSTOM,
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
                 )
@@ -493,7 +470,7 @@ private fun WizardStep(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 20.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 ) {
                     Button(
                         onClick = { onContinue?.invoke() },
@@ -503,6 +480,7 @@ private fun WizardStep(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(56.dp)
                             .testTag(OnboardingTestTags.StepContinue),
                     ) {
                         Text(continueLabel)
@@ -522,13 +500,12 @@ private fun WizardStep(
     }
 }
 
-/** Storage step: app-private copies vs a linked custom folder. */
+/** Storage step: a pure choice. The folder itself is picked later, once. */
 @Composable
 private fun StorageOptions(
     location: StorageLocation,
-    folderName: String?,
     onSelectApp: () -> Unit,
-    onPickCustom: () -> Unit,
+    onSelectCustom: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -539,15 +516,15 @@ private fun StorageOptions(
             selected = location == StorageLocation.APP,
             icon = MoriIcons.FolderOpen,
             title = stringResource(R.string.onboarding_storage_app),
-            subtitle = "Mori keeps copies inside the app. Originals stay untouched.",
+            subtitle = stringResource(R.string.onboarding_storage_app_subtitle),
             onClick = onSelectApp,
         )
         OptionRow(
             selected = location == StorageLocation.CUSTOM,
             icon = MoriIcons.MenuBook,
-            title = folderName?.let { stringResource(R.string.onboarding_storage_custom_named, it) } ?: stringResource(R.string.onboarding_storage_custom),
-            subtitle = "Read from a folder you organize. Stays linked for rescans.",
-            onClick = onPickCustom,
+            title = stringResource(R.string.onboarding_storage_custom),
+            subtitle = stringResource(R.string.onboarding_storage_custom_subtitle),
+            onClick = onSelectCustom,
         )
     }
 }
@@ -685,6 +662,7 @@ private fun AppearanceOptions(
 /** Import step: folder + files pickers, location-aware copy. */
 @Composable
 private fun ImportOptions(
+    customOnly: Boolean,
     onPickFolder: () -> Unit,
     onPickFiles: () -> Unit,
     modifier: Modifier = Modifier,
@@ -699,15 +677,23 @@ private fun ImportOptions(
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.PickFolder),
         ) {
-            Text(stringResource(R.string.onboarding_pick_folder))
+            Text(
+                if (customOnly) {
+                    stringResource(R.string.onboarding_pick_custom_folder)
+                } else {
+                    stringResource(R.string.onboarding_pick_folder)
+                },
+            )
         }
-        OutlinedButton(
-            onClick = onPickFiles,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(OnboardingTestTags.PickFiles),
-        ) {
-            Text(stringResource(R.string.onboarding_pick_files))
+        if (!customOnly) {
+            OutlinedButton(
+                onClick = onPickFiles,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(OnboardingTestTags.PickFiles),
+            ) {
+                Text(stringResource(R.string.onboarding_pick_files))
+            }
         }
         Text(
             text = stringResource(R.string.onboarding_import_hint),
@@ -875,6 +861,7 @@ private fun DoneContent(
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = ::finishOnce,
+            enabled = !finished,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.Finish),
@@ -884,6 +871,7 @@ private fun DoneContent(
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedButton(
             onClick = onImportMore,
+            enabled = !finished,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.onboarding_import_more))
@@ -916,7 +904,6 @@ private fun OnboardingWelcomePreview() {
             uiState = OnboardingUiState.Welcome,
             onPickFolder = {},
             onPickFiles = {},
-            onPickCustomFolder = {},
             onAction = {},
             onOnboardingComplete = {},
         )

@@ -146,22 +146,14 @@ internal fun MainScreen(
         Box(modifier = Modifier
             .fillMaxSize()
             .padding(padding)) {
-            // Bouncy spring entry the first time home appears.
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                    scaleIn(
-                        animationSpec = MoriMotion.heroSpring(),
-                        initialScale = 0.92f,
-                    ),
+            // No entry animation here: the NavHost transition already carries
+            // the arrival. A second scale-in stacked on top read as a glitch.
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = true,
                 modifier = Modifier.fillMaxSize(),
-            ) {
-                HorizontalPager(
-                    state = pagerState,
-                    userScrollEnabled = true,
-                    modifier = Modifier.fillMaxSize(),
-                ) { page ->
-                    when (page) {
+            ) { page ->
+                when (page) {
                     LIBRARY_TAB -> LibraryTabContent(
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
@@ -179,10 +171,10 @@ internal fun MainScreen(
                             alpha = 1f - 0.25f * p
                         },
                     ) {
-                            SettingsTabContent()
-                        }
+                        SettingsTabContent()
                     }
                 }
+            }
             }
             AnimatedVisibility(
                 visible = true,

@@ -30,7 +30,6 @@ class OnboardingScreenTest {
         uiState: OnboardingUiState,
         onPickFolder: () -> Unit = {},
         onPickFiles: () -> Unit = {},
-        onPickCustomFolder: () -> Unit = {},
         actions: MutableList<OnboardingAction> = mutableListOf(),
         onFinish: () -> Unit = {},
     ) {
@@ -40,7 +39,6 @@ class OnboardingScreenTest {
                     uiState = uiState,
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
-                    onPickCustomFolder = onPickCustomFolder,
                     onAction = actions::add,
                     onOnboardingComplete = onFinish,
                 )
@@ -72,17 +70,15 @@ class OnboardingScreenTest {
     @Test
     fun storageStepSelectsAndPicksCustom() {
         val actions = mutableListOf<OnboardingAction>()
-        var customPicks = 0
         setScreen(
-            OnboardingUiState.Storage(StorageLocation.APP, folderName = null),
+            OnboardingUiState.Storage(StorageLocation.APP),
             actions = actions,
-            onPickCustomFolder = { customPicks += 1 },
         )
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.StorageStep).assertIsDisplayed()
         composeTestRule.onNodeWithText("On this device").assertIsDisplayed()
         composeTestRule.onNodeWithText("Custom folder").performClick()
-        assertEquals(1, customPicks)
+        assert(actions.contains(OnboardingAction.SelectStorage(StorageLocation.CUSTOM)))
         // The CTA dispatches ContinueStep (navigation covered by VM tests; a
         // Button click through this zone doesn't actuate under Robolectric).
         composeTestRule.onNodeWithTag(OnboardingTestTags.StepContinue).assertIsDisplayed()
@@ -110,7 +106,7 @@ class OnboardingScreenTest {
         var folderPicks = 0
         var filePicks = 0
         setScreen(
-            OnboardingUiState.Import(StorageLocation.APP, folderName = null),
+            OnboardingUiState.Import(StorageLocation.APP),
             onPickFolder = { folderPicks += 1 },
             onPickFiles = { filePicks += 1 },
         )

@@ -12,7 +12,6 @@ sealed interface OnboardingUiState {
 
     data class Storage(
         val location: StorageLocation,
-        val folderName: String?,
     ) : OnboardingUiState
 
     data class Appearance(
@@ -21,7 +20,6 @@ sealed interface OnboardingUiState {
 
     data class Import(
         val location: StorageLocation,
-        val folderName: String?,
     ) : OnboardingUiState
 
     data class Importing(val done: Int, val total: Int) : OnboardingUiState
@@ -42,9 +40,6 @@ sealed interface OnboardingAction {
     data object ContinueStep : OnboardingAction
 
     data class SelectStorage(val location: StorageLocation) : OnboardingAction
-
-    /** A custom folder was granted; records it as the linked source. */
-    data class CustomFolderChosen(val uri: Uri, val displayName: String?) : OnboardingAction
 
     /** The user picked a source folder to import from now. */
     data class FolderSelected(val uri: Uri) : OnboardingAction

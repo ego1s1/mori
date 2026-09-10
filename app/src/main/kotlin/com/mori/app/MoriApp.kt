@@ -7,14 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.screenEnter
@@ -77,13 +75,11 @@ fun MoriApp(
             }
 
             val navController = rememberNavController()
-            val backStackEntry by navController.currentBackStackEntryAsState()
 
-            LaunchedEffect(completed, backStackEntry) {
-                if (completed == true && backStackEntry?.destination?.route == OnboardingRoute::class.qualifiedName) {
-                    navController.navigateToMain()
-                }
-            }
+            // Single entry path: onboarding completion navigates explicitly via
+            // onOnboardingComplete. No auto-redirect effect here — a second
+            // navigation source stacked duplicate Main destinations and
+            // raced the enter transition.
 
             // Screen transitions ride the shared emphasized curves so every
             // destination enters/exits with the same motion personality.
