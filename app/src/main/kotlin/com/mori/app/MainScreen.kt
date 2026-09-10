@@ -1,12 +1,15 @@
 package com.mori.app
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -17,19 +20,16 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -75,10 +75,11 @@ fun NavGraphBuilder.mainScreen(
 }
 
 /**
- * Main viewport: Library and Settings live side by side in a swipeable pager
- * under a bottom navigation bar, so settings opens inside the main viewport
- * with navigation always visible. Tabs switch via bar or swipe; the system
- * back gesture on the Settings tab returns to Library instead of leaving.
+ * Main viewport: Library and Settings are separate tab destinations under one
+ * floating navigator — no swipe pager. Tabs switch with a short fade and each
+ * keeps its state (grid scroll position survives a settings visit), so the
+ * heavy settings page never composes mid-gesture. The system back gesture on
+ * the Settings tab returns to Library instead of leaving.
  */
 @Composable
 internal fun MainScreen(
@@ -87,26 +88,9 @@ internal fun MainScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
+    val tabStateHolder = rememberSaveableStateHolder()
 
-    // Tab bar -> pager. Guarded so a tap never fights an in-progress swipe.
-    LaunchedEffect(selectedTab) {
-        if (pagerState.currentPage != selectedTab && !pagerState.isScrollInProgress) {
-            pagerState.animateScrollToPage(selectedTab)
-        }
-    }
-    // Swipe -> tab bar.
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            selectedTab = page
-        }
-    }
-
-    // Predictive back on Settings returns to Library. No preview transform:
-    // wrapping the whole settings tree in a graphicsLayer forced a full
-    // offscreen buffer during swipes. Disabled mid-swipe so the pager and
-    // the gesture never fight over the page.
-    PredictiveBackHandler(enabled = selectedTab == SETTINGS_TAB && !pagerState.isScrollInProgress) { progress ->
+    PredictiveBackHandler(enabled = selectedTab == SETTINGS_TAB) { progress ->
         progress.collect { }
         selectedTab = LIBRARY_TAB
     }
@@ -128,21 +112,33 @@ internal fun MainScreen(
             .padding(padding)) {
             // No entry animation here: the NavHost transition already carries
             // the arrival. A second scale-in stacked on top read as a glitch.
-            // Both tabs stay resident: composing settings mid-swipe drops the
-            // first frames of the gesture. Two static pages is cheap to keep.
-            HorizontalPager(
-                state = pagerState,
-                userScrollEnabled = true,
-                beyondViewportPageCount = 1,
-                modifier = Modifier.fillMaxSize(),
-            ) { page ->
-                when (page) {
-                    LIBRARY_TAB -> LibraryTabContent(
-                        onReadClick = onReadClick,
-                        onComicLongClick = onComicLongClick,
-                        onResumeAvailable = { resume = it },
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = {
+                    fadeIn(
+                        animationSpec = tween(
+                            TAB_FADE_MS,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                    ) togetherWith fadeOut(
+                        animationSpec = tween(
+                            TAB_FADE_MS,
+                            easing = MoriMotion.EmphasizedAccelerate,
+                        ),
                     )
-                    else -> SettingsTabContent()
+                },
+                label = "mainTabs",
+                modifier = Modifier.fillMaxSize(),
+            ) { tab ->
+                tabStateHolder.SaveableStateProvider(tab) {
+                    when (tab) {
+                        LIBRARY_TAB -> LibraryTabContent(
+                            onReadClick = onReadClick,
+                            onComicLongClick = onComicLongClick,
+                            onResumeAvailable = { resume = it },
+                        )
+                        else -> SettingsTabContent()
+                    }
                 }
             }
             AnimatedVisibility(
@@ -189,6 +185,8 @@ internal fun MainScreen(
     }
 }
 
-private const val TAB_COUNT = 2
 private const val LIBRARY_TAB = 0
 private const val SETTINGS_TAB = 1
+
+/** Tab-switch fade: short enough to feel instant, long enough to read. */
+private const val TAB_FADE_MS = 200
