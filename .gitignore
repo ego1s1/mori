@@ -21,3 +21,6 @@ out/
 # never be committed: they would bloat history and blur license boundaries.
 # Take design ideas from them; always write our own implementations.
 /reference/
+
+# Local helper scripts (e.g. personal APK builders).
+scripts/build-apk.sh
