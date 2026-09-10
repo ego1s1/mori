@@ -30,6 +30,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -172,7 +174,12 @@ internal fun LibraryScreen(
     Scaffold(
         topBar = {
             if (uiState is LibraryUiState.Success) {
-                LibraryTopBar(comicCount = uiState.comics.size)
+                LibraryTopBar(
+                    comicCount = uiState.comics.size,
+                    searchOpen = uiState.searchOpen,
+                    onSearchClick = { onAction(LibraryAction.ToggleSearch) },
+                    onAction = onAction,
+                )
             }
         },
         snackbarHost = {
@@ -265,34 +272,25 @@ private fun LibraryContent(
                 modifier = Modifier.weight(1f),
             )
         }
-
-        AnimatedVisibility(
-            visible = true,
-            enter = MoriMotion.enter(MoriEnterKind.TOOLBAR),
-            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 96.dp),
-        ) {
-            FloatingToolbar(
-                onSearchClick = { onAction(LibraryAction.ToggleSearch) },
-                onAction = onAction,
-            )
-        }
     }
 }
 
 /**
  * Static compact app bar: the title and collection subtitle never move and the
  * background never shifts while scrolling (reference-reader style). One bar,
- * one color, always.
+ * one color, always. Search stays visible; everything else lives in the
+ * hamburger menu.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
     comicCount: Int,
+    searchOpen: Boolean,
+    onSearchClick: () -> Unit,
+    onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
         title = {
             Column {
@@ -315,64 +313,67 @@ private fun LibraryTopBar(
                 )
             }
         },
-        modifier = modifier,
-    )
-}
-
-/**
- * Floating M3 Expressive toolbar: a tonal pill with the primary library actions,
- * detached from the screen edges.
- */
-@Composable
-private fun FloatingToolbar(
-    onSearchClick: () -> Unit,
-    onAction: (LibraryAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-        modifier = modifier.testTag(LibraryTestTags.Toolbar),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        ) {
+        navigationIcon = {
+            IconButton(
+                onClick = { menuOpen = true },
+                modifier = Modifier.testTag(LibraryTestTags.MenuButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.More,
+                    contentDescription = stringResource(R.string.library_menu),
+                )
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_action_sort_filter)) },
+                    onClick = {
+                        menuOpen = false
+                        onAction(LibraryAction.OpenFilter)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = MoriIcons.Tune,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.testTag(LibraryTestTags.FilterButton),
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_action_rescan)) },
+                    onClick = {
+                        menuOpen = false
+                        onAction(LibraryAction.Refresh)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = MoriIcons.Refresh,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
+                )
+            }
+        },
+        actions = {
             IconButton(
                 onClick = onSearchClick,
                 modifier = Modifier.testTag(LibraryTestTags.SearchToggle),
             ) {
                 Icon(
-                    imageVector = MoriIcons.Search,
+                    imageVector = if (searchOpen) {
+                        MoriIcons.Close
+                    } else {
+                        MoriIcons.Search
+                    },
                     contentDescription = stringResource(R.string.library_action_search),
-                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            IconButton(
-                onClick = { onAction(LibraryAction.OpenFilter) },
-                modifier = Modifier.testTag(LibraryTestTags.FilterButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.Tune,
-                    contentDescription = stringResource(R.string.library_action_sort_filter),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            IconButton(
-                onClick = { onAction(LibraryAction.Refresh) },
-                modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.Refresh,
-                    contentDescription = stringResource(R.string.library_action_rescan),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-    }
+        },
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -397,7 +398,7 @@ private fun LibraryBody(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 168.dp),
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
@@ -438,7 +439,7 @@ private fun LibraryEmptyState(
         actionLabel = stringResource(R.string.library_empty_rescan),
         onAction = onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
-        bottomPadding = 168.dp,
+        bottomPadding = 96.dp,
         actionTestTag = LibraryTestTags.EmptyRescan,
     )
 }

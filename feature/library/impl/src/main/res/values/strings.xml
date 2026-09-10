@@ -9,6 +9,7 @@
     <string name="library_search_label">Search title, series, number</string>
     <string name="library_resume">Resume %1$s</string>
     <string name="library_action_search">Search library</string>
+    <string name="library_menu">Library menu</string>
     <string name="library_action_sort_filter">Sort and filter</string>
     <string name="library_action_rescan">Rescan library</string>
     <string name="library_action_settings">Library settings</string>

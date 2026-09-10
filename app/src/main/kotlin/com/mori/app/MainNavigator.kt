@@ -49,8 +49,8 @@ internal fun MainNavigator(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             NavDestination(
                 selected = selectedTab == 0,

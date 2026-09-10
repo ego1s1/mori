@@ -175,14 +175,13 @@ internal fun MainScreen(
                     }
                 }
             }
-            }
             AnimatedVisibility(
                 visible = true,
                 enter = MoriMotion.enter(MoriEnterKind.TOOLBAR),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 12.dp),
             ) {
                 MainNavigator(
                     selectedTab = selectedTab,

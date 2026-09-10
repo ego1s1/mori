@@ -146,8 +146,9 @@ class LibraryScreenTest {
         val actions = mutableListOf<LibraryAction>()
         setScreen(success(), actions = actions)
 
-        composeTestRule.onNodeWithTag(LibraryTestTags.Toolbar).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuButton).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.FilterButton).performClick()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuButton).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.RefreshButton).performClick()
 
         assert(actions.contains(LibraryAction.OpenFilter))
