@@ -48,6 +48,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -320,11 +324,18 @@ private fun DetailContent(
                     .testTag(DetailTestTags.PageStrip),
             ) {
                 items(comic.pageCount, key = { it }) { index ->
+                    val chipDescription = if (index == comic.lastPageIndex) {
+                        stringResource(R.string.detail_page_chip_current, index + 1)
+                    } else {
+                        stringResource(R.string.detail_page_chip, index + 1)
+                    }
                     FilterChip(
                         selected = index == comic.lastPageIndex,
                         onClick = { onReadClick(comic.id, index) },
                         label = { Text("${index + 1}") },
-                        modifier = Modifier.testTag(DetailTestTags.pageChip(index)),
+                        modifier = Modifier
+                            .testTag(DetailTestTags.pageChip(index))
+                            .semantics { contentDescription = chipDescription },
                     )
                 }
             }

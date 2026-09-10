@@ -273,7 +273,7 @@ internal fun SettingsContent(
                 Text(stringResource(R.string.settings_clear_cache))
             }
             Text(
-                text = "Covers regenerate the next time each comic is indexed.",
+                text = stringResource(R.string.settings_clear_caption),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
