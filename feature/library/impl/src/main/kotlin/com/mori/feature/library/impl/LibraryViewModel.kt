@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicsRepository
+import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
@@ -26,9 +28,26 @@ import javax.inject.Inject
 class LibraryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
+    private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
-    private val query = MutableStateFlow(restoreQuery())
+    /**
+     * Effective query: persisted display options (sort/filter/errors, survive
+     * restarts) overlaid with ephemeral search text (restored across process
+     * death via [SavedStateHandle], cleared on full restart).
+     */
+    private val searchText = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_QUERY_TEXT).orEmpty(),
+    )
+    private val query: StateFlow<LibraryQuery> = combine(
+        preferences.libraryDisplay,
+        searchText,
+        LibraryDisplay::toQuery,
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = LibraryQuery(),
+    )
     private val refreshing = MutableStateFlow(false)
     private val filterOpen = MutableStateFlow(false)
     private val searchOpen = MutableStateFlow(false)
@@ -67,10 +86,13 @@ class LibraryViewModel @Inject constructor(
 
     fun onAction(action: LibraryAction) {
         when (action) {
-            is LibraryAction.SearchTextChanged -> updateQuery { it.copy(text = action.text) }
-            is LibraryAction.SortSelected -> updateQuery { it.copy(sortOrder = action.sort) }
-            is LibraryAction.FilterSelected -> updateQuery { it.copy(filter = action.filter) }
-            is LibraryAction.ToggleHideErrors -> updateQuery { it.copy(hideErrors = action.hide) }
+            is LibraryAction.SearchTextChanged -> {
+                searchText.value = action.text
+                savedStateHandle[KEY_QUERY_TEXT] = action.text
+            }
+            is LibraryAction.SortSelected -> updateDisplay { it.copy(sortOrder = action.sort) }
+            is LibraryAction.FilterSelected -> updateDisplay { it.copy(filter = action.filter) }
+            is LibraryAction.ToggleHideErrors -> updateDisplay { it.copy(hideErrors = action.hide) }
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
             LibraryAction.ToggleSearch -> searchOpen.update { !it }
@@ -85,28 +107,10 @@ class LibraryViewModel @Inject constructor(
         val searchOpen: Boolean,
     )
 
-    private fun updateQuery(transform: (LibraryQuery) -> LibraryQuery) {
-        val updated = transform(query.value)
-        query.value = updated
-        savedStateHandle[KEY_QUERY_TEXT] = updated.text
-        savedStateHandle[KEY_QUERY_SORT] = updated.sortOrder.name
-        savedStateHandle[KEY_QUERY_FILTER] = updated.filter.name
-        savedStateHandle[KEY_QUERY_HIDE_ERRORS] = updated.hideErrors
-    }
-
-    private fun restoreQuery(): LibraryQuery {
-        val sort = savedStateHandle.get<String>(KEY_QUERY_SORT)?.let {
-            runCatching { LibrarySortOrder.valueOf(it) }.getOrNull()
-        } ?: LibraryQuery().sortOrder
-        val filter = savedStateHandle.get<String>(KEY_QUERY_FILTER)?.let {
-            runCatching { LibraryFilter.valueOf(it) }.getOrNull()
-        } ?: LibraryQuery().filter
-        return LibraryQuery(
-            text = savedStateHandle.get<String>(KEY_QUERY_TEXT).orEmpty(),
-            sortOrder = sort,
-            filter = filter,
-            hideErrors = savedStateHandle.get<Boolean>(KEY_QUERY_HIDE_ERRORS) ?: false,
-        )
+    private fun updateDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+        viewModelScope.launch {
+            preferences.updateLibraryDisplay(transform)
+        }
     }
 
     private fun refresh() {
@@ -128,8 +132,5 @@ class LibraryViewModel @Inject constructor(
 
     private companion object {
         const val KEY_QUERY_TEXT = "mori_query_text"
-        const val KEY_QUERY_SORT = "mori_query_sort"
-        const val KEY_QUERY_FILTER = "mori_query_filter"
-        const val KEY_QUERY_HIDE_ERRORS = "mori_query_hide_errors"
     }
 }

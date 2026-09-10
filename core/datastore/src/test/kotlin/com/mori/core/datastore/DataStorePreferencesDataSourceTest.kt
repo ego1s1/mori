@@ -2,6 +2,8 @@ package com.mori.core.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import app.cash.turbine.test
+import com.mori.core.model.LibraryFilter
+import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.ThemeMode
@@ -44,6 +46,24 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(false, awaitItem())
             dataSource.setReaderOverviewSeen()
             assertEquals(true, awaitItem())
+        }
+    }
+
+    @Test
+    fun libraryDisplayRoundTrips() = runTest {
+        val dataSource = dataSource()
+        dataSource.libraryDisplay.test {
+            val defaults = awaitItem()
+            assertEquals(LibrarySortOrder.RECENTLY_ADDED, defaults.sortOrder)
+            assertEquals(LibraryFilter.ALL, defaults.filter)
+            assertEquals(false, defaults.hideErrors)
+            dataSource.updateLibraryDisplay {
+                it.copy(sortOrder = LibrarySortOrder.TITLE, hideErrors = true)
+            }
+            val updated = awaitItem()
+            assertEquals(LibrarySortOrder.TITLE, updated.sortOrder)
+            assertEquals(LibraryFilter.ALL, updated.filter)
+            assertEquals(true, updated.hideErrors)
         }
     }
 

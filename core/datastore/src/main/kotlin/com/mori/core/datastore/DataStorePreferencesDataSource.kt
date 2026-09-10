@@ -6,6 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryFilter
+import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
@@ -97,6 +100,28 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[MOTION_STYLE] = style.name }
     }
 
+    override val libraryDisplay: Flow<LibraryDisplay> =
+        dataStore.data.map { prefs ->
+            LibraryDisplay(
+                sortOrder = prefs[LIBRARY_SORT]?.let {
+                    runCatching { LibrarySortOrder.valueOf(it) }.getOrDefault(LibrarySortOrder.RECENTLY_ADDED)
+                } ?: LibrarySortOrder.RECENTLY_ADDED,
+                filter = prefs[LIBRARY_FILTER]?.let {
+                    runCatching { LibraryFilter.valueOf(it) }.getOrDefault(LibraryFilter.ALL)
+                } ?: LibraryFilter.ALL,
+                hideErrors = prefs[LIBRARY_HIDE_ERRORS] ?: false,
+            )
+        }
+
+    override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+        val updated = transform(libraryDisplay.first())
+        dataStore.edit {
+            it[LIBRARY_SORT] = updated.sortOrder.name
+            it[LIBRARY_FILTER] = updated.filter.name
+            it[LIBRARY_HIDE_ERRORS] = updated.hideErrors
+        }
+    }
+
     override val readerOverviewSeen: Flow<Boolean> =
         dataStore.data.map { it[READER_OVERVIEW_SEEN] ?: false }
 
@@ -117,6 +142,9 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val AMOLED = booleanPreferencesKey("amoled")
         val MOTION_STYLE = stringPreferencesKey("motion_style")
+        val LIBRARY_SORT = stringPreferencesKey("library_sort")
+        val LIBRARY_FILTER = stringPreferencesKey("library_filter")
+        val LIBRARY_HIDE_ERRORS = booleanPreferencesKey("library_hide_errors")
         val READER_OVERVIEW_SEEN = booleanPreferencesKey("reader_overview_seen")
     }
 }

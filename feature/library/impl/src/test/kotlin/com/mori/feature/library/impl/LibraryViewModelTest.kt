@@ -3,6 +3,7 @@ package com.mori.feature.library.impl
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
+import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.testing.TestDispatcherRule
@@ -25,7 +26,8 @@ class LibraryViewModelTest {
     private fun viewModel(
         repository: TestComicsRepository = TestComicsRepository(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
-    ) = LibraryViewModel(savedStateHandle, repository)
+        preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
+    ) = LibraryViewModel(savedStateHandle, repository, preferences)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
@@ -108,18 +110,39 @@ class LibraryViewModelTest {
         val handle = SavedStateHandle(
             mapOf(
                 "mori_query_text" to "app",
-                "mori_query_sort" to LibrarySortOrder.TITLE.name,
-                "mori_query_filter" to LibraryFilter.FINISHED.name,
-                "mori_query_hide_errors" to true,
             ),
         )
-        val viewModel = viewModel(savedStateHandle = handle)
+        val preferences = TestPreferencesDataSource(
+            initialDisplay = LibraryDisplay(
+                sortOrder = LibrarySortOrder.TITLE,
+                filter = LibraryFilter.FINISHED,
+                hideErrors = true,
+            ),
+        )
+        val viewModel = viewModel(savedStateHandle = handle, preferences = preferences)
         viewModel.uiState.test {
             val state = awaitSuccess()
             assertEquals("app", state.query.text)
             assertEquals(LibrarySortOrder.TITLE, state.query.sortOrder)
             assertEquals(LibraryFilter.FINISHED, state.query.filter)
             assertTrue(state.query.hideErrors)
+        }
+    }
+
+    @Test
+    fun displayActionsPersistAcrossViewModels() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val first = viewModel(preferences = preferences)
+        first.uiState.test {
+            awaitSuccess()
+            first.onAction(LibraryAction.SortSelected(LibrarySortOrder.TITLE))
+            awaitSuccessWhere { it.query.sortOrder == LibrarySortOrder.TITLE }
+            cancelAndIgnoreRemainingEvents()
+        }
+        // A fresh ViewModel (full restart) restores the persisted display.
+        val second = viewModel(preferences = preferences)
+        second.uiState.test {
+            assertEquals(LibrarySortOrder.TITLE, awaitSuccess().query.sortOrder)
         }
     }
 

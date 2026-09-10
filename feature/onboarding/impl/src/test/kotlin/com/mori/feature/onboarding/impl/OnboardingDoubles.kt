@@ -4,6 +4,7 @@ import android.net.Uri
 import com.mori.core.data.ComicImporter
 import com.mori.core.data.ImportCandidate
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
@@ -75,6 +76,8 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
     override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
+    private val libraryDisplayFlow = MutableStateFlow(LibraryDisplay())
+    override val libraryDisplay: Flow<LibraryDisplay> = libraryDisplayFlow.asStateFlow()
     private val overviewSeenFlow = MutableStateFlow(true)
     override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
 
@@ -96,6 +99,10 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override suspend fun updateMotionStyle(style: MotionStyle) {
         motionStyleFlow.value = style
+    }
+
+    override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+        libraryDisplayFlow.value = transform(libraryDisplayFlow.value)
     }
 
     override suspend fun setReaderOverviewSeen() {

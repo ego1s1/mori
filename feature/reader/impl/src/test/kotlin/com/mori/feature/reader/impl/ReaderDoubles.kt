@@ -6,6 +6,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
@@ -107,6 +108,8 @@ internal class TestPreferencesDataSource(
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
     override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
+    private val libraryDisplayFlow = MutableStateFlow(LibraryDisplay())
+    override val libraryDisplay: Flow<LibraryDisplay> = libraryDisplayFlow.asStateFlow()
     override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
 
     fun isOverviewSeen(): Boolean = overviewSeenFlow.value
@@ -131,6 +134,10 @@ internal class TestPreferencesDataSource(
 
     override suspend fun updateMotionStyle(style: MotionStyle) {
         motionStyleFlow.value = style
+    }
+
+    override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+        libraryDisplayFlow.value = transform(libraryDisplayFlow.value)
     }
 
     override suspend fun setReaderOverviewSeen() {
