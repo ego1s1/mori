@@ -1,5 +1,6 @@
 package com.mori.feature.library.impl
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
 import java.io.File
 
@@ -40,7 +42,7 @@ import java.io.File
  * gradient scrim with the title, progress bar for started comics, error pill for failed
  * rows, and a continue affordance while in progress.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun ComicCard(
     comic: Comic,
@@ -60,7 +62,12 @@ internal fun ComicCard(
                 onLongClickLabel = stringResource(R.string.library_card_details),
             ),
     ) {
-        Box(modifier = Modifier.aspectRatio(COVER_ASPECT)) {
+        // Cover morphs into the detail hero on launch (shared element).
+        Box(
+            modifier = Modifier
+                .aspectRatio(COVER_ASPECT)
+                .then(sharedCoverModifier(comic.id)),
+        ) {
             MoriCoverArt(
                 coverPath = comic.coverPath,
                 contentDescription = comic.title,

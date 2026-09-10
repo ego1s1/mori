@@ -2,6 +2,7 @@ package com.mori.app
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +15,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.mori.core.designsystem.LocalNavAnimatedVisibilityScope
 import com.mori.core.designsystem.MoriMotion
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
@@ -47,15 +50,20 @@ fun NavController.navigateToMain() {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 fun NavGraphBuilder.mainScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
 ) {
     composable<MainRoute> {
-        MainScreen(
-            onReadClick = onReadClick,
-            onComicLongClick = onComicLongClick,
-        )
+        CompositionLocalProvider(
+            LocalNavAnimatedVisibilityScope provides this,
+        ) {
+            MainScreen(
+                onReadClick = onReadClick,
+                onComicLongClick = onComicLongClick,
+            )
+        }
     }
 }
 

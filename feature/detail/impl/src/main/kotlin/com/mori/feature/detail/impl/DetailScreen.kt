@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
@@ -64,6 +65,7 @@ import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
@@ -205,6 +207,7 @@ private fun DetailTopActions(
 }
 
 @Composable
+@OptIn(ExperimentalSharedTransitionApi::class)
 private fun DetailContent(
     comic: Comic,
     refreshing: Boolean,
@@ -237,7 +240,8 @@ private fun DetailContent(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier
                     .width(120.dp)
-                    .aspectRatio(2f / 3f),
+                    .aspectRatio(2f / 3f)
+                    .then(sharedCoverModifier(comic.id)),
             ) {
                 MoriCoverArt(
                     coverPath = comic.coverPath,

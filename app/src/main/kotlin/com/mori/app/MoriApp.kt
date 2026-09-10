@@ -1,5 +1,7 @@
 package com.mori.app
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -19,6 +21,7 @@ import com.mori.core.designsystem.screenEnter
 import com.mori.core.designsystem.screenExit
 import com.mori.core.designsystem.screenPopEnter
 import com.mori.core.designsystem.screenPopExit
+import com.mori.core.designsystem.LocalSharedTransitionScope
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.rememberSystemReduceMotion
@@ -39,6 +42,7 @@ import com.mori.feature.reader.impl.readerScreen
  * Library taps open the reader directly at the saved page; long-press opens details.
  * Theme follows persisted preferences (system/light/dark + dynamic color + AMOLED).
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MoriApp(
     modifier: Modifier = Modifier,
@@ -82,33 +86,41 @@ fun MoriApp(
             }
 
             // Screen transitions ride the shared emphasized curves so every
-                // destination enters/exits with the same motion personality.
-            NavHost(
-                navController = navController,
-                startDestination = if (completed == true) MainRoute else OnboardingRoute,
-                enterTransition = { screenEnter() },
-                exitTransition = { screenExit() },
-                popEnterTransition = { screenPopEnter() },
-                popExitTransition = { screenPopExit() },
-            ) {
-                onboardingScreen(
-                    onOnboardingComplete = { navController.navigateToMain() },
-                )
-                mainScreen(
-                    onReadClick = { comicId, pageIndex ->
-                        navController.navigateToReader(comicId, pageIndex)
-                    },
-                    onComicLongClick = { navController.navigateToDetail(it) },
-                )
-                detailScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onReadClick = { comicId, pageIndex ->
-                        navController.navigateToReader(comicId, pageIndex)
-                    },
-                )
-                readerScreen(
-                    onBackClick = { navController.popBackStack() },
-                )
+            // destination enters/exits with the same motion personality.
+            // Covers additionally morph between shelf and detail (shared
+            // element) inside this layout.
+            SharedTransitionLayout {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this,
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (completed == true) MainRoute else OnboardingRoute,
+                        enterTransition = { screenEnter() },
+                        exitTransition = { screenExit() },
+                        popEnterTransition = { screenPopEnter() },
+                        popExitTransition = { screenPopExit() },
+                    ) {
+                        onboardingScreen(
+                            onOnboardingComplete = { navController.navigateToMain() },
+                        )
+                        mainScreen(
+                            onReadClick = { comicId, pageIndex ->
+                                navController.navigateToReader(comicId, pageIndex)
+                            },
+                            onComicLongClick = { navController.navigateToDetail(it) },
+                        )
+                        detailScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onReadClick = { comicId, pageIndex ->
+                                navController.navigateToReader(comicId, pageIndex)
+                            },
+                        )
+                        readerScreen(
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
+                }
             }
         }
     }
