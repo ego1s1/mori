@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_back">Back</string>
+    <string name="detail_title">Details</string>
+    <string name="detail_removed_title">This comic was removed.</string>
+    <string name="detail_removed_body">It is no longer in your library.</string>
+    <string name="detail_back_to_library">Back to library</string>
+    <string name="detail_action_rescan">Rescan</string>
+    <string name="detail_action_remove_comic">Remove comic</string>
+    <string name="detail_meta_pages">%1$d pages • %2$s</string>
+    <string name="detail_meta_position">Page %1$d of %2$d</string>
+    <string name="detail_section_pages">Pages</string>
+    <string name="detail_read_resume">Resume • Page %1$d</string>
+    <string name="detail_read_start">Start reading</string>
+    <string name="detail_meta_number">Number</string>
+    <string name="detail_meta_format">Format</string>
+    <string name="detail_meta_file">File</string>
+    <string name="detail_error_retry">Retry</string>
+    <string name="detail_error_remove">Remove</string>
+    <string name="detail_remove_title">Remove comic?</string>
+    <string name="detail_remove_body">%1$s will be removed from your library. Your original files stay untouched.</string>
+    <string name="detail_remove_confirm">Delete</string>
+    <string name="detail_remove_cancel">Cancel</string>
+    <string name="detail_page_chip">Open page %1$d</string>
+</resources>

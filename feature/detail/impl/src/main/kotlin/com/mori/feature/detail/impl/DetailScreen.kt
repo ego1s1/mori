@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -113,7 +114,7 @@ internal fun DetailScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                            Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
+                            Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
                     actions = {
@@ -125,10 +126,10 @@ internal fun DetailScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Text("Details") },
+                    title = { Text(stringResource(R.string.detail_title)) },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                            Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
+                            Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
                 )
@@ -145,9 +146,9 @@ internal fun DetailScreen(
 
                 DetailUiState.Missing -> MoriEmptyState(
                     icon = MoriIcons.MenuBook,
-                    title = "This comic was removed.",
-                    body = "It is no longer in your library.",
-                    actionLabel = "Back to library",
+                    title = stringResource(R.string.detail_removed_title),
+                    body = stringResource(R.string.detail_removed_body),
+                    actionLabel = stringResource(R.string.detail_back_to_library),
                     onAction = onBackClick,
                 )
 
@@ -181,13 +182,13 @@ private fun DetailTopActions(
             onClick = { onAction(DetailAction.Refresh) },
             modifier = Modifier.testTag(DetailTestTags.RefreshButton),
         ) {
-            Icon(imageVector = MoriIcons.Refresh, contentDescription = "Rescan")
+            Icon(imageVector = MoriIcons.Refresh, contentDescription = stringResource(R.string.detail_action_rescan))
         }
         IconButton(
             onClick = { onAction(DetailAction.AskRemove) },
             modifier = Modifier.testTag(DetailTestTags.RemoveButton),
         ) {
-            Icon(imageVector = MoriIcons.Delete, contentDescription = "Remove comic")
+            Icon(imageVector = MoriIcons.Delete, contentDescription = stringResource(R.string.detail_action_remove_comic))
         }
     }
 }
@@ -250,7 +251,7 @@ private fun DetailContent(
                     )
                 }
                 Text(
-                    text = "${comic.pageCount} pages • ${comic.format.name}",
+                    text = stringResource(R.string.detail_meta_pages, comic.pageCount, comic.format.name),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -262,7 +263,11 @@ private fun DetailContent(
                             .padding(top = 4.dp),
                     )
                     Text(
-                        text = "Page ${comic.lastPageIndex + 1} of ${comic.pageCount}",
+                        text = stringResource(
+                            R.string.detail_meta_position,
+                            comic.lastPageIndex + 1,
+                            comic.pageCount,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -280,21 +285,26 @@ private fun DetailContent(
             )
         } else {
             val startPage = if (comic.isInProgress) comic.lastPageIndex else 0
-            val label = if (comic.lastPageIndex > 0) "Resume" else "Start reading"
             Button(
                 onClick = { onReadClick(comic.id, startPage) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(DetailTestTags.ReadButton),
             ) {
-                Text("$label • Page ${startPage + 1}")
+                Text(
+                    if (comic.lastPageIndex > 0) {
+                        stringResource(R.string.detail_read_resume, startPage + 1)
+                    } else {
+                        stringResource(R.string.detail_read_start)
+                    },
+                )
             }
         }
 
         MetadataRows(comic = comic)
 
         if (comic.error == null && comic.pageCount > 0) {
-            Text(text = "Pages", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(R.string.detail_section_pages), style = MaterialTheme.typography.titleMedium)
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -324,9 +334,9 @@ private fun MetadataRows(comic: Comic, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        comic.number?.let { MetadataRow(label = "Number", value = it) }
-        MetadataRow(label = "Format", value = comic.format.name)
-        MetadataRow(label = "File", value = comic.sourceDisplayName)
+        comic.number?.let { MetadataRow(label = stringResource(R.string.detail_meta_number), value = it) }
+        MetadataRow(label = stringResource(R.string.detail_meta_format), value = comic.format.name)
+        MetadataRow(label = stringResource(R.string.detail_meta_file), value = comic.sourceDisplayName)
     }
 }
 
@@ -358,9 +368,9 @@ private fun ErrorCard(
 ) {
     MoriErrorCard(
         body = error.userMessage(),
-        primaryLabel = "Retry",
+        primaryLabel = stringResource(R.string.detail_error_retry),
         onPrimary = onRetry,
-        secondaryLabel = "Remove",
+        secondaryLabel = stringResource(R.string.detail_error_remove),
         onSecondary = onRemove,
         loading = refreshing,
         modifier = modifier.testTag(DetailTestTags.ErrorCard),
@@ -376,19 +386,19 @@ private fun RemoveDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Remove comic?") },
-        text = { Text("\"$title\" will be removed from your library. Your original files stay untouched.") },
+        title = { Text(stringResource(R.string.detail_remove_title)) },
+        text = { Text(stringResource(R.string.detail_remove_body, title)) },
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
                 modifier = Modifier.testTag(DetailTestTags.ConfirmRemove),
             ) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.detail_remove_confirm), color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.detail_remove_cancel))
             }
         },
         modifier = modifier.testTag(DetailTestTags.RemoveDialog),

@@ -87,7 +87,7 @@ class DetailScreenTest {
     fun freshComicShowsStartReading() {
         setScreen(ready(lastPageIndex = 0))
 
-        composeTestRule.onNodeWithText("Start reading • Page 1").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Start reading").assertIsDisplayed()
     }
 
     @Test
