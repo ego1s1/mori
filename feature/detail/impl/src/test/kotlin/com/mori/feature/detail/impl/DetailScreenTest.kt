@@ -2,9 +2,11 @@ package com.mori.feature.detail.impl
 
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -65,7 +67,8 @@ class DetailScreenTest {
         setScreen(ready())
 
         composeTestRule.onNodeWithTag(DetailTestTags.Hero).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Apple").assertIsDisplayed()
+        // Title lives in the medium app bar and the hero alike.
+        composeTestRule.onAllNodesWithText("Apple").assertCountEquals(2)
         composeTestRule.onNodeWithText("10 pages • CBZ").assertIsDisplayed()
         composeTestRule.onNodeWithText("Page 3 of 10").assertIsDisplayed()
     }

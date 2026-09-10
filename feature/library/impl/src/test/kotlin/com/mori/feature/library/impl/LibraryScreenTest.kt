@@ -80,6 +80,14 @@ class LibraryScreenTest {
     }
 
     @Test
+    fun inProgressCardShowsPagesLeftBadge() {
+        setScreen(success())
+
+        // Banana: lastPageIndex 2 of 10 -> 7 pages left; Apple is untouched.
+        composeTestRule.onNodeWithText("7 left").assertIsDisplayed()
+    }
+
+    @Test
     fun cardTapReadsFromSavedPage() {
         var opened: Pair<String, Int>? = null
         setScreen(success(), onReadClick = { id, index -> opened = id to index })

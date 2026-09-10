@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -322,15 +323,28 @@ private fun ReaderContent(
                     ),
             ) {
                 HorizontalPager(
-                        state = pagerState,
-                        reverseLayout = rtl,
-                        beyondViewportPageCount = 1,
-                        userScrollEnabled = true,
-                        modifier = Modifier
-                            .width(pageWidth)
-                            .fillMaxHeight()
-                            .testTag(ReaderTestTags.Pager),
-                    ) { page ->
+                    state = pagerState,
+                    reverseLayout = rtl,
+                    beyondViewportPageCount = 1,
+                    userScrollEnabled = true,
+                    modifier = Modifier
+                        .width(pageWidth)
+                        .fillMaxHeight()
+                        .testTag(ReaderTestTags.Pager)
+                        .semantics {
+                            contentDescription = "Page ${state.currentPage} of ${state.pageCount}"
+                            customActions = listOf(
+                                androidx.compose.ui.semantics.CustomAccessibilityAction("Next page") {
+                                    onAction(ReaderAction.NextPage)
+                                    true
+                                },
+                                androidx.compose.ui.semantics.CustomAccessibilityAction("Previous page") {
+                                    onAction(ReaderAction.PrevPage)
+                                    true
+                                },
+                            )
+                        },
+                ) { page ->
                     // Expressive page transform: neighbors shrink and fade like a carousel,
                     // giving swipe momentum a physical feel.
                     val pageOffset = (
@@ -515,15 +529,16 @@ private fun ReaderBottomChrome(
         LayoutDirection.Ltr
     }
     // In RTL the leading control advances; icons follow the visual direction.
+    // Descriptions name the action, not the side, so TalkBack stays truthful.
     val leadingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        ReaderAction.NextPage to MoriIcons.SkipNext
+        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, "Next page")
     } else {
-        ReaderAction.PrevPage to MoriIcons.SkipPrevious
+        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, "Previous page")
     }
     val trailingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        ReaderAction.PrevPage to MoriIcons.SkipPrevious
+        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, "Previous page")
     } else {
-        ReaderAction.NextPage to MoriIcons.SkipNext
+        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, "Next page")
     }
 
     Column(
@@ -561,7 +576,7 @@ private fun ReaderBottomChrome(
                 ) {
                     Icon(
                         imageVector = leadingAction.second,
-                        contentDescription = "Previous page",
+                        contentDescription = leadingAction.third,
                     )
                 }
 
@@ -627,7 +642,7 @@ private fun ReaderBottomChrome(
                 ) {
                     Icon(
                         imageVector = trailingAction.second,
-                        contentDescription = "Next page",
+                        contentDescription = trailingAction.third,
                     )
                 }
             }

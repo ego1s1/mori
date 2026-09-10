@@ -82,6 +82,26 @@ internal fun ComicCard(
                 }
             }
 
+            // Pages-left corner badge while in progress (reference-library style):
+            // glanceable remaining count next to the progress bar.
+            if (comic.isInProgress) {
+                val left = comic.pageCount - comic.lastPageIndex - 1
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = Color.Black.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp),
+                ) {
+                    Text(
+                        text = "$left left",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
             Column(modifier = Modifier.align(Alignment.BottomStart)) {
                 Box(
                     modifier = Modifier

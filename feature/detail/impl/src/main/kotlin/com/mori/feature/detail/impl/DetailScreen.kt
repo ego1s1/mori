@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -98,30 +99,38 @@ internal fun DetailScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Details") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (uiState is DetailUiState.Ready) {
-                        IconButton(
-                            onClick = { onAction(DetailAction.Refresh) },
-                            modifier = Modifier.testTag(DetailTestTags.RefreshButton),
-                        ) {
-                            Icon(imageVector = MoriIcons.Refresh, contentDescription = "Rescan")
+            val readyTitle = (uiState as? DetailUiState.Ready)?.comic?.title
+            if (readyTitle != null) {
+                MediumTopAppBar(
+                    title = {
+                        Text(
+                            text = readyTitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
                         }
-                        IconButton(
-                            onClick = { onAction(DetailAction.AskRemove) },
-                            modifier = Modifier.testTag(DetailTestTags.RemoveButton),
-                        ) {
-                            Icon(imageVector = MoriIcons.Delete, contentDescription = "Remove comic")
+                    },
+                    actions = {
+                        DetailTopActions(
+                            onAction = onAction,
+                            modifier = Modifier,
+                        )
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Details") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHost) },
         modifier = modifier,
@@ -156,6 +165,27 @@ internal fun DetailScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DetailTopActions(
+    onAction: (DetailAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier) {
+        IconButton(
+            onClick = { onAction(DetailAction.Refresh) },
+            modifier = Modifier.testTag(DetailTestTags.RefreshButton),
+        ) {
+            Icon(imageVector = MoriIcons.Refresh, contentDescription = "Rescan")
+        }
+        IconButton(
+            onClick = { onAction(DetailAction.AskRemove) },
+            modifier = Modifier.testTag(DetailTestTags.RemoveButton),
+        ) {
+            Icon(imageVector = MoriIcons.Delete, contentDescription = "Remove comic")
         }
     }
 }
