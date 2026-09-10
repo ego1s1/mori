@@ -3,8 +3,13 @@ package com.mori.app
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -151,16 +156,34 @@ internal fun MainScreen(
                     )
                     .padding(bottom = 16.dp),
             ) {
-                MainNavigator(
-                    selectedTab = selectedTab,
-                    onSelectTab = { tab ->
-                        selectedTab = tab
-                    },
-                    resume = resume,
-                    onResumeClick = {
-                        resume?.let { onReadClick(it.comicId, it.pageIndex) }
-                    },
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    MainNavigator(
+                        selectedTab = selectedTab,
+                        onSelectTab = { tab ->
+                            selectedTab = tab
+                        },
+                    )
+                    AnimatedVisibility(
+                        visible = resume != null,
+                        enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                            scaleIn(
+                                animationSpec = MoriMotion.defaultSpatialSpec(),
+                                initialScale = 0.6f,
+                            ),
+                        exit = fadeOut(animationSpec = MoriMotion.calmFade()) +
+                            scaleOut(animationSpec = MoriMotion.calmFade()),
+                    ) {
+                        resume?.let { target ->
+                            ResumeButton(
+                                title = target.title,
+                                onClick = { onReadClick(target.comicId, target.pageIndex) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

@@ -21,4 +21,6 @@ data class ReaderPreferences(
     val volumeKeys: Boolean = false,
     val keepScreenOn: Boolean = true,
     val showPageCounter: Boolean = true,
+    /** Swipe pager gestures turn pages alongside tap zones; on by default. */
+    val swipeToTurn: Boolean = true,
 )

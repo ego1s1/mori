@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.mori.core.designsystem.MoriTheme
-import com.mori.core.model.ResumeTarget
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,16 +23,12 @@ class MainNavigatorTest {
     private fun setPill(
         selectedTab: Int = 0,
         onSelectTab: (Int) -> Unit = {},
-        resume: ResumeTarget? = null,
-        onResumeClick: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             MoriTheme {
                 MainNavigator(
                     selectedTab = selectedTab,
                     onSelectTab = onSelectTab,
-                    resume = resume,
-                    onResumeClick = onResumeClick,
                 )
             }
         }
@@ -59,23 +54,18 @@ class MainNavigatorTest {
     }
 
     @Test
-    fun resumeActionShowsAndDispatches() {
+    fun resumeButtonDispatchesWithoutLabel() {
         var resumed = false
-        setPill(
-            resume = ResumeTarget("c", 4, "Saga"),
-            onResumeClick = { resumed = true },
-        )
+        composeTestRule.setContent {
+            MoriTheme {
+                ResumeButton(title = "Saga", onClick = { resumed = true })
+            }
+        }
 
+        // Icon-only circle: no text, but the action dispatches.
         composeTestRule.onNodeWithTag(MainTestTags.ResumeAction).assertExists()
         composeTestRule.onNodeWithTag(MainTestTags.ResumeAction).performClick()
 
         assertEquals(true, resumed)
-    }
-
-    @Test
-    fun resumeHiddenWithoutTarget() {
-        setPill(resume = null)
-
-        composeTestRule.onNodeWithTag(MainTestTags.ResumeAction).assertDoesNotExist()
     }
 }

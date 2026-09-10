@@ -11,6 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -33,21 +35,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
-import com.mori.core.model.ResumeTarget
 
 /**
- * The single floating navigator: Library + Settings destinations with
- * caffeine-style selected highlighting — the active tab is a wide pill
- * carrying icon and label, idle tabs are bare icons — plus a Resume action
- * whenever a book is in progress. Visible on both tabs; tab state lives in
- * [MainScreen] and every tap delegates out — no business logic here.
+ * The floating navigator: Library + Settings destinations with caffeine-style
+ * selected highlighting — the active tab is a wide pill carrying icon and
+ * label, idle tabs are bare icons. Tab state lives in [MainScreen] and every
+ * tap delegates out — no business logic here.
+ *
+ * Geometry is fully deterministic (M3 expressive 4dp grid): 48dp cells on a
+ * 4dp gap inside 8x4dp chrome, so the bar always measures 56dp tall — the
+ * [ResumeButton] circle matches that height exactly.
  */
 @Composable
 internal fun MainNavigator(
     selectedTab: Int,
     onSelectTab: (Int) -> Unit,
-    resume: ResumeTarget?,
-    onResumeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -60,7 +62,7 @@ internal fun MainNavigator(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             NavDestination(
                 selected = selectedTab == 0,
@@ -78,20 +80,41 @@ internal fun MainNavigator(
                 contentDescription = "Settings tab",
                 testTag = MainTestTags.SettingsTab,
             )
-            if (resume != null) {
-                // An action, not a tab: the label stays so the CTA reads at a
-                // glance ("Resume"), while idle tabs keep icon-only.
-                NavDestination(
-                    selected = false,
-                    onClick = onResumeClick,
-                    icon = MoriIcons.PlayArrow,
-                    label = "Resume",
-                    contentDescription = "Resume ${resume.title}",
-                    testTag = MainTestTags.ResumeAction,
-                    accent = true,
-                    showLabel = true,
-                )
-            }
+        }
+    }
+}
+
+/**
+ * Standalone resume action: a 56dp circle riding beside the navigator at the
+ * same height, icon-only. Split out of the pill so the tab bar keeps one job
+ * (tabs) and the CTA keeps its own (resume).
+ */
+@Composable
+internal fun ResumeButton(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        tonalElevation = 0.dp,
+        shadowElevation = 3.dp,
+        modifier = modifier
+            .size(56.dp)
+            .testTag(MainTestTags.ResumeAction),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Icon(
+                imageVector = MoriIcons.PlayArrow,
+                contentDescription = "Resume $title",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }
@@ -105,23 +128,19 @@ private fun NavDestination(
     contentDescription: String,
     testTag: String,
     modifier: Modifier = Modifier,
-    accent: Boolean = false,
-    showLabel: Boolean = selected,
 ) {
     val container = when {
         selected -> MaterialTheme.colorScheme.secondaryContainer
-        accent -> MaterialTheme.colorScheme.tertiaryContainer
         else -> Color.Transparent
     }
     val content = when {
         selected -> MaterialTheme.colorScheme.onSecondaryContainer
-        accent -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     // The active pill stretches wider than idle icons (reference style); the
     // width glides on a spatial spring while the label fades/expands in.
     val horizontalPadding by animateDpAsState(
-        targetValue = if (showLabel) 20.dp else 12.dp,
+        targetValue = if (selected) 20.dp else 14.dp,
         animationSpec = MoriMotion.defaultSpatialSpec(),
         label = "pillWidth",
     )
@@ -133,8 +152,9 @@ private fun NavDestination(
             .clickable(onClick = onClick, role = Role.Tab)
             .semantics { this.selected = selected }
             .testTag(testTag)
-            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-            .padding(horizontal = horizontalPadding, vertical = 12.dp),
+            .sizeIn(minWidth = 48.dp)
+            .height(48.dp)
+            .padding(horizontal = horizontalPadding),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -144,12 +164,12 @@ private fun NavDestination(
                 imageVector = icon,
                 // The visible label carries the name when shown; the icon
                 // only names itself for icon-only destinations.
-                contentDescription = if (showLabel) null else contentDescription,
+                contentDescription = if (selected) null else contentDescription,
                 tint = content,
                 modifier = Modifier.size(20.dp),
             )
             AnimatedVisibility(
-                visible = showLabel,
+                visible = selected,
                 enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
                     expandHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()) +

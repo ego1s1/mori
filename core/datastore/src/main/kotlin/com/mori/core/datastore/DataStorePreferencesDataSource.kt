@@ -53,6 +53,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 volumeKeys = prefs[VOLUME_KEYS] ?: false,
                 keepScreenOn = prefs[KEEP_SCREEN_ON] ?: true,
                 showPageCounter = prefs[SHOW_PAGE_COUNTER] ?: true,
+                swipeToTurn = prefs[SWIPE_TO_TURN] ?: true,
             )
         }
 
@@ -79,6 +80,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[VOLUME_KEYS] = updated.volumeKeys
             it[KEEP_SCREEN_ON] = updated.keepScreenOn
             it[SHOW_PAGE_COUNTER] = updated.showPageCounter
+            it[SWIPE_TO_TURN] = updated.swipeToTurn
         }
     }
 
@@ -156,6 +158,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val VOLUME_KEYS = booleanPreferencesKey("volume_keys")
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val SHOW_PAGE_COUNTER = booleanPreferencesKey("show_page_counter")
+        val SWIPE_TO_TURN = booleanPreferencesKey("swipe_to_turn")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

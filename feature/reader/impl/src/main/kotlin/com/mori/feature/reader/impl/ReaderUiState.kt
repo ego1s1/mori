@@ -23,6 +23,7 @@ sealed interface ReaderUiState {
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,
         val showPageCounter: Boolean,
+        val swipeToTurn: Boolean,
         /** False for slider seeks (direct manipulation jumps); true for turns. */
         val turnAnimated: Boolean = true,
     ) : ReaderUiState {

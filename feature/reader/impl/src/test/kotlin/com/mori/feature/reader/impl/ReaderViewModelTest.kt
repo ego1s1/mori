@@ -229,6 +229,18 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun swipeToTurnDefaultsOnAndToggles() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().swipeToTurn)
+            viewModel.onAction(ReaderAction.ToggleSwipeToTurn)
+            assertEquals(false, awaitReadyWhere { !it.swipeToTurn }.swipeToTurn)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun hideChromeNeverTogglesBackOn() = runTest {
         val viewModel = viewModel()
         viewModel.uiState.test {

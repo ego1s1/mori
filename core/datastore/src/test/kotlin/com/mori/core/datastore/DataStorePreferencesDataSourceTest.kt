@@ -90,6 +90,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(false, defaults.cropMargins)
             assertEquals(false, defaults.volumeKeys)
             assertEquals(true, defaults.keepScreenOn)
+            assertEquals(true, defaults.swipeToTurn)
 
             dataSource.updateReaderPreferences {
                 it.copy(
@@ -98,6 +99,7 @@ class DataStorePreferencesDataSourceTest {
                     cropMargins = true,
                     volumeKeys = true,
                     keepScreenOn = false,
+                    swipeToTurn = false,
                 )
             }
             val updated = awaitItem()
@@ -106,6 +108,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(true, updated.cropMargins)
             assertEquals(true, updated.volumeKeys)
             assertEquals(false, updated.keepScreenOn)
+            assertEquals(false, updated.swipeToTurn)
         }
     }
 

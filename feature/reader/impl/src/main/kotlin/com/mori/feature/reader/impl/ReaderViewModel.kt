@@ -134,6 +134,7 @@ internal class ReaderViewModel @Inject constructor(
             keepScreenOn = prefs.keepScreenOn,
             showTapZones = chrome.showTapZones,
             showPageCounter = prefs.showPageCounter,
+            swipeToTurn = prefs.swipeToTurn,
             turnAnimated = turnAnimated,
         )
     }
@@ -170,6 +171,7 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
+            ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }
             ReaderAction.ToggleTapZones -> chrome.value = chrome.value.copy(
                 showTapZones = !chrome.value.showTapZones,
             )

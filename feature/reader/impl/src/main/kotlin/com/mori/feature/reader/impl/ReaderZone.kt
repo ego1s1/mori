@@ -76,6 +76,15 @@ private const val PAN_STEP_FRACTION = 0.4f
  */
 internal const val DOUBLE_TAP_TIMEOUT_MS = 300L
 
+/**
+ * Pair-matching radius for a double-tap, as a multiple of touch slop. The
+ * strict zone/slop classifier ([decideTap]) would split a double-tap whose
+ * second tap drifts (e.g. straddling the center/edge boundary) into a chrome
+ * toggle plus a surprise page turn; the detector pairs anything inside this
+ * radius back into one zoom instead.
+ */
+internal const val DOUBLE_TAP_SLOP_SCALE = 2f
+
 /** A tap awaiting its double-tap window. */
 internal data class TapRecord(
     val timeMs: Long,

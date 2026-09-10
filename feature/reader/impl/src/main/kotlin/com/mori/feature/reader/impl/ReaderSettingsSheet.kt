@@ -41,6 +41,7 @@ internal fun ReaderSettingsSheet(
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
+    swipeToTurn: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -56,6 +57,7 @@ internal fun ReaderSettingsSheet(
             keepScreenOn = keepScreenOn,
             showTapZones = showTapZones,
             showPageCounter = showPageCounter,
+            swipeToTurn = swipeToTurn,
             onAction = onAction,
         )
     }
@@ -71,6 +73,7 @@ internal fun ReaderSettingsSheetContent(
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
+    swipeToTurn: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -169,6 +172,12 @@ internal fun ReaderSettingsSheetContent(
             subtitle = stringResource(R.string.reader_counter_subtitle),
             checked = showPageCounter,
             onCheckedChange = { onAction(ReaderAction.TogglePageCounter) },
+        )
+        MoriSettingSwitch(
+            title = stringResource(R.string.reader_swipe_title),
+            subtitle = stringResource(R.string.reader_swipe_subtitle),
+            checked = swipeToTurn,
+            onCheckedChange = { onAction(ReaderAction.ToggleSwipeToTurn) },
         )
 
         Spacer(modifier = Modifier.height(8.dp))

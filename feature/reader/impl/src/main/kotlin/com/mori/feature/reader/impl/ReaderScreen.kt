@@ -318,7 +318,7 @@ private fun ReaderContent(
                     state = pagerState,
                     reverseLayout = rtl,
                     beyondViewportPageCount = 1,
-                    userScrollEnabled = true,
+                    userScrollEnabled = state.swipeToTurn,
                     modifier = Modifier
                         .width(pageWidth)
                         .fillMaxHeight()
@@ -403,6 +403,7 @@ private fun ReaderContent(
                 keepScreenOn = state.keepScreenOn,
                 showTapZones = state.showTapZones,
                 showPageCounter = state.showPageCounter,
+                swipeToTurn = state.swipeToTurn,
                 onAction = onAction,
             )
         }
@@ -729,6 +730,7 @@ private fun ReaderScreenPreview() {
                 keepScreenOn = true,
                 showTapZones = false,
                 showPageCounter = true,
+                swipeToTurn = true,
             ),
             onAction = {},
             onBackClick = {},

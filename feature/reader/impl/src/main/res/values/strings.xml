@@ -31,6 +31,8 @@
     <string name="reader_keep_on_subtitle">Prevent the display from sleeping while reading</string>
     <string name="reader_counter_title">Page counter</string>
     <string name="reader_counter_subtitle">Show the current page number when controls hide</string>
+    <string name="reader_swipe_title">Swipe to turn pages</string>
+    <string name="reader_swipe_subtitle">Drag sideways to move between pages, alongside taps</string>
     <string name="reader_zone_previous">Previous</string>
     <string name="reader_zone_menu">Menu</string>
     <string name="reader_zone_next">Next</string>

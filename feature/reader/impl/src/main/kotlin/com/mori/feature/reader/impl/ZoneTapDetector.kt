@@ -22,8 +22,9 @@ import kotlinx.coroutines.launch
  * content rebase their local tap position into viewport space, so the same
  * physical x always lands in the same zone. Every tap dispatches on tap-up
  * with no double-tap wait — including center taps, which toggle chrome
- * optimistically ([decideTap]): a second center tap in-window still zooms via
- * [onZoom], and the zoom handler compensates the optimistic toggle, so rapid
+ * optimistically ([decideTap]): a second tap in-window and inside a generous
+ * pair radius still zooms via [onZoom] even if it drifted across a zone
+ * boundary, and the zoom handler compensates the optimistic toggle, so rapid
  * taps never stall on animation or timeout.
  *
  * Every finger is tracked independently inside one gesture: alternating
@@ -54,10 +55,27 @@ internal fun Modifier.zoneTaps(
     fun handleTap(position: Offset, center: Offset, zone: ReaderZone) {
         menuJob?.cancel()
         menuJob = null
+        val nowMs = SystemClock.uptimeMillis()
+        val armed = pendingMenuTap
+        if (armed != null &&
+            nowMs - armed.timeMs in 0..DOUBLE_TAP_TIMEOUT_MS &&
+            (position - armed.position).getDistance() <= touchSlop * DOUBLE_TAP_SLOP_SCALE
+        ) {
+            // Drifted double-tap: the pair belongs together even though the
+            // second tap wandered out of the strict zone/slop (e.g. straddling
+            // the center/edge boundary). Zoom without firing the second tap's
+            // zone — a page turn here is never what a double-tap means. Rapid
+            // edge skipping can't land here: only a MENU first tap arms the
+            // watch, so edge taps always dispatch per tap below. Subsumes
+            // [TapDecision.Zoom].
+            pendingMenuTap = null
+            onZoom(position, center)
+            return
+        }
         when (
             decideTap(
                 previous = pendingMenuTap,
-                nowMs = SystemClock.uptimeMillis(),
+                nowMs = nowMs,
                 position = position,
                 zone = zone,
                 touchSlopPx = touchSlop,

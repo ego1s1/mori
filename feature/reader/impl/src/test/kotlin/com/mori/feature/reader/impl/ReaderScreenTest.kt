@@ -50,6 +50,7 @@ class ReaderScreenTest {
         keepScreenOn = true,
         showTapZones = false,
         showPageCounter = true,
+        swipeToTurn = true,
     )
 
     @Test
@@ -159,6 +160,7 @@ class ReaderScreenTest {
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
+                    swipeToTurn = true,
                     onAction = {},
                 )
             }
