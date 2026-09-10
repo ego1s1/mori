@@ -22,6 +22,8 @@ sealed interface ReaderUiState {
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,
         val showPageCounter: Boolean,
+        /** False for slider seeks (direct manipulation jumps); true for turns. */
+        val turnAnimated: Boolean = true,
     ) : ReaderUiState {
         /** 1-based page number shown in the UI. */
         val currentPage: Int get() = pageIndex + 1

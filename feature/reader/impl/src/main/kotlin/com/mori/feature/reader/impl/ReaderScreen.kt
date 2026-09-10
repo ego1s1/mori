@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriTheme
@@ -159,13 +160,22 @@ private fun ReaderContent(
         pageCount = { state.pageCount },
     )
 
-    // ViewModel -> pager (buttons, taps, slider, seeks). Reference-reader style:
-    // programmatic turns jump instantly — there is no in-flight animation for
-    // rapid taps to collide with, so every turn registers. Swipes (user-driven)
-    // keep their native gesture animation.
-    LaunchedEffect(state.pageIndex) {
+    // ViewModel -> pager (buttons, taps, slider, seeks). Turns glide on a
+    // short retargeting spec: each new target cancels the in-flight glide and
+    // restarts from the live offset, so rapid chains stay smooth and lossless.
+    // Slider seeks and calm motion jump instantly (direct manipulation, no
+    // animation to interrupt). Swipes keep their native gesture animation.
+    val pagerExpressive = LocalExpressiveMotionEnabled.current
+    LaunchedEffect(state.pageIndex, state.turnAnimated, pagerExpressive) {
         if (pagerState.currentPage != state.pageIndex) {
-            pagerState.scrollToPage(state.pageIndex)
+            if (pagerExpressive && state.turnAnimated) {
+                pagerState.animateScrollToPage(
+                    state.pageIndex,
+                    animationSpec = MoriMotion.pageTurnSpec(),
+                )
+            } else {
+                pagerState.scrollToPage(state.pageIndex)
+            }
         }
     }
     // Pager -> ViewModel (swipes).

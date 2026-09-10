@@ -294,6 +294,20 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun turnStyleFollowsMoveSource() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().turnAnimated)
+            viewModel.onAction(ReaderAction.NextPage)
+            assertEquals(true, awaitReadyWhere { it.pageIndex == 1 }.turnAnimated)
+            viewModel.onAction(ReaderAction.SeekPage(5))
+            val sought = awaitReadyWhere { it.pageIndex == 5 }
+            assertEquals(false, sought.turnAnimated)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun persistedPreferencesDriveInitialState() = runTest {
         val preferences = TestPreferencesDataSource(
             ReaderPreferences(direction = ReadingDirection.RIGHT_TO_LEFT),

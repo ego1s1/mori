@@ -58,6 +58,9 @@ class ReaderViewModel @Inject constructor(
         savedStateHandle.get<Int>(SAVED_PAGE_INDEX),
     )
 
+    /** Last programmatic move style; drives pager glide-vs-jump in the UI. */
+    private val turnAnimated = MutableStateFlow(true)
+
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
 
@@ -89,6 +92,7 @@ class ReaderViewModel @Inject constructor(
         preferences.readerPreferences,
         chrome,
         navigation,
+        turnAnimated,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -101,6 +105,7 @@ class ReaderViewModel @Inject constructor(
         prefs: ReaderPreferences,
         chrome: ChromeState,
         navigation: Int?,
+        turnAnimated: Boolean,
     ): ReaderUiState {
         if (comic == null) {
             return ReaderUiState.Error("This comic was removed from your library.")
@@ -127,6 +132,7 @@ class ReaderViewModel @Inject constructor(
             keepScreenOn = prefs.keepScreenOn,
             showTapZones = chrome.showTapZones,
             showPageCounter = prefs.showPageCounter,
+            turnAnimated = turnAnimated,
         )
     }
 
@@ -145,7 +151,7 @@ class ReaderViewModel @Inject constructor(
             ReaderAction.HideChrome -> chrome.value = chrome.value.copy(visible = false)
             ReaderAction.NextPage -> moveBy(1)
             ReaderAction.PrevPage -> moveBy(-1)
-            is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false)
+            is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false, animated = false)
             is ReaderAction.PageChanged -> {
                 setNavigation(action.index)
                 // Swiping to a new page dismisses chrome, like a page turn —
@@ -190,9 +196,10 @@ class ReaderViewModel @Inject constructor(
         moveTo(clamped, hideChrome = true)
     }
 
-    private fun moveTo(index: Int, hideChrome: Boolean) {
+    private fun moveTo(index: Int, hideChrome: Boolean, animated: Boolean = true) {
         val ready = uiState.value as? ReaderUiState.Ready ?: return
         val clamped = index.coerceIn(0, ready.pageCount - 1)
+        turnAnimated.value = animated
         setNavigation(clamped)
         // Buttons and zone taps dismiss chrome like a page turn; the slider keeps
         // chrome up so scrubbing stays visible (auto-hide resumes afterwards).

@@ -76,6 +76,16 @@ object MoriMotion {
     /** Calm fallback: short emphasized fades with no physics. */
     fun <T> calmFade(): FiniteAnimationSpec<T> = tween(150, easing = Emphasized)
 
+    /**
+     * Page-turn glide: a short fixed-time slide that retargets cleanly when a
+     * new turn interrupts it mid-flight, so rapid chains stay smooth instead
+     * of piling up long springs.
+     */
+    fun pageTurnSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
+
+    private const val PAGE_TURN_MS = 150
+
     @Composable
     fun enterTween() = tween<IntOffset>(EnterScreenMs, easing = EmphasizedDecelerate)
 
