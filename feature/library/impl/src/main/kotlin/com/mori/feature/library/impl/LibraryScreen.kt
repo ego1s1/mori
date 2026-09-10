@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +68,7 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
@@ -184,8 +189,20 @@ private fun LibraryContent(
             AnimatedVisibility(
                 visible = state.searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                exit = MoriMotion.exit(MoriEnterKind.SEARCH),
             ) {
+                // Focus + keyboard follow the toggle both ways: opening focuses
+                // and lifts the keyboard, closing releases both.
+                val searchFocus = remember { FocusRequester() }
+                val keyboard = LocalSoftwareKeyboardController.current
+                LaunchedEffect(state.searchOpen) {
+                    if (state.searchOpen) {
+                        searchFocus.requestFocus()
+                        keyboard?.show()
+                    } else {
+                        keyboard?.hide()
+                    }
+                }
                 OutlinedTextField(
                     value = state.query.text,
                     onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
@@ -201,6 +218,8 @@ private fun LibraryContent(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .padding(top = 8.dp)
+                        .focusRequester(searchFocus)
+                        .focusable()
                         .testTag(LibraryTestTags.SearchField),
                 )
             }

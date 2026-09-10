@@ -50,7 +50,6 @@ import com.mori.core.model.ThemePreferences
 
 @Composable
 fun SettingsTabContent(
-    onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -58,21 +57,7 @@ fun SettingsTabContent(
     SettingsScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
-        onBackClick = onBackClick,
         modifier = modifier,
-    )
-}
-
-@Composable
-internal fun SettingsRoute(
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = hiltViewModel(),
-) {
-    SettingsTabContent(
-        onBackClick = onBackClick,
-        modifier = modifier,
-        viewModel = viewModel,
     )
 }
 
@@ -81,18 +66,14 @@ internal fun SettingsRoute(
 internal fun SettingsScreen(
     uiState: SettingsUiState,
     onAction: (SettingsAction) -> Unit,
-    onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         topBar = {
+            // No back navigation: settings sits beside the library in the main
+            // viewport (swipe or system back to return).
             TopAppBar(
                 title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
-                    }
-                },
             )
         },
         modifier = modifier,
@@ -410,7 +391,6 @@ private fun SettingsScreenPreview() {
                 storage = StorageUsage(comicCount = 12, libraryBytes = 480_000_000L, coversBytes = 6_000_000L),
             ),
             onAction = {},
-            onBackClick = {},
         )
     }
 }

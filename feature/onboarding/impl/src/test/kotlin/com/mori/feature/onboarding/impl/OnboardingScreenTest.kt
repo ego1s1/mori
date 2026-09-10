@@ -48,6 +48,8 @@ class OnboardingScreenTest {
             onPickFiles = { filePicks += 1 },
         )
 
+        // Welcome staggers in; let the cascade finish.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithText("Where are your comics?").assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performClick()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).performClick()

@@ -136,7 +136,6 @@ class SettingsScreenTest {
                         storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     ),
                     onAction = {},
-                    onBackClick = {},
                 )
             }
         }
