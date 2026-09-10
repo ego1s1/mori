@@ -205,7 +205,7 @@ private fun ReaderContent(
     if (state.chromeVisible && !state.settingsOpen && !scrubbing) {
         LaunchedEffect(state.chromeVisible, state.pageIndex) {
             delay(CHROME_AUTO_HIDE_MS)
-            onAction(ReaderAction.ToggleChrome)
+            onAction(ReaderAction.HideChrome)
         }
     }
     // Tactile ticks while scrubbing through pages.

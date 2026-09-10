@@ -11,7 +11,10 @@ import com.mori.core.model.ComicError
 import com.mori.core.model.ReaderPreferences
 import com.mori.feature.reader.api.ReaderRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +38,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
     private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
@@ -45,10 +48,28 @@ class ReaderViewModel @Inject constructor(
     /** Ephemeral chrome state; resets are harmless, so it is not persisted. */
     private val chrome = MutableStateFlow(ChromeState())
 
-    /** User-driven position; null until the user navigates (route argument rules). */
-    private val navigation = MutableStateFlow<Int?>(null)
+    /**
+     * User-driven position, restored from [SavedStateHandle] before the
+     * repository emits so process death never rewinds the page. Written
+     * synchronously on every move, so rapid turns accumulate instead of
+     * racing the combined [uiState].
+     */
+    private val navigation = MutableStateFlow<Int?>(
+        savedStateHandle.get<Int>(SAVED_PAGE_INDEX),
+    )
 
     private var saveJob: Job? = null
+    private var pendingSave: Int? = null
+
+    /** Outlives [viewModelScope] to flush the last progress write on exit. */
+    private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onCleared() {
+        saveJob?.cancel()
+        pendingSave?.let { index ->
+            flushScope.launch { repository.saveProgress(args.comicId, index) }
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -121,13 +142,17 @@ class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleChrome -> chrome.value = chrome.value.copy(
                 visible = !chrome.value.visible,
             )
+            ReaderAction.HideChrome -> chrome.value = chrome.value.copy(visible = false)
             ReaderAction.NextPage -> moveBy(1)
             ReaderAction.PrevPage -> moveBy(-1)
             is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false)
             is ReaderAction.PageChanged -> {
-                navigation.value = action.index
-                // Swiping to a new page dismisses chrome, like a page turn.
-                chrome.value = chrome.value.copy(visible = false)
+                setNavigation(action.index)
+                // Swiping to a new page dismisses chrome, like a page turn —
+                // but never from under the open settings sheet.
+                if (!chrome.value.settingsOpen) {
+                    chrome.value = chrome.value.copy(visible = false)
+                }
                 scheduleProgressSave(action.index)
             }
             ReaderAction.ToggleBookmark -> {
@@ -151,24 +176,34 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun moveBy(delta: Int) {
-        val current = (uiState.value as? ReaderUiState.Ready)?.pageIndex ?: return
-        moveTo(current + delta, hideChrome = true)
+        val ready = uiState.value as? ReaderUiState.Ready ?: return
+        // Base on the synchronously-written navigation, not the combined state,
+        // so back-to-back turns never read a stale index.
+        val base = navigation.value ?: ready.pageIndex
+        moveTo(base + delta, hideChrome = true)
     }
 
     private fun moveTo(index: Int, hideChrome: Boolean) {
         val ready = uiState.value as? ReaderUiState.Ready ?: return
         val clamped = index.coerceIn(0, ready.pageCount - 1)
-        navigation.value = clamped
+        setNavigation(clamped)
         // Buttons and zone taps dismiss chrome like a page turn; the slider keeps
         // chrome up so scrubbing stays visible (auto-hide resumes afterwards).
         chrome.value = chrome.value.copy(visible = !hideChrome)
         scheduleProgressSave(clamped)
     }
 
+    private fun setNavigation(index: Int) {
+        navigation.value = index
+        savedStateHandle[SAVED_PAGE_INDEX] = index
+    }
+
     private fun scheduleProgressSave(index: Int) {
+        pendingSave = index
         saveJob?.cancel()
         saveJob = viewModelScope.launch {
             delay(PROGRESS_SAVE_DEBOUNCE_MS)
+            pendingSave = null
             repository.saveProgress(args.comicId, index)
         }
     }
@@ -187,6 +222,8 @@ class ReaderViewModel @Inject constructor(
 
     companion object {
         private const val PROGRESS_SAVE_DEBOUNCE_MS = 500L
+
+        private const val SAVED_PAGE_INDEX = "mori_saved_page_index"
 
         /** First-launch overview beat: chrome stays up this long, then fades. */
         internal const val READER_OVERVIEW_MS = 2000L

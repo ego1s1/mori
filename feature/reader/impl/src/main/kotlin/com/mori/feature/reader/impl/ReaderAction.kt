@@ -7,6 +7,9 @@ import com.mori.core.model.ReadingDirection
 sealed interface ReaderAction {
     data object ToggleChrome : ReaderAction
 
+    /** Explicit hide for timers (auto-hide, overview): never toggles back on. */
+    data object HideChrome : ReaderAction
+
     data object NextPage : ReaderAction
 
     data object PrevPage : ReaderAction

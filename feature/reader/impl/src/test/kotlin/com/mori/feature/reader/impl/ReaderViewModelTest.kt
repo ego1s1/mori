@@ -236,6 +236,49 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun hideChromeNeverTogglesBackOn() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().chromeVisible)
+            viewModel.onAction(ReaderAction.HideChrome)
+            assertEquals(false, awaitReadyWhere { !it.chromeVisible }.chromeVisible)
+            viewModel.onAction(ReaderAction.HideChrome)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun pageChangedKeepsChromeOverOpenSettings() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.OpenSettings)
+            awaitReadyWhere { it.settingsOpen }
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            val settled = awaitReadyWhere { it.pageIndex == 3 }
+            assertEquals(true, settled.chromeVisible)
+            assertEquals(true, settled.settingsOpen)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun savedPageRestoresBeforeRepositoryEmits() = runTest {
+        val viewModel = ReaderViewModel(
+            savedStateHandle = SavedStateHandle(
+                mapOf("comicId" to "c", "pageIndex" to 0, "mori_saved_page_index" to 7),
+            ),
+            repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c"))),
+            preferences = TestPreferencesDataSource(),
+        )
+        viewModel.uiState.test {
+            assertEquals(7, awaitReady().pageIndex)
+        }
+    }
+
+    @Test
     fun persistedPreferencesDriveInitialState() = runTest {
         val preferences = TestPreferencesDataSource(
             ReaderPreferences(direction = ReadingDirection.RIGHT_TO_LEFT),
