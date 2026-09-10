@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -212,9 +213,9 @@ internal fun OnboardingScreen(
                 totalSteps = 3,
                 title = "Import your comics",
                 body = if (uiState.location == StorageLocation.CUSTOM && uiState.folderName != null) {
-                    "Reading from “${uiState.folderName}”. Copies land in your library."
+                    stringResource(R.string.onboarding_import_body_custom, uiState.folderName)
                 } else {
-                    "Pick a folder and Mori copies CBZ and CBR files in. Originals stay put."
+                    stringResource(R.string.onboarding_import_body_default)
                 },
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
@@ -537,14 +538,14 @@ private fun StorageOptions(
         OptionRow(
             selected = location == StorageLocation.APP,
             icon = MoriIcons.FolderOpen,
-            title = "On this device",
+            title = stringResource(R.string.onboarding_storage_app),
             subtitle = "Mori keeps copies inside the app. Originals stay untouched.",
             onClick = onSelectApp,
         )
         OptionRow(
             selected = location == StorageLocation.CUSTOM,
             icon = MoriIcons.MenuBook,
-            title = folderName?.let { "Folder: $it" } ?: "Custom folder",
+            title = folderName?.let { stringResource(R.string.onboarding_storage_custom_named, it) } ?: stringResource(R.string.onboarding_storage_custom),
             subtitle = "Read from a folder you organize. Stays linked for rescans.",
             onClick = onPickCustom,
         )
@@ -624,7 +625,7 @@ private fun AppearanceOptions(
         modifier = modifier.fillMaxWidth(),
     ) {
         Text(
-            text = "Theme",
+            text = stringResource(R.string.onboarding_theme),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -669,9 +670,9 @@ private fun AppearanceOptions(
                 ),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "AMOLED black", style = MaterialTheme.typography.bodyLarge)
+                Text(text = stringResource(R.string.onboarding_amoled_title), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = "True-black backgrounds in dark mode",
+                    text = stringResource(R.string.onboarding_amoled_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -849,7 +850,7 @@ private fun DoneContent(
                 modifier = Modifier.padding(vertical = 20.dp, horizontal = 16.dp),
             ) {
                 Text(
-                    text = "${report.succeeded} of ${report.total}",
+                    text = stringResource(R.string.onboarding_imported_count, report.succeeded, report.total),
                     style = MoriEmphasized.displaySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     textAlign = TextAlign.Center,
@@ -863,7 +864,7 @@ private fun DoneContent(
                 if (report.failed > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${report.failed} file(s) could not be copied.",
+                        text = stringResource(R.string.onboarding_import_failed, report.failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         textAlign = TextAlign.Center,
@@ -878,7 +879,7 @@ private fun DoneContent(
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.Finish),
         ) {
-            Text("Start reading")
+            Text(stringResource(R.string.onboarding_start_reading))
         }
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedButton(
@@ -897,7 +898,7 @@ private fun DoneContent(
             ) {
                 items(report.items.filter { it.error != null }, key = { it.displayName }) { item ->
                     Text(
-                        text = "${item.displayName}: ${item.error.orEmpty()}",
+                        text = stringResource(R.string.onboarding_error_item, item.displayName, item.error.orEmpty()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
