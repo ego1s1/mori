@@ -61,6 +61,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
+import com.mori.core.model.userMessage
 import java.io.File
 
 @Composable
@@ -366,12 +367,7 @@ private fun ErrorCard(
             modifier = Modifier.padding(16.dp),
         ) {
             Text(
-                text = when (error) {
-                    ComicError.CORRUPT -> "Can't open this file. It may be damaged — re-import it or remove it."
-                    ComicError.PASSWORD_REQUIRED -> "This archive needs a password, which Mori can't enter yet."
-                    ComicError.EMPTY -> "This archive has no readable pages."
-                    ComicError.UNSUPPORTED -> "This format isn't supported yet."
-                },
+                text = error.userMessage(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )

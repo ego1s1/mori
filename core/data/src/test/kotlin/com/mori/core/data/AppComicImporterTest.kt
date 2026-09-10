@@ -114,4 +114,14 @@ class AppComicImporterTest {
         assertEquals(0, report.total)
         assertTrue(report.isComplete)
     }
+
+    @Test
+    fun impossibleSizeFailsWholeBatchAsStorageFull() = runTest {
+        val report = importer(tempDir()).importCandidates(
+            listOf(ImportCandidate("huge.cbz", Long.MAX_VALUE) { "x".byteInputStream() }),
+        )
+        assertEquals(0, report.succeeded)
+        assertEquals(1, report.failed)
+        assertTrue(report.items.all { it.error == "Not enough storage space" })
+    }
 }

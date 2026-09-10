@@ -60,6 +60,19 @@ internal class AppComicImporter @Inject constructor(
         onProgress: (done: Int, total: Int) -> Unit,
     ): ImportReport = withContext(Dispatchers.IO) {
         libraryDir.mkdirs()
+        // Fail the whole batch upfront when the device clearly cannot hold it,
+        // instead of dying file-by-file with raw stream errors.
+        val needed = candidates.filter { it.sizeBytes > 0 }.sumOf { it.sizeBytes }
+        if (needed > 0 && libraryDir.usableSpace < needed) {
+            return@withContext ImportReport(
+                total = candidates.size,
+                succeeded = 0,
+                failed = candidates.size,
+                items = candidates.map {
+                    ImportItem(it.displayName, ImportStatus.FAILED, "Not enough storage space")
+                },
+            )
+        }
         var succeeded = 0
         var failed = 0
         val items = mutableListOf<ImportItem>()

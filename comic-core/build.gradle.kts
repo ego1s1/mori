@@ -1,8 +1,7 @@
 import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.mori.android.library)
     alias(libs.plugins.detekt)
     alias(libs.plugins.binary.compatibility.validator)
     id("maven-publish")
@@ -10,11 +9,8 @@ plugins {
 
 android {
     namespace = "com.mori.comic.core"
-    compileSdk = 35
 
     defaultConfig {
-        minSdk = 24
-        targetSdk = 35
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -22,19 +18,6 @@ android {
         release {
             isMinifyEnabled = false
         }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    testOptions {
-        unitTests.isIncludeAndroidResources = true
     }
 }
 

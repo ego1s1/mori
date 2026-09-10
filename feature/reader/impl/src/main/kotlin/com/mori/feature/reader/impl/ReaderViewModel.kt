@@ -9,6 +9,7 @@ import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.userMessage
 import com.mori.feature.reader.api.ReaderRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -138,12 +139,7 @@ class ReaderViewModel @Inject constructor(
         )
     }
 
-    private fun errorMessage(error: ComicError): String = when (error) {
-        ComicError.CORRUPT -> "Can't open this file. It may be damaged — re-import it or remove it."
-        ComicError.PASSWORD_REQUIRED -> "This archive needs a password, which Mori can't enter yet."
-        ComicError.EMPTY -> "This archive has no readable pages."
-        ComicError.UNSUPPORTED -> "This format isn't supported yet."
-    }
+    private fun errorMessage(error: ComicError): String = error.userMessage()
 
     fun onAction(action: ReaderAction) {
         when (action) {

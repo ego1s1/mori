@@ -1,6 +1,7 @@
 package com.mori.core.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ComicTest {
@@ -56,5 +57,16 @@ class ComicTest {
     fun progressClampsOvershoot() {
         val comic = comic(pageCount = 10, lastPageIndex = 50)
         assertEquals(1f, comic.progress, 0.0001f)
+    }
+
+    @Test
+    fun everyErrorHasADirectingMessage() {
+        for (error in ComicError.entries) {
+            val message = error.userMessage()
+            assertTrue(message.isNotBlank())
+        }
+        // Spot-check the voice: names state, directs action, never apologizes.
+        assertTrue(ComicError.CORRUPT.userMessage().contains("re-import"))
+        assertTrue(ComicError.PASSWORD_REQUIRED.userMessage().contains("password"))
     }
 }
