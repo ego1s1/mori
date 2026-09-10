@@ -15,6 +15,8 @@ import com.mori.core.model.StorageUsage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -31,11 +33,23 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ComicsRepository {
 
+    /**
+     * Library rows, mapped/filtered/sorted off the main thread. Room re-emits
+     * on every table write (each page turn, each indexed file), so the
+     * transform rides [Dispatchers.Default] and [distinctUntilChanged] drops
+     * equal lists before they can recompose the grid.
+     */
     override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
-        dao.observeAll().map { entities -> entities.map { it.toModel() }.applyQuery(query) }
+        dao.observeAll()
+            .map { entities -> entities.map { it.toModel() }.applyQuery(query) }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
 
     override fun observeComic(id: String): Flow<Comic?> =
-        dao.observeById(id).map { it?.toModel() }
+        dao.observeById(id)
+            .map { it?.toModel() }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
 
     override suspend fun getComic(id: String): Comic? =
         dao.getById(id)?.toModel()
@@ -45,12 +59,15 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val files = libraryDir.walkTopDown()
             .filter { it.isFile && isSupportedArchive(it.name) }
             .toList()
-        var indexed = 0
-        var failed = 0
-        files.forEach { file ->
-            val row = indexFile(file)
-            if (row.error == null) indexed += 1 else failed += 1
+        // Batch the writes: one upsert per refresh, not one per file. Per-file
+        // upserts re-emit observeAll N times (each re-sorting the grid); the
+        // batched write emits once with the final state.
+        val rows = files.map { file -> indexFile(file) }
+        if (rows.isNotEmpty()) {
+            dao.upsertAll(rows)
         }
+        val indexed = rows.count { it.error == null }
+        val failed = rows.size - indexed
         val liveIds = files.map { it.name }.toSet()
         val removed = (dao.getIds().toSet() - liveIds).size
         dao.deleteMissing(liveIds.toList())
@@ -67,6 +84,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             return@withContext null
         }
         val updated = indexFile(file, existing = row)
+        dao.upsert(updated)
         updated.toModel()
     }
 
@@ -110,6 +128,12 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         )
     }
 
+    /**
+     * Inspects one file and builds its row WITHOUT writing: callers batch
+     * the write ([refreshLibrary] collects every row into one [ComicDao.upsertAll],
+     * [refreshComic] upserts its single row) so observers emit once per
+     * refresh instead of once per file.
+     */
     private suspend fun indexFile(file: File, existing: ComicEntity? = null): ComicEntity {
         val now = System.currentTimeMillis()
         val known = existing ?: dao.getById(file.name)
@@ -141,19 +165,16 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                 createdAt = known?.createdAt ?: now,
                 updatedAt = known?.updatedAt ?: now,
             )
-            dao.upsert(row)
             row
         } catch (e: Exception) {
             val error = mapError(e)
-            val row = (known ?: emptyRow(file, now)).copy(
+            (known ?: emptyRow(file, now)).copy(
                 pageCount = 0,
                 coverPath = known?.coverPath,
                 sourceModified = file.lastModified(),
                 error = error.name,
                 updatedAt = now,
             )
-            dao.upsert(row)
-            row
         }
     }
 

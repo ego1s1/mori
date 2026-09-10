@@ -123,10 +123,12 @@ internal fun MainScreen(
             .padding(padding)) {
             // No entry animation here: the NavHost transition already carries
             // the arrival. A second scale-in stacked on top read as a glitch.
+            // Both tabs stay resident: composing settings mid-swipe drops the
+            // first frames of the gesture. Two static pages is cheap to keep.
             HorizontalPager(
                 state = pagerState,
                 userScrollEnabled = true,
-                beyondViewportPageCount = 0,
+                beyondViewportPageCount = 1,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {

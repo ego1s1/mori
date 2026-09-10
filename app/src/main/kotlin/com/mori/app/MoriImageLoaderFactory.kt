@@ -12,6 +12,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import okio.Path.Companion.toOkioPath
 import java.io.File
 import javax.inject.Inject
@@ -22,6 +23,9 @@ import javax.inject.Singleton
  *
  * Covers load from generated thumbnail files through Coil's default fetchers; reader
  * pages load through [ComicPageFetcher] with resolution-bounded backend decoding.
+ *
+ * Decode/fetch parallelism is capped: Coil otherwise spawns a thread per load,
+ * and a fast grid fling would churn threads and the GC into visible stutter.
  */
 class MoriImageLoaderFactory @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -42,12 +46,16 @@ class MoriImageLoaderFactory @Inject constructor(
                     .maxSizeBytes(IMAGE_DISK_BYTES)
                     .build()
             }
+            .fetcherCoroutineContext(Dispatchers.IO.limitedParallelism(IMAGE_FETCH_PARALLELISM))
+            .decoderCoroutineContext(Dispatchers.IO.limitedParallelism(IMAGE_DECODE_PARALLELISM))
             .crossfade(true)
             .build()
 
     private companion object {
         const val IMAGE_MEMORY_PERCENT = 0.25
         const val IMAGE_DISK_BYTES = 256L * 1024 * 1024
+        const val IMAGE_FETCH_PARALLELISM = 8
+        const val IMAGE_DECODE_PARALLELISM = 3
     }
 }
 

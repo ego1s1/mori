@@ -14,10 +14,12 @@ import com.mori.core.model.LibrarySortOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -56,6 +58,18 @@ class LibraryViewModel @Inject constructor(
     private val searchOpen = MutableStateFlow(false)
 
     /**
+     * Database subscription query: the text field echoes instantly through
+     * [query], but the grid re-queries at most once per typing pause instead
+     * of once per keystroke. Empty text (initial load, cleared search) passes
+     * through with no delay.
+     */
+    private val dbQuery: Flow<LibraryQuery> = combine(
+        preferences.libraryDisplay,
+        searchText.debounce { text -> if (text.isEmpty()) 0L else SEARCH_DEBOUNCE_MS },
+        LibraryDisplay::toQuery,
+    )
+
+    /**
      * One-shot messages (errors, confirmations). A channel, not state: rotation
      * must not reshow a message the user already saw.
      */
@@ -64,7 +78,7 @@ class LibraryViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<LibraryUiState> = combine(
-        query.flatMapLatest { repository.observeLibrary(it) },
+        dbQuery.flatMapLatest { repository.observeLibrary(it) },
         query,
         combine(refreshing, filterOpen, searchOpen, ::Chrome),
     ) { comics, query, chrome ->
@@ -147,5 +161,6 @@ class LibraryViewModel @Inject constructor(
 
     private companion object {
         const val KEY_QUERY_TEXT = "mori_query_text"
+        const val SEARCH_DEBOUNCE_MS = 250L
     }
 }

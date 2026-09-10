@@ -97,6 +97,28 @@ class OfflineFirstComicsRepositoryTest {
     }
 
     @Test
+    fun refreshLibraryBatchesWritesIntoOneEmission() = runTest {
+        val names = listOf("alpha.cbz", "beta.cbz", "gamma.cbz")
+        names.forEach { name ->
+            writeCbz(name, mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+        }
+        val backend = FakeComicBackendDataSource(
+            inspected = names.associateWith {
+                FakeComicBackendDataSource.inspected("001.jpg")
+            },
+        )
+        val repository = repository(backend)
+        // Batched upsertAll emits once with the final state; per-file upserts
+        // would re-emit (and re-sort the grid) once per file.
+        repository.observeLibrary(LibraryQuery()).test {
+            assertEquals(0, awaitItem().size)
+            repository.refreshLibrary()
+            assertEquals(3, awaitItem().size)
+            expectNoEvents()
+        }
+    }
+
+    @Test
     fun refreshLibrarySkipsUnchangedFiles() = runTest {
         writeCbz("alpha.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
         var inspects = 0
