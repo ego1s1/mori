@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.model.ReadingDirection
 
@@ -28,11 +29,19 @@ internal fun TapZoneOverlay(
     direction: ReadingDirection,
     modifier: Modifier = Modifier,
 ) {
-    val left = if (direction == ReadingDirection.LEFT_TO_RIGHT) "Previous" else "Next"
-    val right = if (direction == ReadingDirection.LEFT_TO_RIGHT) "Next" else "Previous"
+    val left = if (direction == ReadingDirection.LEFT_TO_RIGHT) {
+        stringResource(R.string.reader_zone_previous)
+    } else {
+        stringResource(R.string.reader_zone_next)
+    }
+    val right = if (direction == ReadingDirection.LEFT_TO_RIGHT) {
+        stringResource(R.string.reader_zone_next)
+    } else {
+        stringResource(R.string.reader_zone_previous)
+    }
     Row(modifier = modifier.fillMaxSize()) {
         ZoneCell(label = left, modifier = Modifier.weight(1f))
-        ZoneCell(label = "Menu", modifier = Modifier.weight(1f))
+        ZoneCell(label = stringResource(R.string.reader_zone_menu), modifier = Modifier.weight(1f))
         ZoneCell(label = right, modifier = Modifier.weight(1f))
     }
 }

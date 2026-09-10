@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reader_pager_description">Page %1$d of %2$d</string>
+    <string name="reader_counter">%1$d / %2$d</string>
+    <string name="reader_back">Back</string>
+    <string name="reader_bookmark">Bookmark</string>
+    <string name="reader_bookmark_remove">Remove bookmark</string>
+    <string name="reader_untitled">Untitled comic</string>
+    <string name="reader_previous_page">Previous page</string>
+    <string name="reader_next_page">Next page</string>
+    <string name="reader_reading_direction">Reading direction</string>
+    <string name="reader_page_fit">Page fit</string>
+    <string name="reader_crop_margins">Crop margins</string>
+    <string name="reader_settings">Reader settings</string>
+    <string name="reader_sheet_title">Reading settings</string>
+    <string name="reader_sheet_direction">Reading direction</string>
+    <string name="reader_direction_ltr">Left to right</string>
+    <string name="reader_direction_rtl">Right to left</string>
+    <string name="reader_sheet_fit">Page fit</string>
+    <string name="reader_fit_width">Width</string>
+    <string name="reader_fit_height">Height</string>
+    <string name="reader_fit_original">Original</string>
+    <string name="reader_crop_title">Crop margins</string>
+    <string name="reader_crop_subtitle">Trim page borders when decoding</string>
+    <string name="reader_sheet_zones">Tap zones</string>
+    <string name="reader_zones_preview_title">Preview tap zones</string>
+    <string name="reader_zones_preview_subtitle">Overlay the navigation zones on the page</string>
+    <string name="reader_volume_title">Volume keys turn pages</string>
+    <string name="reader_volume_subtitle">Volume down goes forward, volume up goes back</string>
+    <string name="reader_keep_on_title">Keep screen on</string>
+    <string name="reader_keep_on_subtitle">Prevent the display from sleeping while reading</string>
+    <string name="reader_counter_title">Page counter</string>
+    <string name="reader_counter_subtitle">Show the current page number when controls hide</string>
+    <string name="reader_zone_previous">Previous</string>
+    <string name="reader_zone_menu">Menu</string>
+    <string name="reader_zone_next">Next</string>
+    <string name="reader_page_art">Page %1$d</string>
+    <string name="reader_page_load_failed">Couldn\'t load this page</string>
+    <string name="reader_page_retry">Retry</string>
+</resources>

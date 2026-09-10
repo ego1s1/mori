@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
@@ -228,7 +229,7 @@ private fun PageArt(
         ) {
             Image(
                 painter = painter,
-                contentDescription = "Page $pageNumber",
+                contentDescription = stringResource(R.string.reader_page_art, pageNumber),
                 modifier = Modifier.fillMaxSize(),
             )
             when (painterState) {
@@ -247,13 +248,13 @@ private fun PageArt(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        text = "Couldn't load this page",
+                        text = stringResource(R.string.reader_page_load_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.padding(top = 12.dp),
                     )
                     TextButton(onClick = { attempt++ }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.reader_page_retry))
                     }
                 }
                 else -> Unit

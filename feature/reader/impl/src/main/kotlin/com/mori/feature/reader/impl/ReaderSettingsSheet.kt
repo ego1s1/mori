@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriSettingSwitch
@@ -81,12 +82,12 @@ internal fun ReaderSettingsSheetContent(
             .padding(bottom = 32.dp),
     ) {
         Text(
-            text = "Reading settings",
+            text = stringResource(R.string.reader_sheet_title),
             style = MoriEmphasized.titleLarge,
         )
 
         Text(
-            text = "Reading direction",
+            text = stringResource(R.string.reader_sheet_direction),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -95,18 +96,18 @@ internal fun ReaderSettingsSheetContent(
                 selected = direction == ReadingDirection.LEFT_TO_RIGHT,
                 onClick = { onAction(ReaderAction.SetDirection(ReadingDirection.LEFT_TO_RIGHT)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                label = { Text("Left to right") },
+                label = { Text(stringResource(R.string.reader_direction_ltr)) },
             )
             SegmentedButton(
                 selected = direction == ReadingDirection.RIGHT_TO_LEFT,
                 onClick = { onAction(ReaderAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                label = { Text("Right to left") },
+                label = { Text(stringResource(R.string.reader_direction_rtl)) },
             )
         }
 
         Text(
-            text = "Page fit",
+            text = stringResource(R.string.reader_sheet_fit),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -115,57 +116,57 @@ internal fun ReaderSettingsSheetContent(
                 selected = pageFit == PageFit.WIDTH,
                 onClick = { onAction(ReaderAction.SetPageFit(PageFit.WIDTH)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text("Width") },
+                label = { Text(stringResource(R.string.reader_fit_width)) },
             )
             SegmentedButton(
                 selected = pageFit == PageFit.HEIGHT,
                 onClick = { onAction(ReaderAction.SetPageFit(PageFit.HEIGHT)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text("Height") },
+                label = { Text(stringResource(R.string.reader_fit_height)) },
             )
             SegmentedButton(
                 selected = pageFit == PageFit.ORIGINAL,
                 onClick = { onAction(ReaderAction.SetPageFit(PageFit.ORIGINAL)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text("Original") },
+                label = { Text(stringResource(R.string.reader_fit_original)) },
             )
         }
 
         MoriSettingSwitch(
-            title = "Crop margins",
-            subtitle = "Trim page borders when decoding",
+            title = stringResource(R.string.reader_crop_title),
+            subtitle = stringResource(R.string.reader_crop_subtitle),
             checked = cropMargins,
             onCheckedChange = { onAction(ReaderAction.ToggleCrop) },
         )
 
         Text(
-            text = "Tap zones",
+            text = stringResource(R.string.reader_sheet_zones),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         TapZoneLegend(direction = direction)
         MoriSettingSwitch(
-            title = "Preview tap zones",
-            subtitle = "Overlay the navigation zones on the page",
+            title = stringResource(R.string.reader_zones_preview_title),
+            subtitle = stringResource(R.string.reader_zones_preview_subtitle),
             checked = showTapZones,
             onCheckedChange = { onAction(ReaderAction.ToggleTapZones) },
         )
 
         MoriSettingSwitch(
-            title = "Volume keys turn pages",
-            subtitle = "Volume down goes forward, volume up goes back",
+            title = stringResource(R.string.reader_volume_title),
+            subtitle = stringResource(R.string.reader_volume_subtitle),
             checked = volumeKeys,
             onCheckedChange = { onAction(ReaderAction.ToggleVolumeKeys) },
         )
         MoriSettingSwitch(
-            title = "Keep screen on",
-            subtitle = "Prevent the display from sleeping while reading",
+            title = stringResource(R.string.reader_keep_on_title),
+            subtitle = stringResource(R.string.reader_keep_on_subtitle),
             checked = keepScreenOn,
             onCheckedChange = { onAction(ReaderAction.ToggleKeepScreenOn) },
         )
         MoriSettingSwitch(
-            title = "Page counter",
-            subtitle = "Show the current page number when controls hide",
+            title = stringResource(R.string.reader_counter_title),
+            subtitle = stringResource(R.string.reader_counter_subtitle),
             checked = showPageCounter,
             onCheckedChange = { onAction(ReaderAction.TogglePageCounter) },
         )

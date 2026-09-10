@@ -67,6 +67,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -324,6 +325,10 @@ private fun ReaderContent(
                         consumeUp = false,
                     ),
             ) {
+                val pagerDescription =
+                    stringResource(R.string.reader_pager_description, state.currentPage, state.pageCount)
+                val nextLabel = stringResource(R.string.reader_next_page)
+                val prevLabel = stringResource(R.string.reader_previous_page)
                 HorizontalPager(
                     state = pagerState,
                     reverseLayout = rtl,
@@ -334,13 +339,13 @@ private fun ReaderContent(
                         .fillMaxHeight()
                         .testTag(ReaderTestTags.Pager)
                         .semantics {
-                            contentDescription = "Page ${state.currentPage} of ${state.pageCount}"
+                            contentDescription = pagerDescription
                             customActions = listOf(
-                                androidx.compose.ui.semantics.CustomAccessibilityAction("Next page") {
+                                androidx.compose.ui.semantics.CustomAccessibilityAction(nextLabel) {
                                     onAction(ReaderAction.NextPage)
                                     true
                                 },
-                                androidx.compose.ui.semantics.CustomAccessibilityAction("Previous page") {
+                                androidx.compose.ui.semantics.CustomAccessibilityAction(prevLabel) {
                                     onAction(ReaderAction.PrevPage)
                                     true
                                 },
@@ -433,7 +438,7 @@ private fun ReaderContent(
                     .testTag(ReaderTestTags.PageCounter),
             ) {
                 Text(
-                    text = "${state.currentPage} / ${state.pageCount}",
+                    text = stringResource(R.string.reader_counter, state.currentPage, state.pageCount),
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -477,13 +482,13 @@ private fun ReaderTopBar(
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = MoriIcons.Back,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.reader_back),
                     tint = Color.White,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title.ifBlank { "Untitled comic" },
+                    text = title.ifBlank { stringResource(R.string.reader_untitled) },
                     style = MoriEmphasized.headlineSmall,
                     color = Color.White,
                     maxLines = 1,
@@ -505,7 +510,7 @@ private fun ReaderTopBar(
             ) {
                 Icon(
                     imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
-                    contentDescription = if (bookmarked) "Remove bookmark" else "Bookmark",
+                    contentDescription = if (bookmarked) stringResource(R.string.reader_bookmark_remove) else stringResource(R.string.reader_bookmark),
                     tint = Color.White,
                 )
             }
@@ -607,6 +612,11 @@ private fun ReaderBottomChrome(
                                     color = Color.Transparent,
                                 )
                             }
+                            val sliderDescription = stringResource(
+                                R.string.reader_pager_description,
+                                pageIndex + 1,
+                                pageCount,
+                            )
                             Slider(
                                 value = pageIndex.toFloat(),
                                 onValueChange = { onAction(ReaderAction.SeekPage(it.toInt())) },
@@ -617,7 +627,7 @@ private fun ReaderBottomChrome(
                                     .weight(1f)
                                     .testTag(ReaderTestTags.Slider)
                                     .semantics {
-                                        contentDescription = "Page ${pageIndex + 1} of $pageCount"
+                                        contentDescription = sliderDescription
                                     },
                             )
                             Text(
@@ -668,7 +678,7 @@ private fun ReaderBottomChrome(
             ) {
                 Icon(
                     imageVector = MoriIcons.ScreenRotation,
-                    contentDescription = "Reading direction",
+                    contentDescription = stringResource(R.string.reader_reading_direction),
                     tint = Color.White,
                 )
             }
@@ -685,7 +695,7 @@ private fun ReaderBottomChrome(
             ) {
                 Icon(
                     imageVector = MoriIcons.FitScreen,
-                    contentDescription = "Page fit",
+                    contentDescription = stringResource(R.string.reader_page_fit),
                     tint = Color.White,
                 )
             }
@@ -695,7 +705,7 @@ private fun ReaderBottomChrome(
             ) {
                 Icon(
                     imageVector = MoriIcons.Crop,
-                    contentDescription = "Crop margins",
+                    contentDescription = stringResource(R.string.reader_crop_margins),
                     tint = Color.White,
                 )
             }
@@ -705,7 +715,7 @@ private fun ReaderBottomChrome(
             ) {
                 Icon(
                     imageVector = MoriIcons.Settings,
-                    contentDescription = "Reader settings",
+                    contentDescription = stringResource(R.string.reader_settings),
                     tint = Color.White,
                 )
             }
