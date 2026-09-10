@@ -24,7 +24,8 @@ class OnboardingViewModelTest {
     private fun viewModel(
         importer: ComicImporter = FakeComicImporter(),
         preferences: FakePreferencesDataSource = FakePreferencesDataSource(),
-    ) = Triple(OnboardingViewModel(importer, preferences), importer, preferences)
+        repository: FakeComicsRepository = FakeComicsRepository(),
+    ) = Triple(OnboardingViewModel(importer, repository, preferences), importer, preferences)
 
     private fun treeUri(): Uri = Uri.parse("content://com.example/tree/1")
 
@@ -78,6 +79,40 @@ class OnboardingViewModelTest {
             viewModel.onAction(OnboardingAction.CancelImport)
             assertEquals(OnboardingUiState.Welcome, awaitItem())
         }
+    }
+
+    @Test
+    fun successfulImportRefreshesLibraryIndex() = runTest {
+        val repository = FakeComicsRepository()
+        val (viewModel, _, _) = viewModel(
+            importer = FakeComicImporter(treeReport = FakeComicImporter.success(3)),
+            repository = repository,
+        )
+        viewModel.uiState.test {
+            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
+            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitItem() is OnboardingUiState.Done)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, repository.refreshCalls)
+    }
+
+    @Test
+    fun emptyImportSkipsLibraryRefresh() = runTest {
+        val repository = FakeComicsRepository()
+        val (viewModel, _, _) = viewModel(
+            importer = FakeComicImporter(treeReport = FakeComicImporter.success(0)),
+            repository = repository,
+        )
+        viewModel.uiState.test {
+            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
+            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitItem() is OnboardingUiState.Done)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(0, repository.refreshCalls)
     }
 
     @Test

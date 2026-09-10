@@ -3,6 +3,7 @@ package com.mori.feature.onboarding.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicImporter
+import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -16,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class OnboardingViewModel @Inject constructor(
     private val importer: ComicImporter,
+    private val repository: ComicsRepository,
     private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
@@ -58,6 +60,12 @@ internal class OnboardingViewModel @Inject constructor(
                     if (current is OnboardingUiState.Importing) {
                         _uiState.value = current.copy(done = done, total = total)
                     }
+                }
+                // Copying alone leaves the library empty: index the new files now
+                // so the shelf is populated when onboarding finishes. A failed
+                // index must not fail the import itself; rescan stays available.
+                if (report.succeeded > 0) {
+                    runCatching { repository.refreshLibrary() }
                 }
                 _uiState.value = OnboardingUiState.Done(report)
             } catch (e: CancellationException) {

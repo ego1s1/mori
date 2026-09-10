@@ -2,11 +2,16 @@ package com.mori.feature.onboarding.impl
 
 import android.net.Uri
 import com.mori.core.data.ComicImporter
+import com.mori.core.data.ComicsRepository
 import com.mori.core.data.ImportCandidate
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.Comic
+import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.MotionStyle
+import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
@@ -14,6 +19,7 @@ import com.mori.core.model.ImportStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 /** Deterministic importer double: scripted reports, optional hang for cancellation tests. */
 internal class FakeComicImporter(
@@ -60,6 +66,36 @@ internal class FakeComicImporter(
             return ImportReport(total, succeeded, total - succeeded, items)
         }
     }
+}
+
+/** Repository double tracking index refreshes after import. */
+internal class FakeComicsRepository : ComicsRepository {
+    var refreshCalls = 0
+
+    override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
+        MutableStateFlow(emptyList<Comic>()).asStateFlow()
+
+    override fun observeComic(id: String): Flow<Comic?> =
+        MutableStateFlow<Comic?>(null).asStateFlow()
+
+    override suspend fun getComic(id: String): Comic? = null
+
+    override suspend fun refreshLibrary(): IndexReport {
+        refreshCalls += 1
+        return IndexReport(0, 0, 0)
+    }
+
+    override suspend fun refreshComic(id: String): Comic? = null
+
+    override suspend fun removeComic(id: String) = Unit
+
+    override suspend fun saveProgress(id: String, pageIndex: Int) = Unit
+
+    override suspend fun toggleBookmark(id: String) = Unit
+
+    override suspend fun clearThumbnailCache() = Unit
+
+    override suspend fun storageUsage(): StorageUsage = StorageUsage(0, 0L, 0L)
 }
 
 /** In-memory preferences double. */
