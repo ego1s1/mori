@@ -83,7 +83,6 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriTheme
-import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
@@ -160,17 +159,13 @@ private fun ReaderContent(
         pageCount = { state.pageCount },
     )
 
-    // ViewModel -> pager (buttons, slider, external seeks). Expressive motion
-    // glides; calm motion jumps instantly (no animation to interrupt, and
-    // rapid taps can never collide with an in-flight scroll).
-    val pagerExpressive = LocalExpressiveMotionEnabled.current
-    LaunchedEffect(state.pageIndex, pagerExpressive) {
+    // ViewModel -> pager (buttons, taps, slider, seeks). Reference-reader style:
+    // programmatic turns jump instantly — there is no in-flight animation for
+    // rapid taps to collide with, so every turn registers. Swipes (user-driven)
+    // keep their native gesture animation.
+    LaunchedEffect(state.pageIndex) {
         if (pagerState.currentPage != state.pageIndex) {
-            if (pagerExpressive) {
-                pagerState.animateScrollToPage(state.pageIndex)
-            } else {
-                pagerState.scrollToPage(state.pageIndex)
-            }
+            pagerState.scrollToPage(state.pageIndex)
         }
     }
     // Pager -> ViewModel (swipes).

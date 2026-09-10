@@ -5,11 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +21,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.mori.core.designsystem.MoriIcons
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
@@ -98,33 +93,9 @@ internal fun MainScreen(
         }
     }
 
+    // Single navigator: the library's floating toolbar switches tabs. No
+    // bottom bar — one navigator, not two.
     Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == LIBRARY_TAB,
-                    onClick = { selectedTab = LIBRARY_TAB },
-                    icon = {
-                        Icon(
-                            imageVector = MoriIcons.GridView,
-                            contentDescription = null,
-                        )
-                    },
-                    label = { Text("Library") },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == SETTINGS_TAB,
-                    onClick = { selectedTab = SETTINGS_TAB },
-                    icon = {
-                        Icon(
-                            imageVector = MoriIcons.Settings,
-                            contentDescription = null,
-                        )
-                    },
-                    label = { Text("Settings") },
-                )
-            }
-        },
         modifier = modifier,
     ) { padding ->
         HorizontalPager(
