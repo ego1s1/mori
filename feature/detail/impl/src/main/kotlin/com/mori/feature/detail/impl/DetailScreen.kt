@@ -67,9 +67,6 @@ internal fun DetailRoute(
     viewModel: DetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    if (uiState is DetailUiState.Missing) {
-        LaunchedEffect(Unit) { onBackClick() }
-    }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
@@ -111,7 +108,7 @@ internal fun DetailScreen(
                             onClick = { onAction(DetailAction.Refresh) },
                             modifier = Modifier.testTag(DetailTestTags.RefreshButton),
                         ) {
-                            Icon(imageVector = MoriIcons.Refresh, contentDescription = "Re-index")
+                            Icon(imageVector = MoriIcons.Refresh, contentDescription = "Rescan")
                         }
                         IconButton(
                             onClick = { onAction(DetailAction.AskRemove) },
@@ -137,17 +134,30 @@ internal fun DetailScreen(
                     CircularProgressIndicator()
                 }
 
-                DetailUiState.Missing -> Box(
-                    contentAlignment = Alignment.Center,
+                DetailUiState.Missing -> Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(32.dp),
                 ) {
                     Text(
-                        text = "This comic is no longer in your library.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "This comic was removed.",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
+                    Text(
+                        text = "It is no longer in your library.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    Button(
+                        onClick = onBackClick,
+                        modifier = Modifier.padding(top = 24.dp),
+                    ) {
+                        Text("Back to library")
+                    }
                 }
 
                 is DetailUiState.Ready -> {
@@ -359,10 +369,10 @@ private fun ErrorCard(
         ) {
             Text(
                 text = when (error) {
-                    ComicError.CORRUPT -> "This file could not be read. It may be damaged."
-                    ComicError.PASSWORD_REQUIRED -> "This archive is password protected."
-                    ComicError.EMPTY -> "This archive contains no readable pages."
-                    ComicError.UNSUPPORTED -> "This format is not supported."
+                    ComicError.CORRUPT -> "Can't open this file. It may be damaged — re-import it or remove it."
+                    ComicError.PASSWORD_REQUIRED -> "This archive needs a password, which Mori can't enter yet."
+                    ComicError.EMPTY -> "This archive has no readable pages."
+                    ComicError.UNSUPPORTED -> "This format isn't supported yet."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -393,7 +403,7 @@ private fun RemoveDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Remove comic?") },
-        text = { Text("\"$title\" and its downloaded pages will be deleted from your library.") },
+        text = { Text("\"$title\" will be removed from your library. Your original files stay untouched.") },
         confirmButton = {
             TextButton(
                 onClick = onConfirm,

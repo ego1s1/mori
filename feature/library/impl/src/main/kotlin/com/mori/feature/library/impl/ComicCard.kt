@@ -70,7 +70,7 @@ internal fun ComicCard(
                         .padding(6.dp),
                 ) {
                     Text(
-                        text = "Unreadable",
+                        text = "Can't read",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

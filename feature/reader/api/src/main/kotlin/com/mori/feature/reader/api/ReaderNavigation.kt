@@ -7,5 +7,7 @@ import kotlinx.serialization.Serializable
 data class ReaderRoute(val comicId: String, val pageIndex: Int = 0)
 
 fun NavController.navigateToReader(comicId: String, pageIndex: Int = 0) {
-    navigate(ReaderRoute(comicId, pageIndex))
+    navigate(ReaderRoute(comicId, pageIndex)) {
+        launchSingleTop = true
+    }
 }

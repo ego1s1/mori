@@ -103,7 +103,7 @@ class ReaderViewModel @Inject constructor(
         navigation: Int?,
     ): ReaderUiState {
         if (comic == null) {
-            return ReaderUiState.Error("This comic is no longer in your library.")
+            return ReaderUiState.Error("This comic was removed from your library.")
         }
         val error = comic.error
         if (error != null) {
@@ -131,10 +131,10 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun errorMessage(error: ComicError): String = when (error) {
-        ComicError.CORRUPT -> "This file could not be read. It may be damaged."
-        ComicError.PASSWORD_REQUIRED -> "This archive is password protected."
-        ComicError.EMPTY -> "This archive contains no readable pages."
-        ComicError.UNSUPPORTED -> "This format is not supported."
+        ComicError.CORRUPT -> "Can't open this file. It may be damaged — re-import it or remove it."
+        ComicError.PASSWORD_REQUIRED -> "This archive needs a password, which Mori can't enter yet."
+        ComicError.EMPTY -> "This archive has no readable pages."
+        ComicError.UNSUPPORTED -> "This format isn't supported yet."
     }
 
     fun onAction(action: ReaderAction) {

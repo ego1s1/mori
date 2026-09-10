@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.ComicError
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -124,9 +125,21 @@ class DetailScreenTest {
     }
 
     @Test
-    fun missingStateShowsMessage() {
-        setScreen(DetailUiState.Missing)
+    fun missingStateShowsMessageAndBack() {
+        val backs = mutableListOf<Unit>()
+        composeTestRule.setContent {
+            MoriTheme {
+                DetailScreen(
+                    uiState = DetailUiState.Missing,
+                    onAction = {},
+                    onBackClick = { backs += Unit },
+                    onReadClick = { _, _ -> },
+                )
+            }
+        }
 
-        composeTestRule.onNodeWithText("This comic is no longer in your library.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("This comic was removed.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Back to library").performClick()
+        assertEquals(1, backs.size)
     }
 }

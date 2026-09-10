@@ -7,5 +7,7 @@ import kotlinx.serialization.Serializable
 data class DetailRoute(val comicId: String)
 
 fun NavController.navigateToDetail(comicId: String) {
-    navigate(DetailRoute(comicId))
+    navigate(DetailRoute(comicId)) {
+        launchSingleTop = true
+    }
 }
