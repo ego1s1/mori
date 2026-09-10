@@ -7,22 +7,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -133,7 +131,7 @@ internal fun ReaderSettingsSheetContent(
             )
         }
 
-        SettingSwitch(
+        MoriSettingSwitch(
             title = "Crop margins",
             subtitle = "Trim page borders when decoding",
             checked = cropMargins,
@@ -146,26 +144,26 @@ internal fun ReaderSettingsSheetContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         TapZoneLegend(direction = direction)
-        SettingSwitch(
+        MoriSettingSwitch(
             title = "Preview tap zones",
             subtitle = "Overlay the navigation zones on the page",
             checked = showTapZones,
             onCheckedChange = { onAction(ReaderAction.ToggleTapZones) },
         )
 
-        SettingSwitch(
+        MoriSettingSwitch(
             title = "Volume keys turn pages",
             subtitle = "Volume down goes forward, volume up goes back",
             checked = volumeKeys,
             onCheckedChange = { onAction(ReaderAction.ToggleVolumeKeys) },
         )
-        SettingSwitch(
+        MoriSettingSwitch(
             title = "Keep screen on",
             subtitle = "Prevent the display from sleeping while reading",
             checked = keepScreenOn,
             onCheckedChange = { onAction(ReaderAction.ToggleKeepScreenOn) },
         )
-        SettingSwitch(
+        MoriSettingSwitch(
             title = "Page counter",
             subtitle = "Show the current page number when controls hide",
             checked = showPageCounter,
@@ -176,38 +174,3 @@ internal fun ReaderSettingsSheetContent(
     }
 }
 
-@Composable
-private fun SettingSwitch(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .toggleable(
-                value = checked,
-                onValueChange = onCheckedChange,
-                role = Role.Switch,
-            ),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-        )
-    }
-}

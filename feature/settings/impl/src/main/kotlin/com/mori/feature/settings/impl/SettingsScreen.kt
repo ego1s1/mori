@@ -14,17 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +39,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
@@ -92,12 +91,7 @@ internal fun SettingsScreen(
             .fillMaxSize()
             .padding(padding)) {
             when (uiState) {
-                SettingsUiState.Loading -> androidx.compose.foundation.layout.Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    CircularProgressIndicator()
-                }
+                SettingsUiState.Loading -> MoriLoading()
 
                 is SettingsUiState.Ready -> SettingsContent(
                     theme = uiState.theme,
@@ -155,13 +149,13 @@ internal fun SettingsContent(
                     )
                 },
             )
-            SettingSwitch(
+            MoriSettingSwitch(
                 title = "Dynamic color",
                 subtitle = "Match your wallpaper on Android 12+",
                 checked = theme.dynamicColor,
                 onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
             )
-            SettingSwitch(
+            MoriSettingSwitch(
                 title = "AMOLED black",
                 subtitle = "True-black backgrounds in dark mode",
                 checked = theme.amoled,
@@ -229,13 +223,13 @@ internal fun SettingsContent(
                     )
                 },
             )
-            SettingSwitch(
+            MoriSettingSwitch(
                 title = "Volume keys turn pages",
                 subtitle = "Volume down goes forward, volume up goes back",
                 checked = reader.volumeKeys,
                 onCheckedChange = { onAction(SettingsAction.ToggleVolumeKeys) },
             )
-            SettingSwitch(
+            MoriSettingSwitch(
                 title = "Keep screen on",
                 subtitle = "Prevent the display from sleeping while reading",
                 checked = reader.keepScreenOn,
@@ -388,44 +382,6 @@ private fun PillToggleRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SettingSwitch(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // The whole row toggles with switch semantics, so text taps and TalkBack
-    // gestures flip the setting — not just the thumb itself.
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .toggleable(
-                value = checked,
-                onValueChange = onCheckedChange,
-                role = Role.Switch,
-            ),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-        )
     }
 }
 

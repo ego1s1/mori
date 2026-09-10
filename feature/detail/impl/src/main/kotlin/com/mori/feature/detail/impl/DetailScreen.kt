@@ -54,6 +54,7 @@ import coil3.compose.AsyncImage
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
@@ -355,36 +356,15 @@ private fun ErrorCard(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.errorContainer,
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(DetailTestTags.ErrorCard),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(16.dp),
-        ) {
-            Text(
-                text = error.userMessage(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (refreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    OutlinedButton(onClick = onRetry) {
-                        Text("Retry")
-                    }
-                }
-                TextButton(onClick = onRemove) {
-                    Text("Remove")
-                }
-            }
-        }
-    }
+    MoriErrorCard(
+        body = error.userMessage(),
+        primaryLabel = "Retry",
+        onPrimary = onRetry,
+        secondaryLabel = "Remove",
+        onSecondary = onRemove,
+        loading = refreshing,
+        modifier = modifier.testTag(DetailTestTags.ErrorCard),
+    )
 }
 
 @Composable

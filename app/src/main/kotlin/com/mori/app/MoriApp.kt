@@ -1,13 +1,7 @@
 package com.mori.app
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,7 +15,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
-import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.screenEnter
+import com.mori.core.designsystem.screenExit
+import com.mori.core.designsystem.screenPopEnter
+import com.mori.core.designsystem.screenPopExit
+import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.rememberSystemReduceMotion
 import com.mori.core.designsystem.resolveExpressiveMotionEnabled
@@ -70,12 +68,7 @@ fun MoriApp(
             val completed by viewModel.onboardingCompleted.collectAsStateWithLifecycle()
 
             if (completed == null) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    CircularProgressIndicator()
-                }
+                MoriLoading()
                 return@Surface
             }
 
@@ -93,62 +86,10 @@ fun MoriApp(
             NavHost(
                 navController = navController,
                 startDestination = if (completed == true) MainRoute else OnboardingRoute,
-                enterTransition = {
-                    fadeIn(
-                        animationSpec = tween(
-                            MoriMotion.EnterScreenMs,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                    ) + slideIntoContainer(
-                        animationSpec = tween(
-                            MoriMotion.EnterScreenMs,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    )
-                },
-                exitTransition = {
-                    fadeOut(
-                        animationSpec = tween(
-                            MoriMotion.ExitScreenMs,
-                            easing = MoriMotion.EmphasizedAccelerate,
-                        ),
-                    ) + slideOutOfContainer(
-                        animationSpec = tween(
-                            MoriMotion.ExitScreenMs,
-                            easing = MoriMotion.EmphasizedAccelerate,
-                        ),
-                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    )
-                },
-                popEnterTransition = {
-                    fadeIn(
-                        animationSpec = tween(
-                            MoriMotion.EnterScreenMs,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                    ) + slideIntoContainer(
-                        animationSpec = tween(
-                            MoriMotion.EnterScreenMs,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                        towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    )
-                },
-                popExitTransition = {
-                    fadeOut(
-                        animationSpec = tween(
-                            MoriMotion.ExitScreenMs,
-                            easing = MoriMotion.EmphasizedAccelerate,
-                        ),
-                    ) + slideOutOfContainer(
-                        animationSpec = tween(
-                            MoriMotion.ExitScreenMs,
-                            easing = MoriMotion.EmphasizedAccelerate,
-                        ),
-                        towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    )
-                },
+                enterTransition = { screenEnter() },
+                exitTransition = { screenExit() },
+                popEnterTransition = { screenPopEnter() },
+                popExitTransition = { screenPopExit() },
             ) {
                 onboardingScreen(
                     onOnboardingComplete = { navController.navigateToMain() },

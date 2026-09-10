@@ -35,7 +35,11 @@ class MoriImageLoaderFactoryTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val factory = MoriImageLoaderFactory(
             context,
-            ComicPageFetcher.Factory(FakeRepository(), FakeBackend()),
+            ComicPageFetcher.Factory(
+                FakeRepository(),
+                FakeBackend(),
+                com.mori.comic.decode.PageDecoder(),
+            ),
         )
 
         val loader = factory.newImageLoader(context)

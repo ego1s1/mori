@@ -83,6 +83,8 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriErrorCard
+import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
@@ -121,21 +123,16 @@ internal fun ReaderScreen(
         color = MaterialTheme.colorScheme.scrim,
     ) {
         when (uiState) {
-            ReaderUiState.Loading -> Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                CircularProgressIndicator()
-            }
+            ReaderUiState.Loading -> MoriLoading()
 
             is ReaderUiState.Error -> Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(24.dp),
             ) {
-                Text(
-                    text = uiState.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                MoriErrorCard(
+                    body = uiState.message,
+                    primaryLabel = null,
+                    onPrimary = null,
                 )
             }
 
