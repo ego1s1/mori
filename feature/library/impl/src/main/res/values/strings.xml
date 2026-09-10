@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_empty_hint">Import comics to start your shelf</string>
+    <plurals name="library_shelf_subtitle">
+        <item quantity="one">%1$d comic on the shelf</item>
+        <item quantity="other">%1$d comics on the shelf</item>
+    </plurals>
+    <string name="library_search_label">Search title, series, number</string>
+    <string name="library_resume">Resume %1$s</string>
+    <string name="library_action_search">Search library</string>
+    <string name="library_action_sort_filter">Sort and filter</string>
+    <string name="library_action_rescan">Rescan library</string>
+    <string name="library_action_settings">Library settings</string>
+    <string name="library_empty_title">Your library is empty</string>
+    <string name="library_empty_body">Import comics to see them here.</string>
+    <string name="library_empty_search_title">No comics match your search</string>
+    <string name="library_empty_search_body">Try a different title, series, or number.</string>
+    <string name="library_empty_rescan">Rescan library</string>
+    <string name="library_card_unreadable">Can\'t read</string>
+    <string name="library_card_pages_left">%1$d left</string>
+    <string name="library_card_continue">Continue reading %1$s</string>
+    <string name="library_card_read">Read %1$s</string>
+    <string name="library_card_details">Comic details</string>
+    <string name="library_sheet_filter">Filter</string>
+    <string name="library_sheet_sort_by">Sort by</string>
+    <string name="library_sheet_hide_errors">Hide unreadable comics</string>
+    <string name="library_filter_all">All</string>
+    <string name="library_filter_reading">Reading</string>
+    <string name="library_filter_unread">Unread</string>
+    <string name="library_filter_finished">Finished</string>
+    <string name="library_filter_in_progress">In progress</string>
+    <string name="library_sort_recently_added">Recently added</string>
+    <string name="library_sort_recently_read">Recently read</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_unfinished_first">Unfinished first</string>
+</resources>

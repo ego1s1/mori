@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -54,9 +55,9 @@ internal fun ComicCard(
             .testTag(LibraryTestTags.cardFor(comic.id))
             .combinedClickable(
                 onClick = onClick,
-                onClickLabel = "Read ${comic.title}",
+                onClickLabel = stringResource(R.string.library_card_read, comic.title),
                 onLongClick = onLongClick,
-                onLongClickLabel = "Comic details",
+                onLongClickLabel = stringResource(R.string.library_card_details),
             ),
     ) {
         Box(modifier = Modifier.aspectRatio(COVER_ASPECT)) {
@@ -74,7 +75,7 @@ internal fun ComicCard(
                         .padding(6.dp),
                 ) {
                     Text(
-                        text = "Can't read",
+                        text = stringResource(R.string.library_card_unreadable),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -94,7 +95,7 @@ internal fun ComicCard(
                         .padding(6.dp),
                 ) {
                     Text(
-                        text = "$left left",
+                        text = stringResource(R.string.library_card_pages_left, left),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -153,7 +154,7 @@ internal fun ComicCard(
                 ) {
                     Icon(
                         imageVector = MoriIcons.PlayArrow,
-                        contentDescription = "Continue reading ${comic.title}",
+                        contentDescription = stringResource(R.string.library_card_continue, comic.title),
                     )
                 }
             }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
@@ -61,7 +62,7 @@ internal fun LibrarySortFilterContent(
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
     ) {
-        Text(text = "Filter", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.library_sheet_filter), style = MaterialTheme.typography.titleMedium)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -70,12 +71,12 @@ internal fun LibrarySortFilterContent(
                 FilterChip(
                     selected = query.filter == filter,
                     onClick = { onAction(LibraryAction.FilterSelected(filter)) },
-                    label = { Text(filter.label) },
+                    label = { Text(filterLabel(filter)) },
                 )
             }
         }
 
-        Text(text = "Sort by", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.library_sheet_sort_by), style = MaterialTheme.typography.titleMedium)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -84,7 +85,7 @@ internal fun LibrarySortFilterContent(
                 FilterChip(
                     selected = query.sortOrder == sort,
                     onClick = { onAction(LibraryAction.SortSelected(sort)) },
-                    label = { Text(sort.label) },
+                    label = { Text(sortLabel(sort)) },
                 )
             }
         }
@@ -94,7 +95,7 @@ internal fun LibrarySortFilterContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = "Hide unreadable comics",
+                text = stringResource(R.string.library_sheet_hide_errors),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
@@ -108,18 +109,22 @@ internal fun LibrarySortFilterContent(
     }
 }
 
-private val LibraryFilter.label: String
-    get() = when (this) {
-        LibraryFilter.ALL -> "All"
-        LibraryFilter.IN_PROGRESS -> "In progress"
-        LibraryFilter.UNREAD -> "Unread"
-        LibraryFilter.FINISHED -> "Finished"
-    }
+@Composable
+private fun filterLabel(filter: LibraryFilter): String = stringResource(
+    when (filter) {
+        LibraryFilter.ALL -> R.string.library_filter_all
+        LibraryFilter.IN_PROGRESS -> R.string.library_filter_in_progress
+        LibraryFilter.UNREAD -> R.string.library_filter_unread
+        LibraryFilter.FINISHED -> R.string.library_filter_finished
+    },
+)
 
-private val LibrarySortOrder.label: String
-    get() = when (this) {
-        LibrarySortOrder.RECENTLY_ADDED -> "Recently added"
-        LibrarySortOrder.RECENTLY_READ -> "Recently read"
-        LibrarySortOrder.TITLE -> "Title"
-        LibrarySortOrder.UNFINISHED_FIRST -> "Unfinished first"
-    }
+@Composable
+private fun sortLabel(sort: LibrarySortOrder): String = stringResource(
+    when (sort) {
+        LibrarySortOrder.RECENTLY_ADDED -> R.string.library_sort_recently_added
+        LibrarySortOrder.RECENTLY_READ -> R.string.library_sort_recently_read
+        LibrarySortOrder.TITLE -> R.string.library_sort_title
+        LibrarySortOrder.UNFINISHED_FIRST -> R.string.library_sort_unfinished_first
+    },
+)

@@ -57,6 +57,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -231,7 +233,7 @@ private fun LibraryContent(
                 OutlinedTextField(
                     value = state.query.text,
                     onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
-                    label = { Text("Search title, series, number") },
+                    label = { Text(stringResource(R.string.library_search_label)) },
                     leadingIcon = {
                         Icon(imageVector = MoriIcons.Search, contentDescription = null)
                     },
@@ -295,7 +297,7 @@ private fun LibraryContent(
                 ) {
                     Icon(
                         imageVector = MoriIcons.PlayArrow,
-                        contentDescription = "Resume ${resume.title}",
+                        contentDescription = stringResource(R.string.library_resume, resume.title),
                         modifier = Modifier.size(32.dp),
                     )
                 }
@@ -322,20 +324,21 @@ private fun FilterChipRow(
             FilterChip(
                 selected = filter == option,
                 onClick = { onFilter(option) },
-                label = {
-                    Text(
-                        when (option) {
-                            LibraryFilter.ALL -> "All"
-                            LibraryFilter.IN_PROGRESS -> "Reading"
-                            LibraryFilter.UNREAD -> "Unread"
-                            LibraryFilter.FINISHED -> "Finished"
-                        },
-                    )
-                },
+                label = { Text(chipLabel(option)) },
             )
         }
     }
 }
+
+@Composable
+private fun chipLabel(option: LibraryFilter): String = stringResource(
+    when (option) {
+        LibraryFilter.ALL -> R.string.library_filter_all
+        LibraryFilter.IN_PROGRESS -> R.string.library_filter_reading
+        LibraryFilter.UNREAD -> R.string.library_filter_unread
+        LibraryFilter.FINISHED -> R.string.library_filter_finished
+    },
+)
 
 /**
  * Static compact app bar: the title and collection subtitle never move and the
@@ -352,16 +355,16 @@ private fun LibraryTopBar(
         title = {
             Column {
                 Text(
-                    text = "Library",
+                    text = stringResource(R.string.library_title),
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = if (comicCount == 0) {
-                        "Import comics to start your shelf"
+                        stringResource(R.string.library_empty_hint)
                     } else {
-                        "$comicCount comic${if (comicCount == 1) "" else "s"} on the shelf"
+                        pluralStringResource(R.plurals.library_shelf_subtitle, comicCount, comicCount)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -403,7 +406,7 @@ private fun FloatingToolbar(
             ) {
                 Icon(
                     imageVector = MoriIcons.Search,
-                    contentDescription = "Search library",
+                    contentDescription = stringResource(R.string.library_action_search),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -413,7 +416,7 @@ private fun FloatingToolbar(
             ) {
                 Icon(
                     imageVector = MoriIcons.Tune,
-                    contentDescription = "Sort and filter",
+                    contentDescription = stringResource(R.string.library_action_sort_filter),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -423,7 +426,7 @@ private fun FloatingToolbar(
             ) {
                 Icon(
                     imageVector = MoriIcons.Refresh,
-                    contentDescription = "Rescan library",
+                    contentDescription = stringResource(R.string.library_action_rescan),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -433,7 +436,7 @@ private fun FloatingToolbar(
             ) {
                 Icon(
                     imageVector = MoriIcons.Settings,
-                    contentDescription = "Library settings",
+                    contentDescription = stringResource(R.string.library_action_settings),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -491,13 +494,17 @@ private fun LibraryEmptyState(
 ) {
     MoriEmptyState(
         icon = MoriIcons.MenuBook,
-        title = if (searching) "No comics match your search" else "Your library is empty",
-        body = if (searching) {
-            "Try a different title, series, or number."
+        title = if (searching) {
+            stringResource(R.string.library_empty_search_title)
         } else {
-            "Import comics to see them here."
+            stringResource(R.string.library_empty_title)
         },
-        actionLabel = "Rescan library",
+        body = if (searching) {
+            stringResource(R.string.library_empty_search_body)
+        } else {
+            stringResource(R.string.library_empty_body)
+        },
+        actionLabel = stringResource(R.string.library_empty_rescan),
         onAction = onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
         bottomPadding = 96.dp,
