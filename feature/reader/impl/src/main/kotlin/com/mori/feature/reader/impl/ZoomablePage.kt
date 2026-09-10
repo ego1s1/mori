@@ -5,16 +5,26 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,10 +37,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import coil3.compose.AsyncImage
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
 import com.mori.core.data.ComicPageKey
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -180,22 +194,81 @@ internal fun ZoomablePage(
                 style = MoriEmphasized.displaySmall,
                 color = Color.White.copy(alpha = 0.6f),
             )
-            AsyncImage(
-                model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION),
+            PageArt(
+                comicId = comicId,
+                pageIndex = pageIndex,
+                pageNumber = pageNumber,
+            )
+        }
+    }
+}
+
+/**
+ * Page artwork with loading and error states. A failed decode shows a retry
+ * affordance instead of failing the whole book; retry restarts the Coil
+ * request without touching the cache key.
+ */
+@Composable
+private fun PageArt(
+    comicId: String,
+    pageIndex: Int,
+    pageNumber: Int,
+    modifier: Modifier = Modifier,
+) {
+    var attempt by remember(comicId, pageIndex) { mutableIntStateOf(0) }
+    key(attempt) {
+        val painter = rememberAsyncImagePainter(
+            model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION),
+            contentScale = ContentScale.Fit,
+        )
+        val painterState by painter.state.collectAsStateWithLifecycle()
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = modifier.fillMaxSize(),
+        ) {
+            Image(
+                painter = painter,
                 contentDescription = "Page $pageNumber",
-                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
+            when (painterState) {
+                is AsyncImagePainter.State.Loading -> CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(40.dp),
+                )
+                is AsyncImagePainter.State.Error -> Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.BrokenImage,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(48.dp),
+                    )
+                    Text(
+                        text = "Couldn't load this page",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    TextButton(onClick = { attempt++ }) {
+                        Text("Retry")
+                    }
+                }
+                else -> Unit
+            }
         }
     }
 }
 
 private fun Modifier.pageFit(fit: PageFit): Modifier = when (fit) {
     // Full-bleed width; height follows the loaded art. The placeholder keeps a stable
-    // slot so layout does not jump when the bitmap arrives.
+    // slot so layout does not jump when the bitmap arrives — including ORIGINAL,
+    // whose native aspect is unknown until decode.
     PageFit.WIDTH -> fillMaxWidth().aspectRatio(PAGE_ASPECT)
     PageFit.HEIGHT -> fillMaxSize()
-    PageFit.ORIGINAL -> fillMaxWidth()
+    PageFit.ORIGINAL -> fillMaxWidth().aspectRatio(PAGE_ASPECT)
 }
 
 private const val MAX_ZOOM = 4f

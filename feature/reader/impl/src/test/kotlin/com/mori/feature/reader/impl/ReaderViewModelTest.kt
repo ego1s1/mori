@@ -279,6 +279,21 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun bumpingIntoBookEndRevealsChrome() = runTest {
+        val viewModel = viewModel(pageIndex = 9)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.PageChanged(9))
+            assertEquals(false, awaitReadyWhere { it.pageIndex == 9 && !it.chromeVisible }.chromeVisible)
+            viewModel.onAction(ReaderAction.NextPage)
+            val end = awaitReadyWhere { it.chromeVisible }
+            assertEquals(true, end.chromeVisible)
+            assertEquals(9, end.pageIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun persistedPreferencesDriveInitialState() = runTest {
         val preferences = TestPreferencesDataSource(
             ReaderPreferences(direction = ReadingDirection.RIGHT_TO_LEFT),

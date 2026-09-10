@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Crop
@@ -38,6 +39,7 @@ object MoriIcons {
     val Book = Icons.Rounded.Book
     val Bookmark = Icons.Rounded.Bookmark
     val BookmarkBorder = Icons.Rounded.BookmarkBorder
+    val BrokenImage = Icons.Rounded.BrokenImage
     val Check = Icons.Rounded.Check
     val Close = Icons.Rounded.Close
     val Crop = Icons.Rounded.Crop

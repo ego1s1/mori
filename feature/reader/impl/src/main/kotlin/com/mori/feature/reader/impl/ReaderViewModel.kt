@@ -180,7 +180,14 @@ class ReaderViewModel @Inject constructor(
         // Base on the synchronously-written navigation, not the combined state,
         // so back-to-back turns never read a stale index.
         val base = navigation.value ?: ready.pageIndex
-        moveTo(base + delta, hideChrome = true)
+        val clamped = (base + delta).coerceIn(0, ready.pageCount - 1)
+        if (clamped == base) {
+            // Bump into the end of the book: surface chrome as orientation
+            // feedback instead of silently swallowing the turn.
+            chrome.value = chrome.value.copy(visible = true)
+            return
+        }
+        moveTo(clamped, hideChrome = true)
     }
 
     private fun moveTo(index: Int, hideChrome: Boolean) {
