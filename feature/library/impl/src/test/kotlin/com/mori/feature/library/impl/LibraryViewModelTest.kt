@@ -46,6 +46,25 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun chromeTogglesNeverRescanResume() = runTest {
+        val repository = TestComicsRepository(
+            listOf(TestComicsRepository.comic("a", title = "Apple")),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.resumeTarget.test {
+            assertEquals("a", awaitItem()?.id)
+            // Search/filter/refresh chrome churns uiState but must not
+            // re-emit (or rescan for) the resume candidate.
+            viewModel.onAction(LibraryAction.ToggleSearch)
+            viewModel.onAction(LibraryAction.OpenFilter)
+            viewModel.onAction(LibraryAction.CloseFilter)
+            viewModel.onAction(LibraryAction.ToggleSearch)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun searchNarrowsResults() = runTest {
         val repository = TestComicsRepository(
             listOf(

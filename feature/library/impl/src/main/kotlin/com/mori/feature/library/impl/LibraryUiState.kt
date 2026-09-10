@@ -16,9 +16,6 @@ sealed interface LibraryUiState {
         val searchOpen: Boolean,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
-
-        /** Most recently touched comic; the resume button opens it at its saved page. */
-        val resumeTarget: Comic? get() = comics.maxByOrNull { it.updatedAt }
     }
 }
 

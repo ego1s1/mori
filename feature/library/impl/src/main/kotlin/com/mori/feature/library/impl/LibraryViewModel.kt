@@ -20,7 +20,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -76,9 +78,21 @@ class LibraryViewModel @Inject constructor(
     private val messageChannel = Channel<LibraryMessage>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
 
+    /**
+     * Shared list subscription: one DB observer feeding both the screen and
+     * the resume candidate, so chrome-only changes never touch this pipeline.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
+    private val comics: StateFlow<List<Comic>> = dbQuery
+        .flatMapLatest { repository.observeLibrary(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+
     val uiState: StateFlow<LibraryUiState> = combine(
-        dbQuery.flatMapLatest { repository.observeLibrary(it) },
+        comics,
         query,
         combine(refreshing, filterOpen, searchOpen, ::Chrome),
     ) { comics, query, chrome ->
@@ -88,6 +102,23 @@ class LibraryViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryUiState.Loading,
     )
+
+    /**
+     * Most recently touched comic; the resume button opens it at its saved
+     * page. Cached here — not a per-read scan — and re-emitted only when the
+     * comic identity or saved page changes, so chrome-only emissions never
+     * rescan the list or bounce the shell.
+     */
+    val resumeTarget: StateFlow<Comic?> = comics
+        .map { list -> list.maxByOrNull { it.updatedAt } }
+        .distinctUntilChanged { a, b ->
+            a?.id == b?.id && a?.lastPageIndex == b?.lastPageIndex
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
 
     private fun toUiState(
         comics: List<Comic>,

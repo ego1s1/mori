@@ -147,10 +147,11 @@ private fun LibraryRouteContent(
             snackbarHost.showSnackbar(text)
         }
     }
-    // Resume ownership stays in the VM; the main navigator pill renders it.
-    val success = uiState as? LibraryUiState.Success
-    LaunchedEffect(success?.resumeTarget) {
-        val target = success?.resumeTarget
+    // Resume rides its own cached flow: chrome-only emissions never rescan
+    // the list or bounce the shell.
+    val resumeTarget by viewModel.resumeTarget.collectAsStateWithLifecycle()
+    LaunchedEffect(resumeTarget) {
+        val target = resumeTarget
         onResumeAvailable(
             target?.let { ResumeTarget(it.id, it.lastPageIndex, it.title) },
         )
@@ -207,7 +208,10 @@ internal fun LibraryScreen(
 
                 is LibraryUiState.Success -> {
                     LibraryContent(
-                        state = uiState,
+                        comics = uiState.comics,
+                        query = uiState.query,
+                        refreshing = uiState.refreshing,
+                        searchOpen = uiState.searchOpen,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
@@ -226,7 +230,10 @@ internal fun LibraryScreen(
 
 @Composable
 private fun LibraryContent(
-    state: LibraryUiState.Success,
+    comics: List<Comic>,
+    query: LibraryQuery,
+    refreshing: Boolean,
+    searchOpen: Boolean,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -235,7 +242,7 @@ private fun LibraryContent(
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
-                visible = state.searchOpen,
+                visible = searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),
                 exit = MoriMotion.exit(MoriEnterKind.SEARCH),
             ) {
@@ -243,8 +250,8 @@ private fun LibraryContent(
                 // and lifts the keyboard, closing releases both.
                 val searchFocus = remember { FocusRequester() }
                 val keyboard = LocalSoftwareKeyboardController.current
-                LaunchedEffect(state.searchOpen) {
-                    if (state.searchOpen) {
+                LaunchedEffect(searchOpen) {
+                    if (searchOpen) {
                         searchFocus.requestFocus()
                         keyboard?.show()
                     } else {
@@ -252,7 +259,7 @@ private fun LibraryContent(
                     }
                 }
                 OutlinedTextField(
-                    value = state.query.text,
+                    value = query.text,
                     onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
                     label = { Text(stringResource(R.string.library_search_label)) },
                     leadingIcon = {
@@ -272,7 +279,9 @@ private fun LibraryContent(
                 )
             }
             LibraryBody(
-                state = state,
+                comics = comics,
+                queryText = query.text,
+                refreshing = refreshing,
                 onAction = onAction,
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
@@ -402,7 +411,9 @@ private fun LibraryTopBar(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun LibraryBody(
-    state: LibraryUiState.Success,
+    comics: List<Comic>,
+    queryText: String,
+    refreshing: Boolean,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -425,20 +436,23 @@ private fun LibraryBody(
             onComicLongClick(comic.id)
         }
     }
+    val gridPadding = remember {
+        PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 112.dp)
+    }
     PullToRefreshBox(
-        isRefreshing = state.refreshing,
+        isRefreshing = refreshing,
         onRefresh = { onAction(LibraryAction.Refresh) },
         modifier = modifier.fillMaxSize(),
     ) {
-        if (state.isEmpty) {
+        if (comics.isEmpty()) {
             LibraryEmptyState(
-                searching = state.query.text.isNotBlank(),
+                searching = queryText.isNotBlank(),
                 onRefresh = { onAction(LibraryAction.Refresh) },
             )
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 112.dp),
+                contentPadding = gridPadding,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
@@ -446,10 +460,14 @@ private fun LibraryBody(
                     .testTag(LibraryTestTags.Grid),
             ) {
                 items(
-                    state.comics,
+                    comics,
                     key = { it.id },
+                    // Bitmask bucket: error/in-progress/finished variants never
+                    // cross-recycle, with no per-item string allocation.
                     contentType = { comic ->
-                        "${comic.error != null}-${comic.isInProgress}-${comic.isFinished}"
+                        (if (comic.error != null) 4 else 0) +
+                            (if (comic.isInProgress) 2 else 0) +
+                            (if (comic.isFinished) 1 else 0)
                     },
                 ) { comic ->
                     ComicCard(
