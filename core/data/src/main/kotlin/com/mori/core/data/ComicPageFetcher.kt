@@ -55,11 +55,12 @@ class ComicPageFetcher internal constructor(
     class Factory @Inject constructor(
         private val repository: ComicsRepository,
         private val backend: ComicBackendDataSource,
+        private val decoder: PageDecoder,
     ) : Fetcher.Factory<ComicPageKey> {
         override fun create(
             data: ComicPageKey,
             options: Options,
             imageLoader: ImageLoader,
-        ): Fetcher = ComicPageFetcher(data, repository, backend, PageDecoder())
+        ): Fetcher = ComicPageFetcher(data, repository, backend, decoder)
     }
 }

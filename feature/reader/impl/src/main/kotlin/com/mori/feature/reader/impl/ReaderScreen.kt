@@ -218,7 +218,7 @@ private fun ReaderContent(
         }
     }
     // Tactile ticks while scrubbing through pages.
-    LaunchedEffect(state.pageIndex) {
+    LaunchedEffect(state.pageIndex, scrubbing) {
         if (scrubbing) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }

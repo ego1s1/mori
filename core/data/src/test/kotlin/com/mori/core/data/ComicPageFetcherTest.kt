@@ -54,6 +54,7 @@ class ComicPageFetcherTest {
         val factory = ComicPageFetcher.Factory(
             FakeComicsRepository(),
             FakeComicBackendDataSource(),
+            com.mori.comic.decode.PageDecoder(),
         )
         val loader = ImageLoader.Builder(context).build()
         val options = coil3.request.Options(context)
@@ -67,7 +68,7 @@ class ComicPageFetcherTest {
         val fetcher = ComicPageFetcher(
             data = ComicPageKey("a.cbz", 0, 256),
             repository = repositoryFor(file),
-            backend = MoriComicBackendDataSource(),
+            backend = MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()),
             decoder = com.mori.comic.decode.PageDecoder(),
         )
 
@@ -105,7 +106,7 @@ class ComicPageFetcherTest {
         val fetcher = ComicPageFetcher(
             data = ComicPageKey("b.cbz", 9, 256),
             repository = repositoryFor(file),
-            backend = MoriComicBackendDataSource(),
+            backend = MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()),
             decoder = com.mori.comic.decode.PageDecoder(),
         )
 

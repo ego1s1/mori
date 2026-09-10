@@ -52,7 +52,7 @@ class CoverGeneratorTest {
                 "001.jpg" to resourceBytes("portrait.jpg"),
             ),
         )
-        val generator = CoverGenerator(context, MoriComicBackendDataSource())
+        val generator = CoverGenerator(context, MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()))
 
         val coverPath = generator.generateCover(
             source,
@@ -90,7 +90,7 @@ class CoverGeneratorTest {
                 "cover.jpg" to resourceBytes("landscape.jpg"),
             ),
         )
-        val generator = CoverGenerator(context, MoriComicBackendDataSource())
+        val generator = CoverGenerator(context, MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()))
 
         val coverPath = generator.generateCover(
             source,
@@ -122,7 +122,7 @@ class CoverGeneratorTest {
     fun returnsNullForEmptyArchive() = runTest {
         val dir = File(context.filesDir, "cover-test").apply { mkdirs() }
         val source = writeCbz(dir, "empty.cbz", mapOf("notes.txt" to "hi".toByteArray()))
-        val generator = CoverGenerator(context, MoriComicBackendDataSource())
+        val generator = CoverGenerator(context, MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()))
 
         // notes.txt is not an image; with no pages the generator returns null.
         assertNull(generator.generateCover(source, "empty.cbz", emptyList()))

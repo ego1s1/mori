@@ -15,9 +15,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-internal class MoriComicBackendDataSource @Inject constructor() : ComicBackendDataSource {
-
-    private val decoder = PageDecoder()
+internal class MoriComicBackendDataSource @Inject constructor(
+    private val decoder: PageDecoder,
+) : ComicBackendDataSource {
 
     override suspend fun inspect(file: File): InspectedComic = withContext(Dispatchers.IO) {
         ComicFactory.open(ComicSource.File(file)).use { archive ->

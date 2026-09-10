@@ -2,6 +2,7 @@ package com.mori.core.data
 
 import android.content.Context
 import androidx.room.Room
+import com.mori.comic.decode.PageDecoder
 import com.mori.core.database.ComicDao
 import com.mori.core.database.MoriDatabase
 import dagger.Binds
@@ -43,7 +44,12 @@ internal object DataProviders {
         Room.databaseBuilder(context, MoriDatabase::class.java, "mori.db").build()
 
     @Provides
+    @Singleton
     fun provideComicDao(database: MoriDatabase): ComicDao = database.comicDao()
+
+    @Provides
+    @Singleton
+    fun providePageDecoder(): PageDecoder = PageDecoder()
 
     @Provides
     @Singleton

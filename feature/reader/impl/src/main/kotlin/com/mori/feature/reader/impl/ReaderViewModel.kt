@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -64,13 +66,13 @@ class ReaderViewModel @Inject constructor(
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
 
-    /** Outlives [viewModelScope] to flush the last progress write on exit. */
-    private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    /** Flushes the last progress write even as the scope dies. */
+    private val flushContext = SupervisorJob() + Dispatchers.IO + NonCancellable
 
     override fun onCleared() {
         saveJob?.cancel()
         pendingSave?.let { index ->
-            flushScope.launch { repository.saveProgress(args.comicId, index) }
+            CoroutineScope(flushContext).launch { repository.saveProgress(args.comicId, index) }
         }
     }
 
@@ -183,17 +185,23 @@ class ReaderViewModel @Inject constructor(
 
     private fun moveBy(delta: Int) {
         val ready = uiState.value as? ReaderUiState.Ready ?: return
-        // Base on the synchronously-written navigation, not the combined state,
-        // so back-to-back turns never read a stale index.
-        val base = navigation.value ?: ready.pageIndex
-        val clamped = (base + delta).coerceIn(0, ready.pageCount - 1)
-        if (clamped == base) {
+        // Atomically advance from the synchronously-written navigation, so
+        // back-to-back turns never read a stale index.
+        var bumped = false
+        navigation.update { current ->
+            val base = current ?: ready.pageIndex
+            val clamped = (base + delta).coerceIn(0, ready.pageCount - 1)
+            bumped = clamped == base
+            clamped
+        }
+        if (bumped) {
             // Bump into the end of the book: surface chrome as orientation
             // feedback instead of silently swallowing the turn.
             chrome.value = chrome.value.copy(visible = true)
             return
         }
-        moveTo(clamped, hideChrome = true)
+        // navigation.value was just written above; moveTo clamps identically.
+        moveTo(navigation.value ?: ready.pageIndex, hideChrome = true)
     }
 
     private fun moveTo(index: Int, hideChrome: Boolean, animated: Boolean = true) {
