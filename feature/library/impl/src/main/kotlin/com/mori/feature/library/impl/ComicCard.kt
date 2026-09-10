@@ -47,20 +47,25 @@ import java.io.File
 @Composable
 internal fun ComicCard(
     comic: Comic,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onRead: (Comic) -> Unit,
+    onDetails: (Comic) -> Unit,
     modifier: Modifier = Modifier,
     sharedCover: Boolean = false,
 ) {
+    // Wrappers remembered on the full comic: grid items skip recomposition
+    // when handlers and content are unchanged, and progress updates refresh
+    // the captured comic (keyed by equality, not id).
+    val click = remember(comic, onRead) { { onRead(comic) } }
+    val longClick = remember(comic, onDetails) { { onDetails(comic) } }
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .testTag(LibraryTestTags.cardFor(comic.id))
             .combinedClickable(
-                onClick = onClick,
+                onClick = click,
                 onClickLabel = stringResource(R.string.library_card_read, comic.title),
-                onLongClick = onLongClick,
+                onLongClick = longClick,
                 onLongClickLabel = stringResource(R.string.library_card_details),
             ),
     ) {
@@ -157,7 +162,7 @@ internal fun ComicCard(
 
             if (comic.isInProgress) {
                 FilledIconButton(
-                    onClick = onClick,
+                    onClick = click,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
                     ),

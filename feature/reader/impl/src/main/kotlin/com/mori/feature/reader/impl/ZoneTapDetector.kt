@@ -20,10 +20,11 @@ import kotlinx.coroutines.launch
  * on a page, on the black bed between pages mid page-turn, or in the letterbox
  * margins on wide screens — always navigates. Detectors on narrower centered
  * content rebase their local tap position into viewport space, so the same
- * physical x always lands in the same zone. Edge taps (previous/next) dispatch
- * on tap-up with no double-tap wait, so rapid taps mid animation still turn
- * pages; only center taps hold the double-tap window ([decideTap]), where a
- * second center tap zooms and a lone one toggles chrome.
+ * physical x always lands in the same zone. Every tap dispatches on tap-up
+ * with no double-tap wait — including center taps, which toggle chrome
+ * optimistically ([decideTap]): a second center tap in-window still zooms via
+ * [onZoom], and the zoom handler compensates the optimistic toggle, so rapid
+ * taps never stall on animation or timeout.
  *
  * Every finger is tracked independently inside one gesture: alternating
  * two-finger skipping dispatches one tap per finger-up, even with overlapping
@@ -63,23 +64,32 @@ internal fun Modifier.zoneTaps(
             )
         ) {
             is TapDecision.Dispatch -> {
+                // A decisive tap voids a held center tap: the optimistic
+                // chrome toggle already fired, so there is nothing to replay —
+                // just stand down the double-tap watch and dispatch.
                 pendingMenuTap = null
                 onZoneTap(zone)
             }
             TapDecision.Zoom -> {
                 pendingMenuTap = null
+                // Chrome already toggled optimistically on the first tap; the
+                // zoom handler owns the compensation (pages zoom and toggle
+                // back; the container fallback maps zoom itself to MENU).
                 onZoom(position, center)
             }
             TapDecision.AwaitSecondTap -> {
+                // Optimistic: toggle chrome on tap-up instead of holding the
+                // double-tap window. A second center tap in-window still zooms
+                // (compensating this toggle); otherwise the watch expires.
                 pendingMenuTap = TapRecord(
                     timeMs = SystemClock.uptimeMillis(),
                     position = position,
                     zone = zone,
                 )
+                onZoneTap(ReaderZone.MENU)
                 menuJob = scope.launch {
                     delay(DOUBLE_TAP_TIMEOUT_MS)
                     pendingMenuTap = null
-                    onZoneTap(ReaderZone.MENU)
                 }
             }
         }

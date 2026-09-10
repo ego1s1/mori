@@ -410,6 +410,21 @@ private fun LibraryBody(
 ) {
     // Only the launching card registers a shared element; null = plain grid.
     var launchingId by remember { mutableStateOf<String?>(null) }
+    // Hoisted once per body composition: item lambdas stay referentially
+    // stable so unchanged cards skip recomposition during scroll-adjacent
+    // updates (launch flags, refresh ticks).
+    val onCardRead: (Comic) -> Unit = remember(onReadClick) {
+        { comic ->
+            launchingId = comic.id
+            onReadClick(comic.id, comic.lastPageIndex)
+        }
+    }
+    val onCardDetails: (Comic) -> Unit = remember(onComicLongClick) {
+        { comic ->
+            launchingId = comic.id
+            onComicLongClick(comic.id)
+        }
+    }
     PullToRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { onAction(LibraryAction.Refresh) },
@@ -439,14 +454,8 @@ private fun LibraryBody(
                 ) { comic ->
                     ComicCard(
                         comic = comic,
-                        onClick = {
-                            launchingId = comic.id
-                            onReadClick(comic.id, comic.lastPageIndex)
-                        },
-                        onLongClick = {
-                            launchingId = comic.id
-                            onComicLongClick(comic.id)
-                        },
+                        onRead = onCardRead,
+                        onDetails = onCardDetails,
                         sharedCover = launchingId == comic.id,
                         modifier = Modifier,
                     )

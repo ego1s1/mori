@@ -69,9 +69,10 @@ internal fun panOrTurn(
 private const val PAN_STEP_FRACTION = 0.4f
 
 /**
- * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). The page's tap
- * state machine holds a center tap for this long awaiting a second tap; edge taps
- * dispatch immediately so rapid page skipping never waits on animation or timeout.
+ * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). After an
+ * optimistic center-tap toggle, the state machine watches for a second tap
+ * this long; edge taps dispatch immediately so rapid page skipping never waits
+ * on animation or timeout.
  */
 internal const val DOUBLE_TAP_TIMEOUT_MS = 300L
 
@@ -84,23 +85,27 @@ internal data class TapRecord(
 
 /** Outcome of feeding one tap-up through [decideTap]. */
 internal sealed interface TapDecision {
-    /** Dispatch now (page turn, or chrome toggle when no zoom is possible). */
+    /** Dispatch now (page turn, or an optimistic chrome toggle). */
     data class Dispatch(val zone: ReaderZone) : TapDecision
 
-    /** Center tap: hold chrome and wait out the double-tap window. */
+    /**
+     * Center tap: dispatched optimistically as a chrome toggle while the
+     * double-tap watch arms — a second center tap in-window becomes [Zoom].
+     */
     data object AwaitSecondTap : TapDecision
 
-    /** Second center tap in-window: zoom instead of toggling chrome. */
+    /** Second center tap in-window: zoom (compensating the optimistic toggle). */
     data object Zoom : TapDecision
 }
 
 /**
- * Routes a tap-up without ever delaying edge navigation.
+ * Routes a tap-up without ever delaying dispatch.
  *
  * Only a center tap following another center tap — close in time (within
  * [doubleTapTimeoutMs]) and space (within [touchSlopPx]) — becomes [TapDecision.Zoom].
- * Everything on the outer thirds dispatches immediately, even back-to-back mid
- * page-turn animation, so skipping pages fast feels instant.
+ * A lone center tap is [TapDecision.AwaitSecondTap]: the caller toggles chrome
+ * immediately and watches for the second tap. Everything else dispatches at once,
+ * even back-to-back mid page-turn animation, so skipping pages fast feels instant.
  */
 internal fun decideTap(
     previous: TapRecord?,
