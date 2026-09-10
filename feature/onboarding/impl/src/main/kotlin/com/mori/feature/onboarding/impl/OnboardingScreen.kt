@@ -172,8 +172,8 @@ internal fun OnboardingScreen(
                 modifier = Modifier.testTag(OnboardingTestTags.StorageStep),
                 stepIndex = 0,
                 totalSteps = 3,
-                title = "Where do your comics live?",
-                body = "Keep copies inside Mori, or link a folder you already organize.",
+                title = stringResource(R.string.onboarding_storage_title),
+                body = stringResource(R.string.onboarding_storage_body),
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
                     onAction(OnboardingAction.Skip)
@@ -181,7 +181,7 @@ internal fun OnboardingScreen(
                 },
                 onContinue = { onAction(OnboardingAction.ContinueStep) },
                 continueLabel = "Continue",
-                continueCaption = "You can rescan or relocate later.",
+                continueCaption = stringResource(R.string.onboarding_storage_caption),
             ) {
                 StorageOptions(
                     location = uiState.location,
@@ -194,8 +194,8 @@ internal fun OnboardingScreen(
                 modifier = Modifier.testTag(OnboardingTestTags.AppearanceStep),
                 stepIndex = 1,
                 totalSteps = 3,
-                title = "Make it yours",
-                body = "Theme and color follow you everywhere in Mori.",
+                title = stringResource(R.string.onboarding_appearance_title),
+                body = stringResource(R.string.onboarding_appearance_body),
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
                     onAction(OnboardingAction.Skip)
@@ -203,7 +203,7 @@ internal fun OnboardingScreen(
                 },
                 onContinue = { onAction(OnboardingAction.ContinueStep) },
                 continueLabel = "Continue",
-                continueCaption = "Everything stays changeable in Settings.",
+                continueCaption = stringResource(R.string.onboarding_appearance_caption),
             ) {
                 AppearanceOptions(theme = uiState.theme, onAction = onAction)
             }
@@ -211,7 +211,7 @@ internal fun OnboardingScreen(
                 modifier = Modifier.testTag(OnboardingTestTags.ImportStep),
                 stepIndex = 2,
                 totalSteps = 3,
-                title = "Import your comics",
+                title = stringResource(R.string.onboarding_import_title),
                 body = if (uiState.location == StorageLocation.CUSTOM && uiState.folderName != null) {
                     stringResource(R.string.onboarding_import_body_custom, uiState.folderName)
                 } else {
@@ -270,14 +270,14 @@ private fun WelcomeContent(
                 .padding(horizontal = 8.dp),
         ) {
             Text(
-                text = "Mori",
+                text = stringResource(R.string.onboarding_brand),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 12.dp, vertical = 16.dp),
             )
             TextButton(onClick = onSkip) {
-                Text("Skip")
+                Text(stringResource(R.string.onboarding_skip))
             }
         }
         Column(
@@ -325,7 +325,7 @@ private fun WelcomeContent(
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
                 Text(
-                    text = "WELCOME",
+                    text = stringResource(R.string.onboarding_eyebrow),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 4.sp,
@@ -334,16 +334,16 @@ private fun WelcomeContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = buildAnnotatedString {
-                        append("Your comics,\n")
+                        append(stringResource(R.string.onboarding_hero_prefix))
                         withStyle(
                             SpanStyle(
                                 fontStyle = FontStyle.Italic,
                                 color = MaterialTheme.colorScheme.primary,
                             ),
                         ) {
-                            append("beautifully")
+                            append(stringResource(R.string.onboarding_hero_accent))
                         }
-                        append(" shelved.")
+                        append(stringResource(R.string.onboarding_hero_suffix))
                     },
                     style = MoriEmphasized.displaySmall,
                     textAlign = TextAlign.Center,
@@ -356,7 +356,7 @@ private fun WelcomeContent(
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
                 Text(
-                    text = "Three quick steps and your library is ready. Your files stay yours.",
+                    text = stringResource(R.string.onboarding_intro_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -376,10 +376,10 @@ private fun WelcomeContent(
                             .fillMaxWidth()
                             .testTag(OnboardingTestTags.GetStarted),
                     ) {
-                        Text("Get started")
+                        Text(stringResource(R.string.onboarding_get_started))
                     }
                     Text(
-                        text = "Takes about a minute · No account needed",
+                        text = stringResource(R.string.onboarding_get_started_caption),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -420,10 +420,10 @@ private fun WizardStep(
                 .padding(horizontal = 8.dp),
         ) {
             IconButton(onClick = onBack) {
-                Icon(imageVector = MoriIcons.Back, contentDescription = "Back")
+                Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.onboarding_back))
             }
             Text(
-                text = "STEP ${stepIndex + 1} OF $totalSteps",
+                text = stringResource(R.string.onboarding_step, stepIndex + 1, totalSteps),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 2.sp,
@@ -431,7 +431,7 @@ private fun WizardStep(
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onSkip) {
-                Text("Skip")
+                Text(stringResource(R.string.onboarding_skip))
             }
         }
         Row(
@@ -634,23 +634,23 @@ private fun AppearanceOptions(
                 selected = theme.mode == ThemeMode.SYSTEM,
                 onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.SYSTEM)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text("System") },
+                label = { Text(stringResource(R.string.onboarding_theme_system)) },
             )
             SegmentedButton(
                 selected = theme.mode == ThemeMode.LIGHT,
                 onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.LIGHT)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text("Light") },
+                label = { Text(stringResource(R.string.onboarding_theme_light)) },
             )
             SegmentedButton(
                 selected = theme.mode == ThemeMode.DARK,
                 onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.DARK)) },
                 shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text("Dark") },
+                label = { Text(stringResource(R.string.onboarding_theme_dark)) },
             )
         }
         Text(
-            text = "Colors",
+            text = stringResource(R.string.onboarding_colors),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -699,7 +699,7 @@ private fun ImportOptions(
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.PickFolder),
         ) {
-            Text("Choose folder")
+            Text(stringResource(R.string.onboarding_pick_folder))
         }
         OutlinedButton(
             onClick = onPickFiles,
@@ -707,10 +707,10 @@ private fun ImportOptions(
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.PickFiles),
         ) {
-            Text("Pick individual files")
+            Text(stringResource(R.string.onboarding_pick_files))
         }
         Text(
-            text = "CBZ and CBR supported. Copies land in your library.",
+            text = stringResource(R.string.onboarding_import_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -778,10 +778,10 @@ private fun ImportingContent(
         if (total <= 0) {
             CircularProgressIndicator(modifier = Modifier.testTag(OnboardingTestTags.Progress))
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Scanning for comics…", style = MaterialTheme.typography.bodyLarge)
+            Text(text = stringResource(R.string.onboarding_scanning), style = MaterialTheme.typography.bodyLarge)
         } else {
             Text(
-                text = "Copying $done of $total",
+                text = stringResource(R.string.onboarding_copying, done, total),
                 style = MoriEmphasized.headlineSmall,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -802,7 +802,7 @@ private fun ImportingContent(
         }
         Spacer(modifier = Modifier.height(24.dp))
         TextButton(onClick = onCancel) {
-            Text("Cancel")
+            Text(stringResource(R.string.onboarding_cancel))
         }
     }
 }
@@ -856,7 +856,7 @@ private fun DoneContent(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "comics imported",
+                    text = stringResource(R.string.onboarding_imported_caption),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center,
@@ -886,7 +886,7 @@ private fun DoneContent(
             onClick = onImportMore,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Import more")
+            Text(stringResource(R.string.onboarding_import_more))
         }
         if (report.failed > 0) {
             Spacer(modifier = Modifier.height(16.dp))
