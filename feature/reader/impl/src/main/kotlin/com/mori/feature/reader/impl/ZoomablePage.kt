@@ -29,10 +29,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import coil3.compose.AsyncImage
 import com.mori.core.data.ComicPageKey
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -57,9 +59,19 @@ internal fun ZoomablePage(
     onZoneTap: (ReaderZone) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    // Zoom/pan state is keyed to the page identity: the pager reuses compositions
+    // for neighboring pages, and stale zoom must never leak into a recycled page.
+    var scale by remember(comicId, pageIndex, pageFit, direction) { mutableFloatStateOf(1f) }
+    var offset by remember(comicId, pageIndex, pageFit, direction) { mutableStateOf(Offset.Zero) }
     val scope = rememberCoroutineScope()
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
+    // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
+    // cancel each other instead of fighting over scale/offset.
+    var motionJob by remember { mutableStateOf<Job?>(null) }
+    fun launchMotion(block: suspend () -> Unit) {
+        motionJob?.cancel()
+        motionJob = scope.launch { block() }
+    }
     val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
         scale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
         offset = if (scale <= 1f) Offset.Zero else offset + panChange
@@ -67,20 +79,25 @@ internal fun ZoomablePage(
     // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
     // so it must read scale through a ref instead of a stale closure. Zooming in
     // anchors on the tap point (the tapped art stays under the finger); zooming
-    // out always returns to fit.
+    // out always returns to fit. Calm motion shortens the glide to a quiet fade.
     val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
         val target = zoomTargetForTap(scale)
         val targetOffset = zoomOffsetForTap(tap, center, target)
         val startScale = scale
         val startOffset = offset
-        scope.launch {
+        val spec = if (expressiveMotion) {
+            tween<Float>(
+                durationMillis = DOUBLE_TAP_ZOOM_MS,
+                easing = MoriMotion.EmphasizedDecelerate,
+            )
+        } else {
+            MoriMotion.calmFade()
+        }
+        launchMotion {
             animate(
                 initialValue = 0f,
                 targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = DOUBLE_TAP_ZOOM_MS,
-                    easing = MoriMotion.EmphasizedDecelerate,
-                ),
+                animationSpec = spec,
             ) { fraction, _ ->
                 scale = startScale + (target - startScale) * fraction
                 offset = startOffset + (targetOffset - startOffset) * fraction
@@ -116,11 +133,40 @@ internal fun ZoomablePage(
                 // (second pointer down) cancel tap tracking and flow to transformable.
                 // Claimed tap-ups are consumed so the reader-level fallback detector
                 // (see ReaderContent) stands down and each tap dispatches exactly once.
+                // While zoomed, edge taps pan toward the tapped side first and turn
+                // the page only at the pan limit.
                 .zoneTaps(
                     widthPx = widthPx,
                     direction = direction,
                     scope = scope,
-                    onZoneTap = onZoneTap,
+                    onZoneTap = { zone ->
+                        if ((zone == ReaderZone.PREV || zone == ReaderZone.NEXT) && scale > 1f) {
+                            val towardTrailing =
+                                (zone == ReaderZone.NEXT) ==
+                                    (direction == ReadingDirection.LEFT_TO_RIGHT)
+                            when (val decision = panOrTurn(scale, offset.x, widthPx, towardTrailing)) {
+                                is PanTurn.Pan -> {
+                                    val startX = offset.x
+                                    val targetX = decision.targetOffsetX
+                                    launchMotion {
+                                        animate(
+                                            initialValue = startX,
+                                            targetValue = targetX,
+                                            animationSpec = tween(
+                                                durationMillis = EDGE_PAN_MS,
+                                                easing = MoriMotion.EmphasizedDecelerate,
+                                            ),
+                                        ) { value, _ ->
+                                            offset = offset.copy(x = value)
+                                        }
+                                    }
+                                }
+                                PanTurn.Turn -> onZoneTap(zone)
+                            }
+                        } else {
+                            onZoneTap(zone)
+                        }
+                    },
                     onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
                     consumeUp = true,
                 )
@@ -153,6 +199,7 @@ private const val MAX_ZOOM = 4f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val PAGE_ASPECT = 2f / 3f
 private const val DOUBLE_TAP_ZOOM_MS = 300
+private const val EDGE_PAN_MS = 150
 
 /**
  * Double-tap zoom target: zoomed pages reset to fit, unzoomed pages jump to the

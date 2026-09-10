@@ -34,6 +34,40 @@ fun zoneForTap(fraction: Float, direction: ReadingDirection): ReaderZone {
 
 private const val ZONE_EDGE = 1f / 3f
 
+/** Outcome of an edge tap while zoomed: pan the art or turn the page. */
+internal sealed interface PanTurn {
+    /** Slide content horizontally to [targetOffsetX] (px, viewport space). */
+    data class Pan(val targetOffsetX: Float) : PanTurn
+
+    /** Already at the pan limit (or not zoomed): turn the page. */
+    data object Turn : PanTurn
+}
+
+/**
+ * Routes an edge tap while zoomed: pan toward the tapped side first, turn only
+ * at the pan limit (reference-reader navigate-to-pan behavior).
+ *
+ * [towardTrailing] is true for taps on the screen's trailing (right) edge:
+ * the NEXT zone in left-to-right, the PREV zone in right-to-left. Pan limits
+ * assume width-fitted content (exact for [PageFit.WIDTH], approximate
+ * otherwise): content overflows the viewport by `(scale - 1) * width`, half
+ * each side, stepped in 40%-of-viewport hops.
+ */
+internal fun panOrTurn(
+    scale: Float,
+    offsetX: Float,
+    viewportWidthPx: Float,
+    towardTrailing: Boolean,
+): PanTurn {
+    if (scale <= 1f) return PanTurn.Turn
+    val maxPan = viewportWidthPx * (scale - 1f) / 2f
+    val step = viewportWidthPx * PAN_STEP_FRACTION * if (towardTrailing) -1f else 1f
+    val target = (offsetX + step).coerceIn(-maxPan, maxPan)
+    return if (target == offsetX) PanTurn.Turn else PanTurn.Pan(target)
+}
+
+private const val PAN_STEP_FRACTION = 0.4f
+
 /**
  * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). The page's tap
  * state machine holds a center tap for this long awaiting a second tap; edge taps
