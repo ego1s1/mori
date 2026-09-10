@@ -31,7 +31,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,9 +39,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -132,17 +128,10 @@ internal fun LibraryScreen(
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
-        rememberTopAppBarState(),
-    )
-
     Scaffold(
         topBar = {
             if (uiState is LibraryUiState.Success) {
-                LibraryTopBar(
-                    comicCount = uiState.comics.size,
-                    scrollBehavior = scrollBehavior,
-                )
+                LibraryTopBar(comicCount = uiState.comics.size)
             }
         },
         snackbarHost = {
@@ -151,7 +140,7 @@ internal fun LibraryScreen(
                 modifier = Modifier.testTag(LibraryTestTags.Snackbar),
             )
         },
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier,
     ) { padding ->
         Surface(modifier = Modifier
             .fillMaxSize()
@@ -272,23 +261,22 @@ private fun LibraryContent(
 }
 
 /**
- * M3 large app bar: emphasized collapsing headline with a live collection subtitle.
- * Tonal elevation on scroll comes from TopAppBarDefaults (surface → surfaceContainer),
- * exactly per spec — no decorative gradients, no alpha-hacked text.
+ * Static compact app bar: the title and collection subtitle never move and the
+ * background never shifts while scrolling (reference-reader style). One bar,
+ * one color, always.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
     comicCount: Int,
-    scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
-    LargeTopAppBar(
+    TopAppBar(
         title = {
             Column {
                 Text(
                     text = "Library",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -305,7 +293,6 @@ private fun LibraryTopBar(
                 )
             }
         },
-        scrollBehavior = scrollBehavior,
         modifier = modifier,
     )
 }
