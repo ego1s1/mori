@@ -73,17 +73,13 @@ class DetailViewModelTest {
     }
 
     @Test
-    fun refreshFailureSurfacesSnackbar() = runTest {
+    fun refreshFailureMessageIsOneShot() = runTest {
         val repository = TestComicsRepository(mapOf("a" to TestComicsRepository.comic("a")))
         repository.failRefreshWith = IllegalStateException("boom")
         val (viewModel, _) = viewModel(repository = repository)
-        viewModel.uiState.test {
-            awaitReady()
+        viewModel.messages.test {
             viewModel.onAction(DetailAction.Refresh)
-            val settled = awaitSettled()
-            assertEquals("boom", settled.snackbar)
-            viewModel.onAction(DetailAction.DismissSnackbar)
-            assertEquals(null, (awaitItem() as DetailUiState.Ready).snackbar)
+            assertEquals("Rescan failed. Try again.", awaitItem())
         }
     }
 
@@ -110,16 +106,6 @@ class DetailViewModelTest {
             when (val next = awaitItem()) {
                 is DetailUiState.Ready -> return next
                 DetailUiState.Loading -> Unit // keep waiting
-                is DetailUiState.Missing -> throw AssertionError("Expected Ready, got Missing")
-            }
-        }
-    }
-
-    private suspend fun app.cash.turbine.ReceiveTurbine<DetailUiState>.awaitSettled(): DetailUiState.Ready {
-        while (true) {
-            when (val next = awaitItem()) {
-                is DetailUiState.Ready -> if (!next.refreshing) return next
-                DetailUiState.Loading -> Unit
                 is DetailUiState.Missing -> throw AssertionError("Expected Ready, got Missing")
             }
         }

@@ -1,5 +1,6 @@
 package com.mori.feature.library.impl
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.mori.core.model.LibraryFilter
@@ -23,7 +24,8 @@ class LibraryViewModelTest {
 
     private fun viewModel(
         repository: TestComicsRepository = TestComicsRepository(),
-    ) = LibraryViewModel(repository)
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    ) = LibraryViewModel(savedStateHandle, repository)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
@@ -76,30 +78,59 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun refreshSurfacesFailuresAsSnackbar() = runTest {
+    fun refreshFailureMessageIsOneShot() = runTest {
         val repository = TestComicsRepository()
         repository.refreshReport = com.mori.core.model.IndexReport(1, 2, 0)
         val viewModel = viewModel(repository)
-        viewModel.uiState.test {
-            awaitSuccess()
+        viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
-            val settled = awaitSettledSnackbar()
-            assertEquals("2 file(s) could not be indexed", settled.snackbar)
-            viewModel.onAction(LibraryAction.DismissSnackbar)
-            assertEquals(null, (awaitItem() as LibraryUiState.Success).snackbar)
+            assertEquals(
+                "Couldn't index 2 file(s). Check the files and rescan.",
+                awaitItem(),
+            )
         }
         assertEquals(1, repository.refreshCalls)
     }
 
     @Test
-    fun refreshExceptionBecomesSnackbar() = runTest {
+    fun refreshExceptionMessageIsOneShot() = runTest {
         val repository = TestComicsRepository()
         repository.failRefreshWith = IllegalStateException("disk gone")
         val viewModel = viewModel(repository)
-        viewModel.uiState.test {
-            awaitSuccess()
+        viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
-            assertEquals("disk gone", awaitSettledSnackbar().snackbar)
+            assertEquals("Rescan failed. Try again.", awaitItem())
+        }
+    }
+
+    @Test
+    fun queryRestoresFromSavedState() = runTest {
+        val handle = SavedStateHandle(
+            mapOf(
+                "mori_query_text" to "app",
+                "mori_query_sort" to LibrarySortOrder.TITLE.name,
+                "mori_query_filter" to LibraryFilter.FINISHED.name,
+                "mori_query_hide_errors" to true,
+            ),
+        )
+        val viewModel = viewModel(savedStateHandle = handle)
+        viewModel.uiState.test {
+            val state = awaitSuccess()
+            assertEquals("app", state.query.text)
+            assertEquals(LibrarySortOrder.TITLE, state.query.sortOrder)
+            assertEquals(LibraryFilter.FINISHED, state.query.filter)
+            assertTrue(state.query.hideErrors)
+        }
+    }
+
+    @Test
+    fun searchToggleFlipsState() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(false, awaitSuccess().searchOpen)
+            viewModel.onAction(LibraryAction.ToggleSearch)
+            assertEquals(true, awaitSuccessWhere { it.searchOpen }.searchOpen)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }
@@ -124,13 +155,5 @@ private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccessWhere(
     while (true) {
         val next = awaitItem()
         if (next is LibraryUiState.Success && predicate(next)) return next
-    }
-}
-
-/** Consumes until a non-refreshing Success (terminal refresh state). */
-private suspend fun ReceiveTurbine<LibraryUiState>.awaitSettledSnackbar(): LibraryUiState.Success {
-    while (true) {
-        val next = awaitItem()
-        if (next is LibraryUiState.Success && !next.refreshing) return next
     }
 }

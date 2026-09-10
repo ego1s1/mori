@@ -40,7 +40,6 @@ class DetailScreenTest {
         refreshing = false,
         confirmRemove = confirmRemove,
         removed = false,
-        snackbar = null,
     )
 
     private fun setScreen(

@@ -8,10 +8,12 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.model.Comic
 import com.mori.feature.detail.api.DetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,14 +29,16 @@ class DetailViewModel @Inject constructor(
     private val refreshing = MutableStateFlow(false)
     private val confirmRemove = MutableStateFlow(false)
     private val removed = MutableStateFlow(false)
-    private val snackbar = MutableStateFlow<String?>(null)
+
+    /** One-shot messages; a channel so rotation never reshows what was seen. */
+    private val messageChannel = Channel<String>(Channel.BUFFERED)
+    val messages = messageChannel.receiveAsFlow()
 
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeComic(args.comicId),
         refreshing,
         confirmRemove,
         removed,
-        snackbar,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -47,7 +51,6 @@ class DetailViewModel @Inject constructor(
         refreshing: Boolean,
         confirmRemove: Boolean,
         removed: Boolean,
-        snackbar: String?,
     ): DetailUiState {
         if (removed || comic == null) return DetailUiState.Missing
         return DetailUiState.Ready(
@@ -55,7 +58,6 @@ class DetailViewModel @Inject constructor(
             refreshing = refreshing,
             confirmRemove = confirmRemove,
             removed = false,
-            snackbar = snackbar,
         )
     }
 
@@ -65,7 +67,6 @@ class DetailViewModel @Inject constructor(
             DetailAction.AskRemove -> confirmRemove.value = true
             DetailAction.CancelRemove -> confirmRemove.value = false
             DetailAction.ConfirmRemove -> remove()
-            DetailAction.DismissSnackbar -> snackbar.value = null
         }
     }
 
@@ -76,7 +77,7 @@ class DetailViewModel @Inject constructor(
             try {
                 repository.refreshComic(args.comicId)
             } catch (e: Exception) {
-                snackbar.value = e.message ?: "Refresh failed"
+                messageChannel.send("Rescan failed. Try again.")
             } finally {
                 refreshing.value = false
             }
@@ -90,7 +91,7 @@ class DetailViewModel @Inject constructor(
                 removed.value = true
             } catch (e: Exception) {
                 confirmRemove.value = false
-                snackbar.value = e.message ?: "Remove failed"
+                messageChannel.send("Couldn't remove this comic. Try again.")
             }
         }
     }

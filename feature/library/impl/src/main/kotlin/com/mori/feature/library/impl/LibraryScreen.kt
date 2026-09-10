@@ -83,12 +83,19 @@ fun LibraryTabContent(
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { message ->
+            snackbarHost.showSnackbar(message)
+        }
+    }
     LibraryScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
         onSettingsClick = onSettingsClick,
+        snackbarHost = snackbarHost,
         modifier = modifier,
     )
 }
@@ -119,8 +126,8 @@ internal fun LibraryScreen(
     onComicLongClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val snackbarHost = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
         rememberTopAppBarState(),
     )
@@ -156,11 +163,6 @@ internal fun LibraryScreen(
                 }
 
                 is LibraryUiState.Success -> {
-                    LaunchedEffect(uiState.snackbar) {
-                        val message = uiState.snackbar ?: return@LaunchedEffect
-                        snackbarHost.showSnackbar(message)
-                        onAction(LibraryAction.DismissSnackbar)
-                    }
                     LibraryContent(
                         state = uiState,
                         onAction = onAction,
@@ -189,12 +191,10 @@ private fun LibraryContent(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var searchOpen by remember { mutableStateOf(false) }
-
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
-                visible = searchOpen,
+                visible = state.searchOpen,
                 enter = searchEnter(),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
@@ -207,7 +207,7 @@ private fun LibraryContent(
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { searchOpen = false }),
+                    keyboardActions = KeyboardActions(onSearch = { onAction(LibraryAction.ToggleSearch) }),
                     shape = MaterialTheme.shapes.extraLarge,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -234,7 +234,7 @@ private fun LibraryContent(
                 .padding(bottom = 24.dp),
         ) {
             FloatingToolbar(
-                onSearchClick = { searchOpen = !searchOpen },
+                onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                 onSettingsClick = onSettingsClick,
                 onAction = onAction,
             )
@@ -513,7 +513,7 @@ private fun LibraryScreenPreview() {
                 query = com.mori.core.model.LibraryQuery(),
                 refreshing = false,
                 filterOpen = false,
-                snackbar = null,
+                searchOpen = false,
             ),
             onAction = {},
             onReadClick = { _, _ -> },

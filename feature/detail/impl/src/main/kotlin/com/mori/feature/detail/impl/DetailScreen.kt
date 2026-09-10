@@ -70,11 +70,18 @@ internal fun DetailRoute(
     if (uiState is DetailUiState.Missing) {
         LaunchedEffect(Unit) { onBackClick() }
     }
+    val snackbarHost = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { message ->
+            snackbarHost.showSnackbar(message)
+        }
+    }
     DetailScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
         onBackClick = onBackClick,
         onReadClick = onReadClick,
+        snackbarHost = snackbarHost,
         modifier = modifier,
     )
 }
@@ -87,9 +94,8 @@ internal fun DetailScreen(
     onBackClick: () -> Unit,
     onReadClick: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val snackbarHost = remember { SnackbarHostState() }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -145,11 +151,6 @@ internal fun DetailScreen(
                 }
 
                 is DetailUiState.Ready -> {
-                    LaunchedEffect(uiState.snackbar) {
-                        val message = uiState.snackbar ?: return@LaunchedEffect
-                        snackbarHost.showSnackbar(message)
-                        onAction(DetailAction.DismissSnackbar)
-                    }
                     DetailContent(
                         comic = uiState.comic,
                         refreshing = uiState.refreshing,
@@ -433,7 +434,6 @@ private fun DetailScreenPreview() {
                 refreshing = false,
                 confirmRemove = false,
                 removed = false,
-                snackbar = null,
             ),
             onAction = {},
             onBackClick = {},

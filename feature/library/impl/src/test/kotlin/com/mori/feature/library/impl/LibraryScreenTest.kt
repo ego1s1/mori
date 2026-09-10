@@ -31,6 +31,7 @@ class LibraryScreenTest {
         query: LibraryQuery = LibraryQuery(),
         refreshing: Boolean = false,
         filterOpen: Boolean = false,
+        searchOpen: Boolean = false,
     ) = LibraryUiState.Success(
         comics = listOf(
             TestComicsRepository.comic("a", title = "Apple"),
@@ -39,7 +40,7 @@ class LibraryScreenTest {
         query = query,
         refreshing = refreshing,
         filterOpen = filterOpen,
-        snackbar = null,
+        searchOpen = searchOpen,
     )
 
     private fun setScreen(
@@ -116,12 +117,21 @@ class LibraryScreenTest {
     @Test
     fun searchFieldDispatchesText() {
         val actions = mutableListOf<LibraryAction>()
-        setScreen(success(), actions = actions)
+        setScreen(success(searchOpen = true), actions = actions)
 
-        composeTestRule.onNodeWithTag(LibraryTestTags.SearchToggle).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.SearchField).performTextInput("app")
 
         assert(actions.any { it is LibraryAction.SearchTextChanged && it.text == "app" })
+    }
+
+    @Test
+    fun searchToggleFlipsOpenState() {
+        val actions = mutableListOf<LibraryAction>()
+        setScreen(success(), actions = actions)
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.SearchToggle).performClick()
+
+        assert(actions.contains(LibraryAction.ToggleSearch))
     }
 
     @Test

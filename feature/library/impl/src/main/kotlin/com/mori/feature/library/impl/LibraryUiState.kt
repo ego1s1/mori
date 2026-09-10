@@ -13,7 +13,7 @@ sealed interface LibraryUiState {
         val query: LibraryQuery,
         val refreshing: Boolean,
         val filterOpen: Boolean,
-        val snackbar: String?,
+        val searchOpen: Boolean,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
 
@@ -35,7 +35,7 @@ sealed interface LibraryAction {
 
     data object CloseFilter : LibraryAction
 
-    data object Refresh : LibraryAction
+    data object ToggleSearch : LibraryAction
 
-    data object DismissSnackbar : LibraryAction
+    data object Refresh : LibraryAction
 }
