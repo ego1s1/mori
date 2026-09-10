@@ -118,6 +118,9 @@ internal fun ZoomablePage(
         val widthPx = remember(density, maxWidth) {
             with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
         }
+        // Live viewport width: the detector loop reads it through state so it
+        // survives rotation without restarting mid-tap.
+        val viewportWidth = rememberUpdatedState(widthPx)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -136,7 +139,7 @@ internal fun ZoomablePage(
                 // While zoomed, edge taps pan toward the tapped side first and turn
                 // the page only at the pan limit.
                 .zoneTaps(
-                    widthPx = widthPx,
+                    viewportWidth = viewportWidth,
                     direction = direction,
                     scope = scope,
                     onZoneTap = { zone ->

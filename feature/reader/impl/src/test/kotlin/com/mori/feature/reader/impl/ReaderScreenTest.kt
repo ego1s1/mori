@@ -258,6 +258,34 @@ class ReaderScreenTest {
         assertEquals(3, actions.filterIsInstance<ReaderAction.NextPage>().size)
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun rapidTapStormTurnsEveryPage() {
+        // Three taps back-to-back with no clock advance: edge taps dispatch on
+        // tap-up with no double-tap wait, so none may be swallowed.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        repeat(3) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, Offset(bounds.width * 0.9f, bounds.height * 0.5f))
+                up(0)
+            }
+        }
+
+        assertEquals(3, actions.filterIsInstance<ReaderAction.NextPage>().size)
+    }
+
     @Test
     fun pageCounterShowsWhenChromeHidden() {
         composeTestRule.setContent {

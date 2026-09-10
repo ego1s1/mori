@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
@@ -301,12 +302,13 @@ private fun ReaderContent(
             val containerWidthPx = with(LocalDensity.current) {
                 maxWidth.toPx()
             }.coerceAtLeast(1f)
+            val viewportWidth = rememberUpdatedState(containerWidthPx)
             val pageWidth = minOf(maxWidth, EXPANDED_CONTENT_MAX_WIDTH)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .zoneTaps(
-                        widthPx = containerWidthPx,
+                        viewportWidth = viewportWidth,
                         direction = state.direction,
                         scope = contentScope,
                         onZoneTap = handleZone,
