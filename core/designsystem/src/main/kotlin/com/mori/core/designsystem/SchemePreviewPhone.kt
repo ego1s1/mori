@@ -24,6 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,25 +68,33 @@ fun SchemePickerRow(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
     ) {
-        PhoneMockup(
-            label = "Dynamic",
-            selected = theme.dynamicColor,
-            onClick = onDynamic,
-            darkTheme = darkTheme,
-            dynamicColor = true,
-            choice = ColorSchemeChoice.MORI,
-            amoled = theme.amoled,
-        )
-        ColorSchemeChoice.entries.forEach { choice ->
+        // Keyed slots + remembered clicks: a selection change recomposes only
+        // the mockups whose `selected` flag flipped, not all five themes.
+        key("dynamic") {
+            val onDynamicClick = remember { { onDynamic() } }
             PhoneMockup(
-                label = choice.name.lowercase().replaceFirstChar { it.uppercase() },
-                selected = isSchemeSelected(theme.dynamicColor, theme.colorScheme, choice),
-                onClick = { onScheme(choice) },
+                label = "Dynamic",
+                selected = theme.dynamicColor,
+                onClick = onDynamicClick,
                 darkTheme = darkTheme,
-                dynamicColor = false,
-                choice = choice,
+                dynamicColor = true,
+                choice = ColorSchemeChoice.MORI,
                 amoled = theme.amoled,
             )
+        }
+        ColorSchemeChoice.entries.forEach { choice ->
+            key(choice) {
+                val onSchemeClick = remember(choice) { { onScheme(choice) } }
+                PhoneMockup(
+                    label = choice.name.lowercase().replaceFirstChar { it.uppercase() },
+                    selected = isSchemeSelected(theme.dynamicColor, theme.colorScheme, choice),
+                    onClick = onSchemeClick,
+                    darkTheme = darkTheme,
+                    dynamicColor = false,
+                    choice = choice,
+                    amoled = theme.amoled,
+                )
+            }
         }
     }
 }
