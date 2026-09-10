@@ -126,16 +126,6 @@ class ReaderViewModelTest {
     }
 
     @Test
-    fun predictiveBackScaleDipsSlightlyWhenCommitted() {
-        assertEquals(1f, predictiveBackScale(0f), 0.0001f)
-        assertEquals(0.92f, predictiveBackScale(1f), 0.0001f)
-        assertEquals(0.96f, predictiveBackScale(0.5f), 0.0001f)
-        // Out-of-range progress never inverts or overshoots.
-        assertEquals(1f, predictiveBackScale(-1f), 0.0001f)
-        assertEquals(0.92f, predictiveBackScale(2f), 0.0001f)
-    }
-
-    @Test
     fun navigationClampsAndSurvivesRepoEmissions() = runTest {
         val repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c")))
         val viewModel = viewModel(repository = repository)

@@ -1,6 +1,5 @@
 package com.mori.feature.reader.impl
 
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -11,7 +10,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +43,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -94,7 +91,6 @@ import com.mori.core.designsystem.exit
 import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
@@ -205,19 +201,10 @@ private fun ReaderContent(
         focusRequester.requestFocus()
     }
 
-    // Predictive back: the page shrinks and fades with the gesture, and the app
-    // only leaves the reader when the gesture commits. Cancelled gestures snap
-    // back. Disabled over the settings sheet so back dismisses the sheet first.
-    var backProgress by remember { mutableFloatStateOf(0f) }
-    PredictiveBackHandler(enabled = !state.settingsOpen) { progress ->
-        try {
-            progress.collect { event -> backProgress = event.progress }
-            backProgress = 0f
-            onBackClick()
-        } catch (_: CancellationException) {
-            backProgress = 0f
-        }
-    }
+    // Back exits through the NavHost: Navigation Compose scrubs the pop
+    // transitions with the system gesture, so the library shows through for
+    // real. No custom handler here — consuming the press would block that and
+    // the settings sheet dismisses itself first via its own back handling.
 
     // Auto-hide chrome after a moment of stillness, but never mid-scrub.
     if (state.chromeVisible && !state.settingsOpen && !scrubbing) {
@@ -283,19 +270,6 @@ private fun ReaderContent(
             // on entry so page turns work with no tappable focused first.
             .focusRequester(focusRequester)
             .focusable()
-            .graphicsLayer {
-                // System-style back preview: shrink, fade, and round corners
-                // with the gesture. The library itself can't render beneath
-                // (single-activity back stack), so the page dips against scrim
-                // exactly like the platform preview.
-                val p = backProgress.coerceIn(0f, 1f)
-                val scale = predictiveBackScale(backProgress)
-                scaleX = scale
-                scaleY = scale
-                alpha = 1f - PREDICTIVE_BACK_FADE * p
-                shape = RoundedCornerShape((PREDICTIVE_BACK_CORNER_DP * p).dp)
-                clip = p > 0f
-            }
             .onPreviewKeyEvent { event ->
                 val action = volumeKeyAction(event.key, event.type, state.volumeKeys)
                 if (action != null) {
@@ -764,24 +738,6 @@ private fun ReaderScreenPreview() {
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
 
-/** Page shrink at a fully-committed predictive back gesture. */
-private const val PREDICTIVE_BACK_SHRINK = 0.08f
-
-/** Page fade at a fully-committed predictive back gesture. */
-private const val PREDICTIVE_BACK_FADE = 0.25f
-
-/** Corner radius (dp) at a fully-committed predictive back gesture. */
-private const val PREDICTIVE_BACK_CORNER_DP = 28f
-
-/**
- * Page scale for a predictive back [progress] (`0f` at rest, `1f` committed).
- *
- * The reader dips slightly as the gesture drives home, mirroring the system
- * back preview without ever leaving the page on a cancelled gesture. Pure for
- * testability.
- */
-internal fun predictiveBackScale(progress: Float): Float =
-    1f - PREDICTIVE_BACK_SHRINK * progress.coerceIn(0f, 1f)
 /** Content width cap on expanded windows (M3 readability guidance). */
 private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
 
