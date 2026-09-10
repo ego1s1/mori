@@ -105,7 +105,8 @@ class OnboardingViewModelTest {
             assertTrue(awaitItem() is OnboardingUiState.Done)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(1, repository.refreshCalls)
+        // Final tick refresh plus the post-success guarantee.
+        assertEquals(2, repository.refreshCalls)
     }
 
     @Test
@@ -123,6 +124,43 @@ class OnboardingViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(0, repository.refreshCalls)
+    }
+
+    @Test
+    fun folderImportRecordsLinkedSource() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val (viewModel, _, _) = viewModel(
+            importer = FakeComicImporter(treeReport = FakeComicImporter.success(2)),
+            preferences = preferences,
+        )
+        viewModel.uiState.test {
+            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
+            assertTrue(awaitItem() is OnboardingUiState.Done)
+            cancelAndIgnoreRemainingEvents()
+        }
+        preferences.sourceTreeUri.test {
+            assertEquals(treeUri().toString(), awaitItem())
+        }
+    }
+
+    @Test
+    fun largeImportIndexesIncrementally() = runTest {
+        val repository = FakeComicsRepository()
+        val (viewModel, _, _) = viewModel(
+            importer = FakeComicImporter(treeReport = FakeComicImporter.success(25)),
+            repository = repository,
+        )
+        viewModel.uiState.test {
+            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
+            assertTrue(awaitItem() is OnboardingUiState.Done)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Throttled ticks (10, 20, 25) plus the final guarantee refresh.
+        assertEquals(4, repository.refreshCalls)
     }
 
     @Test

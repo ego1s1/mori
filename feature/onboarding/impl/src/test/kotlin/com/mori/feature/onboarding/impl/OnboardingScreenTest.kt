@@ -119,6 +119,15 @@ class OnboardingScreenTest {
     }
 
     @Test
+    fun importStepCustomOffersFolderOnly() {
+        setScreen(OnboardingUiState.Import(StorageLocation.CUSTOM))
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.ImportStep).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).assertDoesNotExist()
+    }
+
+    @Test
     fun importingShowsProgressAndCancel() {
         val actions = mutableListOf<OnboardingAction>()
         setScreen(OnboardingUiState.Importing(done = 2, total = 5), actions = actions)

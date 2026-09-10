@@ -47,7 +47,11 @@ internal class FakeComicImporter(
     ): ImportReport {
         seenTrees += treeUri
         if (hangImport) kotlinx.coroutines.suspendCancellableCoroutine<Nothing> {}
-        return treeReport
+        val report = treeReport
+        report.items.forEachIndexed { index, _ ->
+            onProgress(index + 1, report.total)
+        }
+        return report
     }
 
     override suspend fun importDocuments(
@@ -56,7 +60,11 @@ internal class FakeComicImporter(
     ): ImportReport {
         seenDocuments += uris
         if (hangImport) kotlinx.coroutines.suspendCancellableCoroutine<Nothing> {}
-        return documentsReport
+        val report = documentsReport
+        report.items.forEachIndexed { index, _ ->
+            onProgress(index + 1, report.total)
+        }
+        return report
     }
 
     companion object {
