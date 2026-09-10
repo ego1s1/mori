@@ -80,6 +80,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ResumeTarget
 
 /**
  * Public tab content for the main viewport pager. Route and tab share one
@@ -89,15 +90,15 @@ import com.mori.core.model.LibraryQuery
 fun LibraryTabContent(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onResumeAvailable: (ResumeTarget?) -> Unit = {},
 ) {
     LibraryRouteContent(
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
-        onSettingsClick = onSettingsClick,
         modifier = modifier,
         viewModel = hiltViewModel(),
+        onResumeAvailable = onResumeAvailable,
     )
 }
 
@@ -105,14 +106,12 @@ fun LibraryTabContent(
 internal fun LibraryRoute(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     LibraryRouteContent(
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
-        onSettingsClick = onSettingsClick,
         modifier = modifier,
         viewModel = viewModel,
     )
@@ -122,9 +121,9 @@ internal fun LibraryRoute(
 private fun LibraryRouteContent(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel,
+    onResumeAvailable: (ResumeTarget?) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
@@ -142,12 +141,19 @@ private fun LibraryRouteContent(
             snackbarHost.showSnackbar(text)
         }
     }
+    // Resume ownership stays in the VM; the main navigator pill renders it.
+    val success = uiState as? LibraryUiState.Success
+    LaunchedEffect(success?.resumeTarget) {
+        val target = success?.resumeTarget
+        onResumeAvailable(
+            target?.let { ResumeTarget(it.id, it.lastPageIndex, it.title) },
+        )
+    }
     LibraryScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
-        onSettingsClick = onSettingsClick,
         snackbarHost = snackbarHost,
         modifier = modifier,
     )
@@ -160,7 +166,6 @@ internal fun LibraryScreen(
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -192,7 +197,6 @@ internal fun LibraryScreen(
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
-                        onSettingsClick = onSettingsClick,
                     )
                     if (uiState.filterOpen) {
                         LibrarySortFilterSheet(
@@ -212,7 +216,6 @@ private fun LibraryContent(
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -269,43 +272,12 @@ private fun LibraryContent(
             exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 96.dp),
         ) {
             FloatingToolbar(
                 onSearchClick = { onAction(LibraryAction.ToggleSearch) },
-                onSettingsClick = onSettingsClick,
                 onAction = onAction,
             )
-        }
-
-        val resume = state.resumeTarget
-        AnimatedVisibility(
-            visible = resume != null,
-            enter = MoriMotion.enter(MoriEnterKind.FAB),
-            exit = scaleOut(animationSpec = MoriMotion.calmFade()) +
-                fadeOut(animationSpec = MoriMotion.calmFade()),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 96.dp),
-        ) {
-            if (resume != null) {
-                FilledIconButton(
-                    onClick = { onReadClick(resume.id, resume.lastPageIndex) },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    ),
-                    modifier = Modifier
-                        .size(64.dp)
-                        .testTag(LibraryTestTags.ResumeFab),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.PlayArrow,
-                        contentDescription = stringResource(R.string.library_resume, resume.title),
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-            }
         }
     }
 }
@@ -354,7 +326,6 @@ private fun LibraryTopBar(
 @Composable
 private fun FloatingToolbar(
     onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -400,16 +371,6 @@ private fun FloatingToolbar(
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            IconButton(
-                onClick = onSettingsClick,
-                modifier = Modifier.testTag(LibraryTestTags.SettingsButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.Settings,
-                    contentDescription = stringResource(R.string.library_action_settings),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
         }
     }
 }
@@ -436,7 +397,7 @@ private fun LibraryBody(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 96.dp),
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 168.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
@@ -477,7 +438,7 @@ private fun LibraryEmptyState(
         actionLabel = stringResource(R.string.library_empty_rescan),
         onAction = onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
-        bottomPadding = 96.dp,
+        bottomPadding = 168.dp,
         actionTestTag = LibraryTestTags.EmptyRescan,
     )
 }
@@ -500,7 +461,6 @@ private fun LibraryScreenPreview() {
             onAction = {},
             onReadClick = { _, _ -> },
             onComicLongClick = {},
-            onSettingsClick = {},
         )
     }
 }

@@ -54,6 +54,9 @@ internal fun Project.configureAndroidApplicationDefaults() {
         defaultConfig {
             targetSdk = TARGET_SDK
         }
+        testOptions {
+            unitTests.isIncludeAndroidResources = true
+        }
     }
     disableReleaseUnitTests()
 }

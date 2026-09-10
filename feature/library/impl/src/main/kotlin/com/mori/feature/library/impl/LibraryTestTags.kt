@@ -13,8 +13,6 @@ object LibraryTestTags {
     const val EmptyRescan = "libraryEmptyRescan"
     const val Snackbar = "librarySnackbar"
     const val Toolbar = "libraryToolbar"
-    const val ResumeFab = "libraryResumeFab"
-    const val SettingsButton = "librarySettingsButton"
     const val SettingsSheet = "librarySettingsSheet"
 
     fun cardFor(id: String): String = "libraryCard:$id"

@@ -49,7 +49,6 @@ class LibraryScreenTest {
         actions: MutableList<LibraryAction> = mutableListOf(),
         onReadClick: (String, Int) -> Unit = { _, _ -> },
         onComicLongClick: (String) -> Unit = {},
-        onSettingsClick: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             MoriTheme {
@@ -58,7 +57,6 @@ class LibraryScreenTest {
                     onAction = actions::add,
                     onReadClick = onReadClick,
                     onComicLongClick = onComicLongClick,
-                    onSettingsClick = onSettingsClick,
                 )
             }
         }
@@ -157,25 +155,6 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun resumeFabOpensMostRecentlyTouched() {
-        var opened: Pair<String, Int>? = null
-        setScreen(success(), onReadClick = { id, index -> opened = id to index })
-
-        composeTestRule.onNodeWithTag(LibraryTestTags.ResumeFab).performClick()
-
-        // Both comics share updatedAt; either is a valid "last touched" answer.
-        assert(opened != null)
-    }
-
-    @Test
-    fun resumeFabHiddenWhenEmpty() {
-        setScreen(success().copy(comics = emptyList()))
-
-        composeTestRule.onAllNodesWithTag(LibraryTestTags.ResumeFab)
-            .assertCountEquals(0)
-    }
-
-    @Test
     fun filterSheetContentRendersOptions() {
         composeTestRule.setContent {
             MoriTheme {
@@ -210,13 +189,4 @@ class LibraryScreenTest {
         assert(actions.any { it is LibraryAction.FilterSelected })
     }
 
-    @Test
-    fun settingsButtonNavigatesToSettings() {
-        var settingsOpened = false
-        setScreen(success(), onSettingsClick = { settingsOpened = true })
-
-        composeTestRule.onNodeWithTag(LibraryTestTags.SettingsButton).performClick()
-
-        assert(settingsOpened)
-    }
 }
