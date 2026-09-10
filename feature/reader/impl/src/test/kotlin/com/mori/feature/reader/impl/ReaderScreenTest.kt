@@ -286,6 +286,35 @@ class ReaderScreenTest {
         assertEquals(3, actions.filterIsInstance<ReaderAction.NextPage>().size)
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun overlappingTwoFingerTapsBothRegister() {
+        // Fast skippers alternate fingers: the second finger lands before the
+        // first lifts. Each finger-up must still dispatch its own tap.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            down(0, spot)
+            down(1, spot)
+            up(0)
+            up(1)
+        }
+
+        assertEquals(2, actions.filterIsInstance<ReaderAction.NextPage>().size)
+    }
+
     @Test
     fun pageCounterShowsWhenChromeHidden() {
         composeTestRule.setContent {
