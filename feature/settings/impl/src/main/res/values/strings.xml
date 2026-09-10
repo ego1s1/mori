@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_card_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_title">Dynamic color</string>
+    <string name="settings_dynamic_subtitle">Match your wallpaper on Android 12+</string>
+    <string name="settings_amoled_title">AMOLED black</string>
+    <string name="settings_amoled_subtitle">True-black backgrounds in dark mode</string>
+    <string name="settings_motion">Motion</string>
+    <string name="settings_motion_expressive">Expressive</string>
+    <string name="settings_motion_calm">Calm</string>
+    <string name="settings_motion_caption">Expressive uses spring physics; calm fades quietly and honors reduced motion.</string>
+    <string name="settings_colors">Colors</string>
+    <string name="settings_card_reader">Reader defaults</string>
+    <string name="settings_direction">Reading direction</string>
+    <string name="settings_direction_ltr">Left to right</string>
+    <string name="settings_direction_rtl">Right to left</string>
+    <string name="settings_fit">Page fit</string>
+    <string name="settings_fit_width">Width</string>
+    <string name="settings_fit_height">Height</string>
+    <string name="settings_fit_original">Original</string>
+    <string name="settings_volume_title">Volume keys turn pages</string>
+    <string name="settings_volume_subtitle">Volume down goes forward, volume up goes back</string>
+    <string name="settings_keep_on_title">Keep screen on</string>
+    <string name="settings_keep_on_subtitle">Prevent the display from sleeping while reading</string>
+    <string name="settings_card_storage">Storage</string>
+    <string name="settings_storage_summary">%1$d comics • %2$s library • %3$s covers</string>
+    <string name="settings_clear_cache">Clear thumbnail cache</string>
+    <string name="settings_clear_caption">Covers regenerate the next time each comic is indexed.</string>
+    <string name="settings_location_title">Library location</string>
+    <string name="settings_location_subtitle">App-private storage</string>
+    <string name="settings_card_soon">Coming soon</string>
+    <string name="settings_soon_cb">CB7 and CBT support</string>
+    <string name="settings_soon_cb_subtitle">More archive formats</string>
+    <string name="settings_soon_sync">Cloud sync</string>
+    <string name="settings_soon_sync_subtitle">Progress across devices</string>
+    <string name="settings_card_about">About</string>
+    <string name="settings_about_app">Mori</string>
+    <string name="settings_about_app_subtitle">Work in progress</string>
+    <string name="settings_about_licenses">Open-source licenses</string>
+    <string name="settings_about_licenses_subtitle">Coming soon</string>
+    <string name="settings_soon_badge">Soon</string>
+</resources>

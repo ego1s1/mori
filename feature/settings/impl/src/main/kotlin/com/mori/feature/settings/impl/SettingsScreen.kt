@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -123,15 +124,19 @@ internal fun SettingsContent(
             .testTag(SettingsTestTags.Content),
     ) {
         Text(
-            text = "Settings",
+            text = stringResource(R.string.settings_title),
             style = MoriEmphasized.displaySmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
 
-        SettingsCard(title = "Appearance") {
-            OptionLabel("Theme")
+        SettingsCard(title = stringResource(R.string.settings_card_appearance)) {
+            OptionLabel(stringResource(R.string.settings_theme))
             PillToggleRow(
-                options = listOf("System", "Light", "Dark"),
+                options = listOf(
+                    stringResource(R.string.settings_theme_system),
+                    stringResource(R.string.settings_theme_light),
+                    stringResource(R.string.settings_theme_dark),
+                ),
                 selectedIndex = when (theme.mode) {
                     ThemeMode.SYSTEM -> 0
                     ThemeMode.LIGHT -> 1
@@ -150,20 +155,23 @@ internal fun SettingsContent(
                 },
             )
             MoriSettingSwitch(
-                title = "Dynamic color",
-                subtitle = "Match your wallpaper on Android 12+",
+                title = stringResource(R.string.settings_dynamic_title),
+                subtitle = stringResource(R.string.settings_dynamic_subtitle),
                 checked = theme.dynamicColor,
                 onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
             )
             MoriSettingSwitch(
-                title = "AMOLED black",
-                subtitle = "True-black backgrounds in dark mode",
+                title = stringResource(R.string.settings_amoled_title),
+                subtitle = stringResource(R.string.settings_amoled_subtitle),
                 checked = theme.amoled,
                 onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
             )
-            OptionLabel("Motion")
+            OptionLabel(stringResource(R.string.settings_motion))
             PillToggleRow(
-                options = listOf("Expressive", "Calm"),
+                options = listOf(
+                    stringResource(R.string.settings_motion_expressive),
+                    stringResource(R.string.settings_motion_calm),
+                ),
                 selectedIndex = if (motion == MotionStyle.EXPRESSIVE) 0 else 1,
                 onSelect = {
                     onAction(
@@ -174,11 +182,11 @@ internal fun SettingsContent(
                 },
             )
             Text(
-                text = "Expressive uses spring physics; calm fades quietly and honors reduced motion.",
+                text = stringResource(R.string.settings_motion_caption),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OptionLabel("Colors")
+            OptionLabel(stringResource(R.string.settings_colors))
             SchemePickerRow(
                 theme = theme,
                 onDynamic = { onAction(SettingsAction.SetDynamicColor(true)) },
@@ -186,10 +194,13 @@ internal fun SettingsContent(
             )
         }
 
-        SettingsCard(title = "Reader defaults") {
-            OptionLabel("Reading direction")
+        SettingsCard(title = stringResource(R.string.settings_card_reader)) {
+            OptionLabel(stringResource(R.string.settings_direction))
             PillToggleRow(
-                options = listOf("Left to right", "Right to left"),
+                options = listOf(
+                    stringResource(R.string.settings_direction_ltr),
+                    stringResource(R.string.settings_direction_rtl),
+                ),
                 selectedIndex = if (reader.direction == ReadingDirection.LEFT_TO_RIGHT) 0 else 1,
                 onSelect = {
                     onAction(
@@ -203,9 +214,13 @@ internal fun SettingsContent(
                     )
                 },
             )
-            OptionLabel("Page fit")
+            OptionLabel(stringResource(R.string.settings_fit))
             PillToggleRow(
-                options = listOf("Width", "Height", "Original"),
+                options = listOf(
+                    stringResource(R.string.settings_fit_width),
+                    stringResource(R.string.settings_fit_height),
+                    stringResource(R.string.settings_fit_original),
+                ),
                 selectedIndex = when (reader.pageFit) {
                     PageFit.WIDTH -> 0
                     PageFit.HEIGHT -> 1
@@ -224,25 +239,28 @@ internal fun SettingsContent(
                 },
             )
             MoriSettingSwitch(
-                title = "Volume keys turn pages",
-                subtitle = "Volume down goes forward, volume up goes back",
+                title = stringResource(R.string.settings_volume_title),
+                subtitle = stringResource(R.string.settings_volume_subtitle),
                 checked = reader.volumeKeys,
                 onCheckedChange = { onAction(SettingsAction.ToggleVolumeKeys) },
             )
             MoriSettingSwitch(
-                title = "Keep screen on",
-                subtitle = "Prevent the display from sleeping while reading",
+                title = stringResource(R.string.settings_keep_on_title),
+                subtitle = stringResource(R.string.settings_keep_on_subtitle),
                 checked = reader.keepScreenOn,
                 onCheckedChange = { onAction(SettingsAction.ToggleKeepScreenOn) },
             )
         }
 
-        SettingsCard(title = "Storage") {
+        SettingsCard(title = stringResource(R.string.settings_card_storage)) {
             if (storage != null) {
                 Text(
-                    text = "${storage.comicCount} comics • " +
-                        "${formatBytes(storage.libraryBytes)} library • " +
-                        "${formatBytes(storage.coversBytes)} covers",
+                    text = stringResource(
+                        R.string.settings_storage_summary,
+                        storage.comicCount,
+                        formatBytes(storage.libraryBytes),
+                        formatBytes(storage.coversBytes),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -252,7 +270,7 @@ internal fun SettingsContent(
                 onClick = { onAction(SettingsAction.ClearThumbnailCache) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Clear thumbnail cache")
+                Text(stringResource(R.string.settings_clear_cache))
             }
             Text(
                 text = "Covers regenerate the next time each comic is indexed.",
@@ -260,30 +278,30 @@ internal fun SettingsContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             PlaceholderRow(
-                title = "Library location",
-                subtitle = "App-private storage",
+                title = stringResource(R.string.settings_location_title),
+                subtitle = stringResource(R.string.settings_location_subtitle),
             )
         }
 
-        SettingsCard(title = "Coming soon") {
+        SettingsCard(title = stringResource(R.string.settings_card_soon)) {
             PlaceholderRow(
-                title = "CB7 and CBT support",
-                subtitle = "More archive formats",
+                title = stringResource(R.string.settings_soon_cb),
+                subtitle = stringResource(R.string.settings_soon_cb_subtitle),
             )
             PlaceholderRow(
-                title = "Cloud sync",
-                subtitle = "Progress across devices",
+                title = stringResource(R.string.settings_soon_sync),
+                subtitle = stringResource(R.string.settings_soon_sync_subtitle),
             )
         }
 
-        SettingsCard(title = "About") {
+        SettingsCard(title = stringResource(R.string.settings_card_about)) {
             PlaceholderRow(
-                title = "Mori",
-                subtitle = "Work in progress",
+                title = stringResource(R.string.settings_about_app),
+                subtitle = stringResource(R.string.settings_about_app_subtitle),
             )
             PlaceholderRow(
-                title = "Open-source licenses",
-                subtitle = "Coming soon",
+                title = stringResource(R.string.settings_about_licenses),
+                subtitle = stringResource(R.string.settings_about_licenses_subtitle),
             )
         }
 
@@ -414,7 +432,7 @@ private fun PlaceholderRow(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Text(
-                text = "Soon",
+                text = stringResource(R.string.settings_soon_badge),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
