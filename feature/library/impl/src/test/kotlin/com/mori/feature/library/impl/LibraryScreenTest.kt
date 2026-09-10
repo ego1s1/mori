@@ -147,6 +147,7 @@ class LibraryScreenTest {
         setScreen(success(), actions = actions)
 
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuButton).performClick()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuPopup).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.FilterButton).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuButton).performClick()
         composeTestRule.onNodeWithTag(LibraryTestTags.RefreshButton).performClick()

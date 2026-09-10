@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -34,6 +35,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -52,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +68,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -174,9 +178,12 @@ internal fun LibraryScreen(
     Scaffold(
         topBar = {
             if (uiState is LibraryUiState.Success) {
+                var menuOpen by rememberSaveable { mutableStateOf(false) }
                 LibraryTopBar(
                     comicCount = uiState.comics.size,
                     searchOpen = uiState.searchOpen,
+                    menuOpen = menuOpen,
+                    onMenuOpenChange = { menuOpen = it },
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
                 )
@@ -279,18 +286,19 @@ private fun LibraryContent(
  * Static compact app bar: the title and collection subtitle never move and the
  * background never shifts while scrolling (reference-reader style). One bar,
  * one color, always. Search stays visible; everything else lives in the
- * hamburger menu.
+ * top-end overflow menu (M3 convention).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
     comicCount: Int,
     searchOpen: Boolean,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
     onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
         title = {
             Column {
@@ -313,50 +321,6 @@ private fun LibraryTopBar(
                 )
             }
         },
-        navigationIcon = {
-            IconButton(
-                onClick = { menuOpen = true },
-                modifier = Modifier.testTag(LibraryTestTags.MenuButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.More,
-                    contentDescription = stringResource(R.string.library_menu),
-                )
-            }
-            DropdownMenu(
-                expanded = menuOpen,
-                onDismissRequest = { menuOpen = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.library_action_sort_filter)) },
-                    onClick = {
-                        menuOpen = false
-                        onAction(LibraryAction.OpenFilter)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = MoriIcons.Tune,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.testTag(LibraryTestTags.FilterButton),
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.library_action_rescan)) },
-                    onClick = {
-                        menuOpen = false
-                        onAction(LibraryAction.Refresh)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = MoriIcons.Refresh,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
-                )
-            }
-        },
         actions = {
             IconButton(
                 onClick = onSearchClick,
@@ -370,6 +334,65 @@ private fun LibraryTopBar(
                     },
                     contentDescription = stringResource(R.string.library_action_search),
                 )
+            }
+            Box {
+                IconButton(
+                    onClick = { onMenuOpenChange(true) },
+                    modifier = Modifier.testTag(LibraryTestTags.MenuButton),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.More,
+                        contentDescription = stringResource(R.string.library_menu),
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { onMenuOpenChange(false) },
+                    offset = DpOffset(0.dp, 4.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .widthIn(min = 112.dp, max = 280.dp)
+                        .testTag(LibraryTestTags.MenuPopup),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_action_sort_filter)) },
+                        onClick = {
+                            onMenuOpenChange(false)
+                            onAction(LibraryAction.OpenFilter)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = MoriIcons.Tune,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        modifier = Modifier.testTag(LibraryTestTags.FilterButton),
+                    )
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_action_rescan)) },
+                        onClick = {
+                            onMenuOpenChange(false)
+                            onAction(LibraryAction.Refresh)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = MoriIcons.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
+                    )
+                }
             }
         },
         modifier = modifier,
@@ -385,6 +408,8 @@ private fun LibraryBody(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Only the launching card registers a shared element; null = plain grid.
+    var launchingId by remember { mutableStateOf<String?>(null) }
     PullToRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { onAction(LibraryAction.Refresh) },
@@ -398,19 +423,32 @@ private fun LibraryBody(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 96.dp),
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 112.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag(LibraryTestTags.Grid),
             ) {
-                items(state.comics, key = { it.id }) { comic ->
+                items(
+                    state.comics,
+                    key = { it.id },
+                    contentType = { comic ->
+                        "${comic.error != null}-${comic.isInProgress}-${comic.isFinished}"
+                    },
+                ) { comic ->
                     ComicCard(
                         comic = comic,
-                        onClick = { onReadClick(comic.id, comic.lastPageIndex) },
-                        onLongClick = { onComicLongClick(comic.id) },
-                        modifier = Modifier.animateItem(),
+                        onClick = {
+                            launchingId = comic.id
+                            onReadClick(comic.id, comic.lastPageIndex)
+                        },
+                        onLongClick = {
+                            launchingId = comic.id
+                            onComicLongClick(comic.id)
+                        },
+                        sharedCover = launchingId == comic.id,
+                        modifier = Modifier,
                     )
                 }
             }
@@ -439,7 +477,7 @@ private fun LibraryEmptyState(
         actionLabel = stringResource(R.string.library_empty_rescan),
         onAction = onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
-        bottomPadding = 96.dp,
+        bottomPadding = 112.dp,
         actionTestTag = LibraryTestTags.EmptyRescan,
     )
 }

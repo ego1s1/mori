@@ -3,11 +3,7 @@ package com.mori.app
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -15,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
@@ -22,17 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -45,8 +39,6 @@ import com.mori.core.model.ResumeTarget
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 /** Top-level main viewport: Library and Settings as bottom-nav tabs. */
@@ -92,9 +84,9 @@ internal fun MainScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
 
-    // Tab bar -> pager.
+    // Tab bar -> pager. Guarded so a tap never fights an in-progress swipe.
     LaunchedEffect(selectedTab) {
-        if (pagerState.currentPage != selectedTab) {
+        if (pagerState.currentPage != selectedTab && !pagerState.isScrollInProgress) {
             pagerState.animateScrollToPage(selectedTab)
         }
     }
@@ -105,30 +97,13 @@ internal fun MainScreen(
         }
     }
 
-    // Predictive back on Settings returns to Library with a dip preview,
-    // mirroring the reader's exit gesture. Disabled mid-swipe so the pager
-    // and the gesture never fight over the page.
-    var tabBackProgress by remember { mutableFloatStateOf(0f) }
-    val backScope = rememberCoroutineScope()
+    // Predictive back on Settings returns to Library. No preview transform:
+    // wrapping the whole settings tree in a graphicsLayer forced a full
+    // offscreen buffer during swipes. Disabled mid-swipe so the pager and
+    // the gesture never fight over the page.
     PredictiveBackHandler(enabled = selectedTab == SETTINGS_TAB && !pagerState.isScrollInProgress) { progress ->
-        try {
-            progress.collect { event -> tabBackProgress = event.progress }
-            tabBackProgress = 0f
-            selectedTab = LIBRARY_TAB
-        } catch (_: CancellationException) {
-            // Ease back instead of snapping: cancelled gestures spring home.
-            val start = tabBackProgress
-            backScope.launch {
-                animate(
-                    initialValue = start,
-                    targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = 150,
-                        easing = MoriMotion.EmphasizedDecelerate,
-                    ),
-                ) { value, _ -> tabBackProgress = value }
-            }
-        }
+        progress.collect { }
+        selectedTab = LIBRARY_TAB
     }
 
     var resume by remember { mutableStateOf<ResumeTarget?>(null) }
@@ -151,6 +126,7 @@ internal fun MainScreen(
             HorizontalPager(
                 state = pagerState,
                 userScrollEnabled = true,
+                beyondViewportPageCount = 0,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
@@ -159,20 +135,7 @@ internal fun MainScreen(
                         onComicLongClick = onComicLongClick,
                         onResumeAvailable = { resume = it },
                     )
-                    else -> androidx.compose.foundation.layout.Box(
-                        modifier = Modifier.graphicsLayer {
-                            // Emphasized easing so the dip matches NavHost personality.
-                            val p = MoriMotion.EmphasizedDecelerate.transform(
-                                tabBackProgress.coerceIn(0f, 1f),
-                            )
-                            val scale = 1f - 0.08f * p
-                            scaleX = scale
-                            scaleY = scale
-                            alpha = 1f - 0.25f * p
-                        },
-                    ) {
-                        SettingsTabContent()
-                    }
+                    else -> SettingsTabContent()
                 }
             }
             AnimatedVisibility(
@@ -181,7 +144,10 @@ internal fun MainScreen(
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp),
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
+                    )
+                    .padding(bottom = 16.dp),
             ) {
                 MainNavigator(
                     selectedTab = selectedTab,

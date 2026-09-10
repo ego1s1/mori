@@ -10,8 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import java.io.File
 
 /**
@@ -37,8 +40,14 @@ fun MoriCoverArt(
             modifier = Modifier.size(40.dp),
         )
         if (coverPath != null) {
+            // No per-load fade: the global loader crossfades, but grid cells
+            // recycling through a fling must snap, not alpha-blend per frame.
+            val request = ImageRequest.Builder(LocalContext.current)
+                .data(File(coverPath))
+                .crossfade(false)
+                .build()
             AsyncImage(
-                model = File(coverPath),
+                model = request,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

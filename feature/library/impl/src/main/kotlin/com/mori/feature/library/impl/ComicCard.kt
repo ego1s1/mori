@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -49,6 +50,7 @@ internal fun ComicCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    sharedCover: Boolean = false,
 ) {
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -62,11 +64,13 @@ internal fun ComicCard(
                 onLongClickLabel = stringResource(R.string.library_card_details),
             ),
     ) {
-        // Cover morphs into the detail hero on launch (shared element).
+        // Cover morphs into the detail hero on launch (shared element), but
+        // only the launching card registers — tracking every card costs a
+        // shared-transition overlay per scroll frame.
         Box(
             modifier = Modifier
                 .aspectRatio(COVER_ASPECT)
-                .then(sharedCoverModifier(comic.id)),
+                .then(if (sharedCover) sharedCoverModifier(comic.id) else Modifier),
         ) {
             MoriCoverArt(
                 coverPath = comic.coverPath,
@@ -111,17 +115,20 @@ internal fun ComicCard(
             }
 
             Column(modifier = Modifier.align(Alignment.BottomStart)) {
+                // Hoisted out of the scroll frame: one brush per card composition,
+                // not one allocation per redraw.
+                val scrim = remember {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.78f),
+                        ),
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.78f),
-                                ),
-                            ),
-                        )
+                        .background(scrim)
                         .padding(horizontal = 8.dp)
                         .padding(top = 18.dp, bottom = 6.dp),
                 ) {

@@ -43,14 +43,14 @@ internal fun MainNavigator(
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 3.dp,
         modifier = modifier.testTag(MainTestTags.Navigator),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             NavDestination(
                 selected = selectedTab == 0,
@@ -101,7 +101,7 @@ private fun NavDestination(
             .clickable(onClick = onClick, role = Role.Tab)
             .semantics { this.selected = selected }
             .testTag(testTag)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -114,7 +114,7 @@ private fun NavDestination(
                     },
                     CircleShape,
                 )
-                .padding(horizontal = 14.dp, vertical = 5.dp),
+                .padding(horizontal = 16.dp, vertical = 4.dp),
         ) {
             Icon(
                 imageVector = icon,
@@ -124,7 +124,7 @@ private fun NavDestination(
                     accent -> MaterialTheme.colorScheme.onTertiaryContainer
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
         Text(
