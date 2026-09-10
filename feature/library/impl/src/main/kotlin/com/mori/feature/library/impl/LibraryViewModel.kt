@@ -3,6 +3,7 @@ package com.mori.feature.library.impl
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mori.core.data.ComicImporter
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -25,9 +27,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-internal class LibraryViewModel @Inject constructor(
+class LibraryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
+    private val importer: ComicImporter,
     private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
@@ -114,13 +117,25 @@ internal class LibraryViewModel @Inject constructor(
     }
 
     private fun refresh() {
-        if (refreshing.value) return
+            if (refreshing.value) return
         viewModelScope.launch {
             refreshing.value = true
             try {
                 val report = repository.refreshLibrary()
-                if (report.failed > 0) {
-                    messageChannel.send(LibraryMessage.IndexFailed(report.failed))
+                // Linked custom folder (Mihon local-source policy): pull new
+                // files in, then index. Copies are idempotent by name+size.
+                val treeUri = preferences.sourceTreeUri.first()
+                var linked = 0
+                if (treeUri != null) {
+                    runCatching {
+                        val uri = android.net.Uri.parse(treeUri)
+                        linked = importer.importTree(uri) { _, _ -> }.succeeded
+                    }
+                }
+                val rescan = if (linked > 0) repository.refreshLibrary() else null
+                val failed = report.failed + (rescan?.failed ?: 0)
+                if (failed > 0) {
+                    messageChannel.send(LibraryMessage.IndexFailed(failed))
                 }
             } catch (e: Exception) {
                 messageChannel.send(LibraryMessage.RescanFailed)

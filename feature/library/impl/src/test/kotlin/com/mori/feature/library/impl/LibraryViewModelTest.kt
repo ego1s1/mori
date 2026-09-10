@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.ImportReport
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,7 +28,8 @@ class LibraryViewModelTest {
         repository: TestComicsRepository = TestComicsRepository(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
         preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
-    ) = LibraryViewModel(savedStateHandle, repository, preferences)
+        importer: FakeComicImporter = FakeComicImporter(),
+    ) = LibraryViewModel(savedStateHandle, repository, importer, preferences)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
@@ -100,6 +102,37 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.Refresh)
             assertEquals(LibraryMessage.RescanFailed, awaitItem())
         }
+    }
+
+    @Test
+    fun refreshPullsLinkedFolderThenReindexes() = runTest {
+        val repository = TestComicsRepository()
+        val preferences = TestPreferencesDataSource()
+        val importer = FakeComicImporter(
+            treeReport = ImportReport(2, 2, 0, emptyList()),
+        )
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = preferences,
+            importer = importer,
+        )
+        preferences.setSourceTreeUri("content://tree/linked")
+        viewModel.uiState.test {
+            awaitSuccess()
+            viewModel.onAction(LibraryAction.Refresh)
+            // Refresh completes synchronously in tests; assert the settled
+            // value directly (emission-awaiting hangs with nested stateIn).
+            val settled = viewModel.uiState.value
+            assertTrue(settled is LibraryUiState.Success)
+            assertEquals(false, (settled as LibraryUiState.Success).refreshing)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(
+            listOf(android.net.Uri.parse("content://tree/linked")),
+            importer.seenTrees,
+        )
+        // Initial index plus post-import reindex.
+        assertEquals(2, repository.refreshCalls)
     }
 
     @Test

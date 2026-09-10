@@ -212,8 +212,15 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun contextAvailableForUriParsing() {
-        // Sanity: Robolectric provides a working application context for Uri handling.
+    fun indexRefreshThrottlesAcrossImport() {
+        assertEquals(false, shouldRefreshIndex(done = 3, total = 100, lastRefreshDone = 0))
+        assertEquals(true, shouldRefreshIndex(done = 10, total = 100, lastRefreshDone = 0))
+        assertEquals(true, shouldRefreshIndex(done = 100, total = 100, lastRefreshDone = 95))
+        assertEquals(false, shouldRefreshIndex(done = 0, total = 0, lastRefreshDone = 0))
+    }
+
+    @Test
+    fun contextAvailableForUriParsing() {        // Sanity: Robolectric provides a working application context for Uri handling.
         val context: android.content.Context = ApplicationProvider.getApplicationContext()
         assertTrue(context.packageName.isNotEmpty())
     }

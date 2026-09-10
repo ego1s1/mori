@@ -139,12 +139,19 @@ internal class OnboardingViewModel @Inject constructor(
         if (importJob?.isActive == true) return
         step.value = Step.IMPORT
         importPhase.value = ImportPhase.Progress(done = 0, total = 0)
+        var lastIndexed = 0
         importJob = viewModelScope.launch {
             try {
                 val report = run { done, total ->
                     val current = importPhase.value
                     if (current is ImportPhase.Progress) {
                         importPhase.value = current.copy(done = done, total = total)
+                    }
+                    // Index incrementally so the shelf fills live behind the
+                    // progress screen instead of appearing only at the end.
+                    if (shouldRefreshIndex(done, total, lastIndexed)) {
+                        lastIndexed = done
+                        launch { runCatching { repository.refreshLibrary() } }
                     }
                 }
                 // Copying alone leaves the library empty: index the new files now
@@ -161,3 +168,13 @@ internal class OnboardingViewModel @Inject constructor(
         }
     }
 }
+
+/**
+ * Refresh the index at most every [INDEX_REFRESH_EVERY] files (plus always on
+ * the final tick): each refresh re-walks the library, so per-file refreshes
+ * would turn an N-file import quadratic.
+ */
+internal fun shouldRefreshIndex(done: Int, total: Int, lastRefreshDone: Int): Boolean =
+    total > 0 && (done >= total || done - lastRefreshDone >= INDEX_REFRESH_EVERY)
+
+private const val INDEX_REFRESH_EVERY = 10
