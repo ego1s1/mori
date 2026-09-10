@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.mori.core.model.ColorSchemeChoice
 
 private val LightColors = lightColorScheme(
     primary = MoriSeedDark,
@@ -46,6 +47,65 @@ private fun ColorScheme.amoled(): ColorScheme = copy(
     surfaceContainerHighest = Color(0xFF232323),
 )
 
+private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorScheme {
+    if (darkTheme) {
+        return when (choice) {
+            ColorSchemeChoice.MORI -> DarkColors
+            ColorSchemeChoice.OCEAN -> darkColorScheme(
+                primary = OceanColors.PrimaryDark,
+                onPrimary = OceanColors.OnPrimaryDark,
+                primaryContainer = OceanColors.ContainerDark,
+                onPrimaryContainer = OceanColors.OnContainerDark,
+                secondary = OceanColors.SecondaryDark,
+                tertiary = OceanColors.TertiaryDark,
+            )
+            ColorSchemeChoice.FOREST -> darkColorScheme(
+                primary = ForestColors.PrimaryDark,
+                onPrimary = ForestColors.OnPrimaryDark,
+                primaryContainer = ForestColors.ContainerDark,
+                onPrimaryContainer = ForestColors.OnContainerDark,
+                secondary = ForestColors.SecondaryDark,
+                tertiary = ForestColors.TertiaryDark,
+            )
+            ColorSchemeChoice.SUNSET -> darkColorScheme(
+                primary = SunsetColors.PrimaryDark,
+                onPrimary = SunsetColors.OnPrimaryDark,
+                primaryContainer = SunsetColors.ContainerDark,
+                onPrimaryContainer = SunsetColors.OnContainerDark,
+                secondary = SunsetColors.SecondaryDark,
+                tertiary = SunsetColors.TertiaryDark,
+            )
+        }
+    }
+    return when (choice) {
+        ColorSchemeChoice.MORI -> LightColors
+        ColorSchemeChoice.OCEAN -> lightColorScheme(
+            primary = OceanColors.PrimaryLight,
+            onPrimary = OceanColors.OnPrimaryLight,
+            primaryContainer = OceanColors.ContainerLight,
+            onPrimaryContainer = OceanColors.OnContainerLight,
+            secondary = OceanColors.SecondaryLight,
+            tertiary = OceanColors.TertiaryLight,
+        )
+        ColorSchemeChoice.FOREST -> lightColorScheme(
+            primary = ForestColors.PrimaryLight,
+            onPrimary = ForestColors.OnPrimaryLight,
+            primaryContainer = ForestColors.ContainerLight,
+            onPrimaryContainer = ForestColors.OnContainerLight,
+            secondary = ForestColors.SecondaryLight,
+            tertiary = ForestColors.TertiaryLight,
+        )
+        ColorSchemeChoice.SUNSET -> lightColorScheme(
+            primary = SunsetColors.PrimaryLight,
+            onPrimary = SunsetColors.OnPrimaryLight,
+            primaryContainer = SunsetColors.ContainerLight,
+            onPrimaryContainer = SunsetColors.OnContainerLight,
+            secondary = SunsetColors.SecondaryLight,
+            tertiary = SunsetColors.TertiaryLight,
+        )
+    }
+}
+
 /**
  * Mori theme: Material 3 Expressive, dark-first gallery aesthetic with dynamic color.
  *
@@ -56,6 +116,7 @@ private fun ColorScheme.amoled(): ColorScheme = copy(
 fun MoriTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    colorScheme: ColorSchemeChoice = ColorSchemeChoice.MORI,
     amoled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -64,13 +125,12 @@ fun MoriTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColors
-        else -> LightColors
+        else -> presetScheme(colorScheme, darkTheme)
     }
-    val colorScheme = if (amoled && darkTheme) baseScheme.amoled() else baseScheme
+    val scheme = if (amoled && darkTheme) baseScheme.amoled() else baseScheme
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = scheme,
         typography = MoriTypography,
         shapes = MoriShapes,
         content = content,

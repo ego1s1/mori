@@ -2,6 +2,7 @@ package com.mori.core.datastore
 
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.StorageLocation
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
 interface MoriPreferencesDataSource {
     /** True once the user completes onboarding (folder selected/imported). */
     val onboardingCompleted: Flow<Boolean>
+
+    /** Where the library lives (app-private copies vs linked custom folder). */
+    val storageLocation: Flow<StorageLocation>
 
     /** The last-selected SAF source tree URI, if the user granted one for rescans. */
     val sourceTreeUri: Flow<String?>
@@ -34,6 +38,8 @@ interface MoriPreferencesDataSource {
     suspend fun setOnboardingCompleted(completed: Boolean)
 
     suspend fun setSourceTreeUri(uri: String?)
+
+    suspend fun setStorageLocation(location: StorageLocation)
 
     suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences)
 

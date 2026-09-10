@@ -11,5 +11,6 @@ enum class ThemeMode {
 data class ThemePreferences(
     val mode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
+    val colorScheme: ColorSchemeChoice = ColorSchemeChoice.MORI,
     val amoled: Boolean = false,
 )

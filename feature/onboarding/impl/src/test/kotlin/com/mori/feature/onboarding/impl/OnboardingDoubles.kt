@@ -10,6 +10,7 @@ import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.StorageLocation
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
@@ -108,6 +109,8 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
+    private val storageLocationFlow = MutableStateFlow(StorageLocation.APP)
+    override val storageLocation: Flow<StorageLocation> = storageLocationFlow.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
@@ -123,6 +126,10 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override suspend fun setSourceTreeUri(uri: String?) {
         treeUri.value = uri
+    }
+
+    override suspend fun setStorageLocation(location: StorageLocation) {
+        storageLocationFlow.value = location
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {

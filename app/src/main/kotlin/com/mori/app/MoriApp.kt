@@ -25,6 +25,7 @@ import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.rememberSystemReduceMotion
 import com.mori.core.designsystem.resolveExpressiveMotionEnabled
+import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemeMode
 import com.mori.feature.detail.api.navigateToDetail
@@ -59,6 +60,7 @@ fun MoriApp(
     MoriTheme(
         darkTheme = darkTheme,
         dynamicColor = theme?.dynamicColor ?: true,
+        colorScheme = theme?.colorScheme ?: ColorSchemeChoice.MORI,
         amoled = theme?.amoled ?: false,
     ) {
         CompositionLocalProvider(
