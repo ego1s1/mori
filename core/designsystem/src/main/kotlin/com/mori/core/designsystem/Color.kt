@@ -1,6 +1,7 @@
 package com.mori.core.designsystem
 
 import androidx.compose.ui.graphics.Color
+import com.mori.core.model.ColorSchemeChoice
 
 // Static fallback palette (used when dynamic color is off or unavailable on API < 31).
 // Seeds chosen for a deep-ink gallery feel; components must still use colorScheme roles.
@@ -52,8 +53,7 @@ internal object ForestColors {
     val TertiaryDark = Color(0xFFD4C489)
 }
 
-internal object SunsetColors {
-    val PrimaryLight = Color(0xFF8C4E00)
+internal object SunsetColors {    val PrimaryLight = Color(0xFF8C4E00)
     val OnPrimaryLight = Color(0xFFFFFFFF)
     val ContainerLight = Color(0xFFFFDDBA)
     val OnContainerLight = Color(0xFF2E1500)
@@ -65,4 +65,12 @@ internal object SunsetColors {
     val OnContainerDark = Color(0xFFFFDDBA)
     val SecondaryDark = Color(0xFFD8C5A0)
     val TertiaryDark = Color(0xFFEFB8C8)
+}
+
+/** Swatch color identifying a scheme choice in pickers (light primary). */
+fun ColorSchemeChoice.previewColor(): Color = when (this) {
+    ColorSchemeChoice.MORI -> MoriSeedDark
+    ColorSchemeChoice.OCEAN -> OceanColors.PrimaryLight
+    ColorSchemeChoice.FOREST -> ForestColors.PrimaryLight
+    ColorSchemeChoice.SUNSET -> SunsetColors.PrimaryLight
 }

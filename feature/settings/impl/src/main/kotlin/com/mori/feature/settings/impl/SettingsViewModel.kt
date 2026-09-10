@@ -65,6 +65,9 @@ class SettingsViewModel @Inject constructor(
             is SettingsAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }
             is SettingsAction.SetAmoled -> updateTheme { it.copy(amoled = action.enabled) }
             is SettingsAction.SetMotionStyle -> updateMotion(action.style)
+            is SettingsAction.SetColorScheme -> updateTheme {
+                it.copy(colorScheme = action.scheme, dynamicColor = false)
+            }
             is SettingsAction.SetDirection -> updateReader { it.copy(direction = action.direction) }
             is SettingsAction.SetPageFit -> updateReader { it.copy(pageFit = action.fit) }
             SettingsAction.ToggleVolumeKeys -> updateReader { it.copy(volumeKeys = !it.volumeKeys) }

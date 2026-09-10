@@ -4,6 +4,9 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.mori.core.data.ComicImporter
+import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.StorageLocation
+import com.mori.core.model.ThemeMode
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -29,6 +32,13 @@ class OnboardingViewModelTest {
 
     private fun treeUri(): Uri = Uri.parse("content://com.example/tree/1")
 
+    private suspend fun app.cash.turbine.ReceiveTurbine<OnboardingUiState>.awaitImporting(): OnboardingUiState {
+        while (true) {
+            val next = awaitItem()
+            if (next is OnboardingUiState.Importing) return next
+        }
+    }
+
     @Test
     fun startsAtWelcome() = runTest {
         val (viewModel, _, _) = viewModel()
@@ -45,7 +55,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             val done = awaitItem()
             assertTrue(done is OnboardingUiState.Done)
             done as OnboardingUiState.Done
@@ -63,21 +73,21 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FilesSelected(uris))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
         }
         assertEquals(listOf(uris), (importer as FakeComicImporter).seenDocuments)
     }
 
     @Test
-    fun cancelImportReturnsToWelcome() = runTest {
+    fun cancelImportReturnsToImport() = runTest {
         val (viewModel, _, _) = viewModel(importer = FakeComicImporter(hangImport = true))
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             viewModel.onAction(OnboardingAction.CancelImport)
-            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            assertTrue(awaitItem() is OnboardingUiState.Import)
         }
     }
 
@@ -91,7 +101,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
             cancelAndIgnoreRemainingEvents()
         }
@@ -108,7 +118,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
             cancelAndIgnoreRemainingEvents()
         }
@@ -123,7 +133,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
         }
         viewModel.onAction(OnboardingAction.Finish)
@@ -133,17 +143,77 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun importMoreReturnsToWelcome() = runTest {
+    fun importMoreReturnsToImport() = runTest {
         val (viewModel, _, _) = viewModel(
             importer = FakeComicImporter(treeReport = FakeComicImporter.success(1)),
         )
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
-            assertTrue(awaitItem() is OnboardingUiState.Importing)
+            assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
             viewModel.onAction(OnboardingAction.ImportMore)
+            val back = awaitItem()
+            assertTrue(back is OnboardingUiState.Import)
+        }
+    }
+
+    @Test
+    fun wizardWalksWelcomeToImport() = runTest {
+        val (viewModel, _, _) = viewModel()
+        viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.GetStarted)
+            val storage = awaitItem()
+            assertTrue(storage is OnboardingUiState.Storage)
+            assertEquals(StorageLocation.APP, (storage as OnboardingUiState.Storage).location)
+            viewModel.onAction(OnboardingAction.ContinueStep)
+            val appearance = awaitItem()
+            assertTrue(appearance is OnboardingUiState.Appearance)
+            viewModel.onAction(OnboardingAction.ContinueStep)
+            val import = awaitItem()
+            assertTrue(import is OnboardingUiState.Import)
+            viewModel.onAction(OnboardingAction.BackStep)
+            assertTrue(awaitItem() is OnboardingUiState.Appearance)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun storageAndThemeChoicesPersist() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val (viewModel, _, _) = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            awaitItem() // Welcome
+            viewModel.onAction(OnboardingAction.GetStarted)
+            awaitItem() // Storage
+            viewModel.onAction(
+                OnboardingAction.CustomFolderChosen(treeUri(), "Manga"),
+            )
+            val storage = awaitItem()
+            assertTrue(storage is OnboardingUiState.Storage)
+            storage as OnboardingUiState.Storage
+            assertEquals(StorageLocation.CUSTOM, storage.location)
+            assertEquals("Manga", storage.folderName)
+            viewModel.onAction(OnboardingAction.ContinueStep)
+            awaitItem() // Appearance
+            viewModel.onAction(OnboardingAction.SetThemeMode(ThemeMode.DARK))
+            viewModel.onAction(OnboardingAction.SetColorScheme(ColorSchemeChoice.OCEAN))
+            val appearance = awaitItem()
+            assertTrue(appearance is OnboardingUiState.Appearance)
+            cancelAndIgnoreRemainingEvents()
+        }
+        preferences.themePreferences.test {
+            val theme = awaitItem()
+            assertEquals(ThemeMode.DARK, theme.mode)
+            assertEquals(ColorSchemeChoice.OCEAN, theme.colorScheme)
+            assertEquals(false, theme.dynamicColor)
+        }
+        preferences.storageLocation.test {
+            assertEquals(StorageLocation.CUSTOM, awaitItem())
+        }
+        preferences.sourceTreeUri.test {
+            assertEquals(treeUri().toString(), awaitItem())
         }
     }
 

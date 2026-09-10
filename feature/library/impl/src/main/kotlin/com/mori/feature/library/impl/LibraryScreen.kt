@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -72,6 +75,7 @@ import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 
 /**
@@ -186,6 +190,12 @@ private fun LibraryContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // One-tap shelf filters (Reddit-chip style): the same filters as
+            // the sheet, always a thumb away.
+            FilterChipRow(
+                filter = state.query.filter,
+                onFilter = { onAction(LibraryAction.FilterSelected(it)) },
+            )
             AnimatedVisibility(
                 visible = state.searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),
@@ -275,6 +285,39 @@ private fun LibraryContent(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * One-tap shelf filters: tonal chips for the same filters the sheet offers.
+ */
+@Composable
+private fun FilterChipRow(
+    filter: LibraryFilter,
+    onFilter: (LibraryFilter) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        items(LibraryFilter.entries.toList(), key = { it.name }) { option ->
+            FilterChip(
+                selected = filter == option,
+                onClick = { onFilter(option) },
+                label = {
+                    Text(
+                        when (option) {
+                            LibraryFilter.ALL -> "All"
+                            LibraryFilter.IN_PROGRESS -> "Reading"
+                            LibraryFilter.UNREAD -> "Unread"
+                            LibraryFilter.FINISHED -> "Finished"
+                        },
+                    )
+                },
+            )
         }
     }
 }

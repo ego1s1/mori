@@ -3,6 +3,7 @@ package com.mori.feature.settings.impl
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
@@ -27,6 +28,8 @@ sealed interface SettingsAction {
     data class SetAmoled(val enabled: Boolean) : SettingsAction
 
     data class SetMotionStyle(val style: MotionStyle) : SettingsAction
+
+    data class SetColorScheme(val scheme: ColorSchemeChoice) : SettingsAction
 
     data class SetDirection(val direction: ReadingDirection) : SettingsAction
 

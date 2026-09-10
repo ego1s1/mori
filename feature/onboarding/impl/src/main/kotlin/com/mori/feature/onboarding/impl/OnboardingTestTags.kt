@@ -6,4 +6,9 @@ object OnboardingTestTags {
     const val PickFiles = "onboardingPickFiles"
     const val Progress = "onboardingProgress"
     const val Finish = "onboardingFinish"
+    const val GetStarted = "onboardingGetStarted"
+    const val StorageStep = "onboardingStorageStep"
+    const val AppearanceStep = "onboardingAppearanceStep"
+    const val ImportStep = "onboardingImportStep"
+    const val StepContinue = "onboardingStepContinue"
 }

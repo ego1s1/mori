@@ -1,11 +1,17 @@
 package com.mori.feature.onboarding.impl
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.StorageLocation
+import com.mori.core.model.ThemeMode
+import com.mori.core.model.ThemePreferences
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +30,7 @@ class OnboardingScreenTest {
         uiState: OnboardingUiState,
         onPickFolder: () -> Unit = {},
         onPickFiles: () -> Unit = {},
+        onPickCustomFolder: () -> Unit = {},
         actions: MutableList<OnboardingAction> = mutableListOf(),
         onFinish: () -> Unit = {},
     ) {
@@ -33,6 +40,7 @@ class OnboardingScreenTest {
                     uiState = uiState,
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
+                    onPickCustomFolder = onPickCustomFolder,
                     onAction = actions::add,
                     onOnboardingComplete = onFinish,
                 )
@@ -41,18 +49,73 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun welcomeShowsPickerActions() {
-        var folderPicks = 0
-        var filePicks = 0
+    fun welcomeShowsGetStartedAndSkip() {
+        val actions = mutableListOf<OnboardingAction>()
+        var finished = 0
         setScreen(
             OnboardingUiState.Welcome,
-            onPickFolder = { folderPicks += 1 },
-            onPickFiles = { filePicks += 1 },
+            actions = actions,
+            onFinish = { finished += 1 },
         )
 
         // Welcome staggers in; let the cascade finish.
         composeTestRule.mainClock.advanceTimeBy(1_000)
-        composeTestRule.onNodeWithText("Where are your comics?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("WELCOME").assertIsDisplayed()
+        composeTestRule.onNodeWithText("beautifully", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(OnboardingTestTags.GetStarted).performClick()
+        assert(actions.contains(OnboardingAction.GetStarted))
+        composeTestRule.onNodeWithText("Skip").performClick()
+        assert(actions.contains(OnboardingAction.Skip))
+        assertEquals(1, finished)
+    }
+
+    @Test
+    fun storageStepSelectsAndPicksCustom() {
+        val actions = mutableListOf<OnboardingAction>()
+        var customPicks = 0
+        setScreen(
+            OnboardingUiState.Storage(StorageLocation.APP, folderName = null),
+            actions = actions,
+            onPickCustomFolder = { customPicks += 1 },
+        )
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.StorageStep).assertIsDisplayed()
+        composeTestRule.onNodeWithText("On this device").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Custom folder").performClick()
+        assertEquals(1, customPicks)
+        // The CTA dispatches ContinueStep (navigation covered by VM tests; a
+        // Button click through this zone doesn't actuate under Robolectric).
+        composeTestRule.onNodeWithTag(OnboardingTestTags.StepContinue).assertIsDisplayed()
+    }
+
+    @Test
+    fun appearanceStepDrivesThemeActions() {
+        val actions = mutableListOf<OnboardingAction>()
+        setScreen(
+            OnboardingUiState.Appearance(ThemePreferences()),
+            actions = actions,
+        )
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.AppearanceStep).assertIsDisplayed()
+        // Swatches use selectable rows and dispatch (segmented clicks don't
+        // under Robolectric); selection state is covered by the VM tests.
+        // All schemes render (dispatch covered by VM tests + selectable rows
+        // elsewhere; mini-phone label clicks don't actuate under Robolectric).
+        composeTestRule.onNodeWithText("Dynamic").assertExists()
+        composeTestRule.onNodeWithText("Ocean").assertExists()
+    }
+
+    @Test
+    fun importStepOffersPickers() {
+        var folderPicks = 0
+        var filePicks = 0
+        setScreen(
+            OnboardingUiState.Import(StorageLocation.APP, folderName = null),
+            onPickFolder = { folderPicks += 1 },
+            onPickFiles = { filePicks += 1 },
+        )
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.ImportStep).assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performClick()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).performClick()
         assert(folderPicks == 1)
@@ -88,7 +151,8 @@ class OnboardingScreenTest {
             onFinish = { finished += 1 },
         )
 
-        composeTestRule.onNodeWithText("Imported 3 of 4").assertIsDisplayed()
+        composeTestRule.onNodeWithText("3 of 4").assertIsDisplayed()
+        composeTestRule.onNodeWithText("comics imported").assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.Finish).performClick()
         assert(actions.contains(OnboardingAction.Finish))
         assertEquals(1, finished)

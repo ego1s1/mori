@@ -1,6 +1,7 @@
 package com.mori.feature.settings.impl
 
 import app.cash.turbine.test
+import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -74,6 +75,22 @@ class SettingsViewModelTest {
             assertEquals(MotionStyle.EXPRESSIVE, awaitReady().motion)
             viewModel.onAction(SettingsAction.SetMotionStyle(MotionStyle.CALM))
             assertEquals(MotionStyle.CALM, awaitReadyWhere { it.motion == MotionStyle.CALM }.motion)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun colorSchemeActionPersistsAndDisablesDynamic() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        viewModel.uiState.test {
+            val initial = awaitReady()
+            assertEquals(true, initial.theme.dynamicColor)
+            viewModel.onAction(SettingsAction.SetColorScheme(ColorSchemeChoice.FOREST))
+            val settled = awaitReadyWhere {
+                it.theme.colorScheme == ColorSchemeChoice.FOREST && !it.theme.dynamicColor
+            }
+            assertEquals(ColorSchemeChoice.FOREST, settled.theme.colorScheme)
             cancelAndIgnoreRemainingEvents()
         }
     }

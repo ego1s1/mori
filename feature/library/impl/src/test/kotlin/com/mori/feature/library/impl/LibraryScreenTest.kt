@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import org.junit.Rule
 import org.junit.Test
@@ -85,6 +86,16 @@ class LibraryScreenTest {
 
         // Banana: lastPageIndex 2 of 10 -> 7 pages left; Apple is untouched.
         composeTestRule.onNodeWithText("7 left").assertIsDisplayed()
+    }
+
+    @Test
+    fun filterChipsDispatchSelection() {
+        val actions = mutableListOf<LibraryAction>()
+        setScreen(success(), actions = actions)
+
+        composeTestRule.onNodeWithText("Reading").performClick()
+
+        assert(actions.contains(LibraryAction.FilterSelected(LibraryFilter.IN_PROGRESS)))
     }
 
     @Test

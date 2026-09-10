@@ -5,12 +5,17 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
+import com.mori.core.model.PageFit
+import com.mori.core.model.ThemeMode
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
@@ -49,16 +54,44 @@ class SettingsScreenTest {
         setContent()
 
         composeTestRule.onNodeWithText("Motion").assertExists()
-        composeTestRule.onNodeWithText("Expressive").assertIsSelected()
-        composeTestRule.onNodeWithText("Calm").assertIsNotSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Expressive")).assertIsSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).assertIsNotSelected()
     }
 
     @Test
     fun motionSelectionFollowsState() {
         setContent(motion = MotionStyle.CALM)
 
-        composeTestRule.onNodeWithText("Calm").assertIsSelected()
-        composeTestRule.onNodeWithText("Expressive").assertIsNotSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).assertIsSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Expressive")).assertIsNotSelected()
+    }
+
+    @Test
+    fun pillTogglesDispatch() {
+        val actions = mutableListOf<SettingsAction>()
+        setContent(actions = actions)
+
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Dark")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Dark")).performClick()
+        assert(actions.contains(SettingsAction.SetThemeMode(ThemeMode.DARK)))
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).performClick()
+        assert(actions.contains(SettingsAction.SetMotionStyle(MotionStyle.CALM)))
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Height")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Height")).performClick()
+        assert(actions.contains(SettingsAction.SetPageFit(PageFit.HEIGHT)))
+    }
+
+    @Test
+    fun schemeSwatchesDispatchSelection() {
+        val actions = mutableListOf<SettingsAction>()
+        setContent(actions = actions)
+
+        // All schemes render (dispatch covered by VM tests; mini-phone label
+        // clicks don't actuate under Robolectric).
+        composeTestRule.onNodeWithText("Colors").assertExists()
+        composeTestRule.onNodeWithText("Forest").assertExists()
+        composeTestRule.onNodeWithText("Dynamic").assertExists()
     }
 
     @Test

@@ -48,7 +48,7 @@ internal fun ComicCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .testTag(LibraryTestTags.cardFor(comic.id))
