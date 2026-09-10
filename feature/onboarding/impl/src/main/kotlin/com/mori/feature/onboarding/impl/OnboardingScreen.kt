@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -31,10 +34,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -151,20 +157,11 @@ private fun WelcomeContent(
             enter = MoriMotion.enter(MoriEnterKind.FAB),
             exit = fadeOut(animationSpec = MoriMotion.calmFade()),
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(128.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = MoriIcons.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(64.dp),
-                    )
-                }
-            }
+            MorphingHero(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                icon = MoriIcons.MenuBook,
+            )
         }
         Spacer(modifier = Modifier.height(24.dp))
         AnimatedVisibility(
@@ -223,6 +220,48 @@ private fun WelcomeContent(
 
 private const val WELCOME_STEPS = 4
 
+/**
+ * Hero tile whose corners morph from rounded square toward circle on a bouncy
+ * spring shortly after appearing (M3 Expressive shape language).
+ */
+@Composable
+private fun MorphingHero(
+    containerColor: Color,
+    contentColor: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    var morphed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(HERO_MORPH_DELAY_MS)
+        morphed = true
+    }
+    val corner by animateDpAsState(
+        targetValue = if (morphed) 64.dp else 28.dp,
+        animationSpec = MoriMotion.heroSpring(),
+        label = "heroMorph",
+    )
+    Surface(
+        shape = RoundedCornerShape(corner),
+        color = containerColor,
+        modifier = modifier.size(128.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(64.dp),
+            )
+        }
+    }
+}
+
+private const val HERO_MORPH_DELAY_MS = 350L
+
+/** Summary beat before Done auto-advances home. */
+private const val DONE_AUTO_ADVANCE_MS = 1500L
+
 @Composable
 private fun ImportingContent(
     done: Int,
@@ -247,8 +286,16 @@ private fun ImportingContent(
                 style = MoriEmphasized.headlineSmall,
             )
             Spacer(modifier = Modifier.height(16.dp))
+            // Spring-smoothed bar: file copies land in bursts, the indicator
+            // glides instead of jumping.
+            val rawProgress = done.toFloat() / total
+            val smoothProgress by animateFloatAsState(
+                targetValue = rawProgress,
+                animationSpec = MoriMotion.heroSpring(),
+                label = "importProgress",
+            )
             LinearProgressIndicator(
-                progress = { done.toFloat() / total },
+                progress = { smoothProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(OnboardingTestTags.Progress),
@@ -268,6 +315,19 @@ private fun DoneContent(
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Auto-advance home once the summary lands; the button skips the wait.
+    // Guarded so fast taps can't finish twice.
+    var finished by remember { mutableStateOf(false) }
+    fun finishOnce() {
+        if (!finished) {
+            finished = true
+            onFinish()
+        }
+    }
+    LaunchedEffect(report) {
+        delay(DONE_AUTO_ADVANCE_MS)
+        finishOnce()
+    }
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -275,20 +335,11 @@ private fun DoneContent(
             .fillMaxSize()
             .padding(32.dp),
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = Modifier.size(128.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = MoriIcons.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(64.dp),
-                )
-            }
-        }
+        MorphingHero(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            icon = MoriIcons.Check,
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Imported ${report.succeeded} of ${report.total}",
@@ -306,7 +357,7 @@ private fun DoneContent(
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = onFinish,
+            onClick = ::finishOnce,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(OnboardingTestTags.Finish),

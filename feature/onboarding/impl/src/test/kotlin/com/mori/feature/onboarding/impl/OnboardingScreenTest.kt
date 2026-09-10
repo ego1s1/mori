@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.mori.core.designsystem.MoriTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +25,7 @@ class OnboardingScreenTest {
         onPickFolder: () -> Unit = {},
         onPickFiles: () -> Unit = {},
         actions: MutableList<OnboardingAction> = mutableListOf(),
+        onFinish: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             MoriTheme {
@@ -32,7 +34,7 @@ class OnboardingScreenTest {
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
                     onAction = actions::add,
-                    onOnboardingComplete = {},
+                    onOnboardingComplete = onFinish,
                 )
             }
         }
@@ -79,13 +81,28 @@ class OnboardingScreenTest {
     @Test
     fun doneShowsSummaryAndFinish() {
         val actions = mutableListOf<OnboardingAction>()
+        var finished = 0
         setScreen(
             OnboardingUiState.Done(FakeComicImporter.success(4, succeeded = 3)),
             actions = actions,
+            onFinish = { finished += 1 },
         )
 
         composeTestRule.onNodeWithText("Imported 3 of 4").assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.Finish).performClick()
         assert(actions.contains(OnboardingAction.Finish))
+        assertEquals(1, finished)
+    }
+
+    @Test
+    fun doneAutoAdvancesHome() {
+        var finished = 0
+        setScreen(
+            OnboardingUiState.Done(FakeComicImporter.success(4, succeeded = 3)),
+            onFinish = { finished += 1 },
+        )
+
+        composeTestRule.mainClock.advanceTimeBy(2_000)
+        assertEquals(1, finished)
     }
 }

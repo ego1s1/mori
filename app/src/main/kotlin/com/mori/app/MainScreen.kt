@@ -1,6 +1,9 @@
 package com.mori.app
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -21,6 +24,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.mori.core.designsystem.MoriMotion
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
@@ -98,35 +102,40 @@ internal fun MainScreen(
     Scaffold(
         modifier = modifier,
     ) { padding ->
-        HorizontalPager(
-            state = pagerState,
-            userScrollEnabled = true,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) { page ->
-            when (page) {
-                LIBRARY_TAB -> LibraryTabContent(
-                    onReadClick = onReadClick,
-                    onComicLongClick = onComicLongClick,
-                    onSettingsClick = {
-                        scope.launch { pagerState.animateScrollToPage(SETTINGS_TAB) }
-                    },
-                )
-                else -> androidx.compose.foundation.layout.Box(
-                    modifier = Modifier.graphicsLayer {
-                        val p = tabBackProgress.coerceIn(0f, 1f)
-                        val scale = 1f - 0.08f * p
-                        scaleX = scale
-                        scaleY = scale
-                        alpha = 1f - 0.25f * p
-                    },
-                ) {
-                    SettingsTabContent(
-                        onBackClick = {
-                            scope.launch { pagerState.animateScrollToPage(LIBRARY_TAB) }
+        // Bouncy spring entry the first time home appears.
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                scaleIn(
+                    animationSpec = MoriMotion.heroSpring(),
+                    initialScale = 0.92f,
+                ),
+            modifier = Modifier.padding(padding),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = true,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                when (page) {
+                    LIBRARY_TAB -> LibraryTabContent(
+                        onReadClick = onReadClick,
+                        onComicLongClick = onComicLongClick,
+                        onSettingsClick = {
+                            scope.launch { pagerState.animateScrollToPage(SETTINGS_TAB) }
                         },
                     )
+                    else -> androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.graphicsLayer {
+                            val p = tabBackProgress.coerceIn(0f, 1f)
+                            val scale = 1f - 0.08f * p
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = 1f - 0.25f * p
+                        },
+                    ) {
+                        SettingsTabContent()
+                    }
                 }
             }
         }
