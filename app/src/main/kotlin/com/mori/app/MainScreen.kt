@@ -115,12 +115,21 @@ internal fun MainScreen(
             AnimatedContent(
                 targetState = selectedTab,
                 transitionSpec = {
-                    fadeIn(
+                    // Fade-through: incoming scales up faintly while outgoing
+                    // fades, so the switch reads as designed even when the
+                    // entering page spends its first frames composing.
+                    (fadeIn(
                         animationSpec = tween(
                             TAB_FADE_MS,
                             easing = MoriMotion.EmphasizedDecelerate,
                         ),
-                    ) togetherWith fadeOut(
+                    ) + scaleIn(
+                        animationSpec = tween(
+                            TAB_FADE_MS,
+                            easing = MoriMotion.EmphasizedDecelerate,
+                        ),
+                        initialScale = TAB_SCALE_FROM,
+                    )) togetherWith fadeOut(
                         animationSpec = tween(
                             TAB_FADE_MS,
                             easing = MoriMotion.EmphasizedAccelerate,
@@ -190,3 +199,6 @@ private const val SETTINGS_TAB = 1
 
 /** Tab-switch fade: short enough to feel instant, long enough to read. */
 private const val TAB_FADE_MS = 200
+
+/** Fade-through entrance scale for the incoming tab. */
+private const val TAB_SCALE_FROM = 0.98f
