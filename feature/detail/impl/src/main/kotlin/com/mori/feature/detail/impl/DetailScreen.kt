@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +64,6 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
-import com.mori.core.model.userMessage
 import java.io.File
 
 @Composable
@@ -75,9 +75,16 @@ internal fun DetailRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
-            snackbarHost.showSnackbar(message)
+            val text = when (message) {
+                DetailMessage.RescanFailed ->
+                    context.getString(R.string.detail_snack_rescan_failed)
+                DetailMessage.RemoveFailed ->
+                    context.getString(R.string.detail_snack_remove_failed)
+            }
+            snackbarHost.showSnackbar(text)
         }
     }
     DetailScreen(
@@ -367,7 +374,14 @@ private fun ErrorCard(
     modifier: Modifier = Modifier,
 ) {
     MoriErrorCard(
-        body = error.userMessage(),
+        body = stringResource(
+            when (error) {
+                ComicError.CORRUPT -> R.string.detail_error_corrupt
+                ComicError.PASSWORD_REQUIRED -> R.string.detail_error_password
+                ComicError.EMPTY -> R.string.detail_error_empty
+                ComicError.UNSUPPORTED -> R.string.detail_error_unsupported
+            },
+        ),
         primaryLabel = stringResource(R.string.detail_error_retry),
         onPrimary = onRetry,
         secondaryLabel = stringResource(R.string.detail_error_remove),

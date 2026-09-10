@@ -9,7 +9,6 @@ import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ReaderPreferences
-import com.mori.core.model.userMessage
 import com.mori.feature.reader.api.ReaderRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -111,11 +110,11 @@ internal class ReaderViewModel @Inject constructor(
         turnAnimated: Boolean,
     ): ReaderUiState {
         if (comic == null) {
-            return ReaderUiState.Error("This comic was removed from your library.")
+            return ReaderUiState.Error(ReaderErrorCause.Removed)
         }
         val error = comic.error
         if (error != null) {
-            return ReaderUiState.Error(errorMessage(error))
+            return ReaderUiState.Error(ReaderErrorCause.Failed(error))
         }
         val pageCount = comic.pageCount.coerceAtLeast(1)
         val pageIndex = (navigation ?: args.pageIndex).coerceIn(0, pageCount - 1)
@@ -138,8 +137,6 @@ internal class ReaderViewModel @Inject constructor(
             turnAnimated = turnAnimated,
         )
     }
-
-    private fun errorMessage(error: ComicError): String = error.userMessage()
 
     fun onAction(action: ReaderAction) {
         when (action) {

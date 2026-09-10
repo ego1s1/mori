@@ -31,7 +31,7 @@ internal class DetailViewModel @Inject constructor(
     private val removed = MutableStateFlow(false)
 
     /** One-shot messages; a channel so rotation never reshows what was seen. */
-    private val messageChannel = Channel<String>(Channel.BUFFERED)
+    private val messageChannel = Channel<DetailMessage>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
 
     val uiState: StateFlow<DetailUiState> = combine(
@@ -77,7 +77,7 @@ internal class DetailViewModel @Inject constructor(
             try {
                 repository.refreshComic(args.comicId)
             } catch (e: Exception) {
-                messageChannel.send("Rescan failed. Try again.")
+                messageChannel.send(DetailMessage.RescanFailed)
             } finally {
                 refreshing.value = false
             }
@@ -91,7 +91,7 @@ internal class DetailViewModel @Inject constructor(
                 removed.value = true
             } catch (e: Exception) {
                 confirmRemove.value = false
-                messageChannel.send("Couldn't remove this comic. Try again.")
+                messageChannel.send(DetailMessage.RemoveFailed)
             }
         }
     }

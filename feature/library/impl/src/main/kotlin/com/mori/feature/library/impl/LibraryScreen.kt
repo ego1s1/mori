@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -127,9 +128,18 @@ private fun LibraryRouteContent(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
-            snackbarHost.showSnackbar(message)
+            val text = when (message) {
+                is LibraryMessage.IndexFailed -> context.getString(
+                    R.string.library_snack_index_failed,
+                    message.failed,
+                )
+                LibraryMessage.RescanFailed ->
+                    context.getString(R.string.library_snack_rescan_failed)
+            }
+            snackbarHost.showSnackbar(text)
         }
     }
     LibraryScreen(

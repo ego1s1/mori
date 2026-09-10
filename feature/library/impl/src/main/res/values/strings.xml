@@ -34,4 +34,6 @@
     <string name="library_sort_recently_read">Recently read</string>
     <string name="library_sort_title">Title</string>
     <string name="library_sort_unfinished_first">Unfinished first</string>
+    <string name="library_snack_index_failed">Couldn\'t index %1$d file(s). Check the files and rescan.</string>
+    <string name="library_snack_rescan_failed">Rescan failed. Try again.</string>
 </resources>

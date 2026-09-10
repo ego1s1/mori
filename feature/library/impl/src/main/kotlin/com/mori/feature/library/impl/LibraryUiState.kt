@@ -39,3 +39,10 @@ sealed interface LibraryAction {
 
     data object Refresh : LibraryAction
 }
+
+/** One-shot library messages; the UI maps each to localized copy. */
+sealed interface LibraryMessage {
+    data class IndexFailed(val failed: Int) : LibraryMessage
+
+    data object RescanFailed : LibraryMessage
+}

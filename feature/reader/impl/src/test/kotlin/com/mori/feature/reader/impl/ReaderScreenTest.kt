@@ -364,14 +364,14 @@ class ReaderScreenTest {
         composeTestRule.setContent {
             MoriTheme {
                 ReaderScreen(
-                    uiState = ReaderUiState.Error("Archive is corrupt"),
+                    uiState = ReaderUiState.Error(ReaderErrorCause.Removed),
                     onAction = {},
                     onBackClick = {},
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Archive is corrupt").assertIsDisplayed()
+        composeTestRule.onNodeWithText("This comic was removed from your library.").assertIsDisplayed()
     }
 
     @Test

@@ -73,7 +73,10 @@ class ReaderViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertTrue(state is ReaderUiState.Error)
-            assertTrue((state as ReaderUiState.Error).message.isNotBlank())
+            assertEquals(
+                ReaderErrorCause.Failed(ComicError.CORRUPT),
+                (state as ReaderUiState.Error).cause,
+            )
         }
     }
 

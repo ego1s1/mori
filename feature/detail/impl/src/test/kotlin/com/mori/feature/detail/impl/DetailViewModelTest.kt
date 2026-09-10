@@ -79,7 +79,7 @@ class DetailViewModelTest {
         val (viewModel, _) = viewModel(repository = repository)
         viewModel.messages.test {
             viewModel.onAction(DetailAction.Refresh)
-            assertEquals("Rescan failed. Try again.", awaitItem())
+            assertEquals(DetailMessage.RescanFailed, awaitItem())
         }
     }
 

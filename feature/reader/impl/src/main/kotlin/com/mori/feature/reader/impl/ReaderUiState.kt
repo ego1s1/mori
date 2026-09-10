@@ -1,5 +1,6 @@
 package com.mori.feature.reader.impl
 
+import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -29,5 +30,12 @@ sealed interface ReaderUiState {
         val currentPage: Int get() = pageIndex + 1
     }
 
-    data class Error(val message: String) : ReaderUiState
+    data class Error(val cause: ReaderErrorCause) : ReaderUiState
+}
+
+/** Why the reader shows a fullscreen error instead of pages. */
+sealed interface ReaderErrorCause {
+    data object Removed : ReaderErrorCause
+
+    data class Failed(val error: ComicError) : ReaderErrorCause
 }

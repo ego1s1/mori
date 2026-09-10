@@ -91,6 +91,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
+import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import kotlinx.coroutines.CancellationException
@@ -131,7 +132,17 @@ internal fun ReaderScreen(
                 modifier = Modifier.padding(24.dp),
             ) {
                 MoriErrorCard(
-                    body = uiState.message,
+                    body = when (val cause = uiState.cause) {
+                        ReaderErrorCause.Removed -> stringResource(R.string.reader_error_removed)
+                        is ReaderErrorCause.Failed -> stringResource(
+                            when (cause.error) {
+                                ComicError.CORRUPT -> R.string.reader_error_corrupt
+                                ComicError.PASSWORD_REQUIRED -> R.string.reader_error_password
+                                ComicError.EMPTY -> R.string.reader_error_empty
+                                ComicError.UNSUPPORTED -> R.string.reader_error_unsupported
+                            },
+                        )
+                    },
                     primaryLabel = null,
                     onPrimary = null,
                 )

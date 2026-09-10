@@ -86,10 +86,7 @@ class LibraryViewModelTest {
         val viewModel = viewModel(repository)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
-            assertEquals(
-                "Couldn't index 2 file(s). Check the files and rescan.",
-                awaitItem(),
-            )
+            assertEquals(LibraryMessage.IndexFailed(2), awaitItem())
         }
         assertEquals(1, repository.refreshCalls)
     }
@@ -101,7 +98,7 @@ class LibraryViewModelTest {
         val viewModel = viewModel(repository)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
-            assertEquals("Rescan failed. Try again.", awaitItem())
+            assertEquals(LibraryMessage.RescanFailed, awaitItem())
         }
     }
 

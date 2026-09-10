@@ -56,7 +56,7 @@ internal class LibraryViewModel @Inject constructor(
      * One-shot messages (errors, confirmations). A channel, not state: rotation
      * must not reshow a message the user already saw.
      */
-    private val messageChannel = Channel<String>(Channel.BUFFERED)
+    private val messageChannel = Channel<LibraryMessage>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -120,10 +120,10 @@ internal class LibraryViewModel @Inject constructor(
             try {
                 val report = repository.refreshLibrary()
                 if (report.failed > 0) {
-                    messageChannel.send("Couldn't index ${report.failed} file(s). Check the files and rescan.")
+                    messageChannel.send(LibraryMessage.IndexFailed(report.failed))
                 }
             } catch (e: Exception) {
-                messageChannel.send("Rescan failed. Try again.")
+                messageChannel.send(LibraryMessage.RescanFailed)
             } finally {
                 refreshing.value = false
             }

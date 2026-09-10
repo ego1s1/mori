@@ -25,3 +25,10 @@ sealed interface DetailAction {
 
     data object ConfirmRemove : DetailAction
 }
+
+/** One-shot detail messages; the UI maps each to localized copy. */
+sealed interface DetailMessage {
+    data object RescanFailed : DetailMessage
+
+    data object RemoveFailed : DetailMessage
+}
