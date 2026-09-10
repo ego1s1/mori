@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.model.Comic
 import java.io.File
@@ -59,7 +60,10 @@ internal fun ComicCard(
             ),
     ) {
         Box(modifier = Modifier.aspectRatio(COVER_ASPECT)) {
-            CoverArt(title = comic.title, coverPath = comic.coverPath)
+            MoriCoverArt(
+                coverPath = comic.coverPath,
+                contentDescription = comic.title,
+            )
 
             if (comic.error != null) {
                 Surface(
@@ -133,35 +137,6 @@ internal fun ComicCard(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CoverArt(
-    title: String,
-    coverPath: String?,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-    ) {
-        Icon(
-            imageVector = MoriIcons.MenuBook,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(40.dp),
-        )
-        if (coverPath != null) {
-            AsyncImage(
-                model = File(coverPath),
-                contentDescription = title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
         }
     }
 }

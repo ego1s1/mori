@@ -62,8 +62,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
@@ -153,14 +157,9 @@ internal fun LibraryScreen(
             .fillMaxSize()
             .padding(padding)) {
             when (uiState) {
-                LibraryUiState.Loading -> Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(LibraryTestTags.Loading),
-                ) {
-                    CircularProgressIndicator()
-                }
+                LibraryUiState.Loading -> MoriLoading(
+                    modifier = Modifier.testTag(LibraryTestTags.Loading),
+                )
 
                 is LibraryUiState.Success -> {
                     LibraryContent(
@@ -195,7 +194,7 @@ private fun LibraryContent(
         Column(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = state.searchOpen,
-                enter = searchEnter(),
+                enter = MoriMotion.enter(MoriEnterKind.SEARCH),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
                 OutlinedTextField(
@@ -227,7 +226,7 @@ private fun LibraryContent(
 
         AnimatedVisibility(
             visible = true,
-            enter = toolbarEnter(),
+            enter = MoriMotion.enter(MoriEnterKind.TOOLBAR),
             exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -243,7 +242,7 @@ private fun LibraryContent(
         val resume = state.resumeTarget
         AnimatedVisibility(
             visible = resume != null,
-            enter = resumeEnter(),
+            enter = MoriMotion.enter(MoriEnterKind.FAB),
             exit = scaleOut(animationSpec = MoriMotion.calmFade()) +
                 fadeOut(animationSpec = MoriMotion.calmFade()),
             modifier = Modifier
@@ -271,37 +270,6 @@ private fun LibraryContent(
         }
     }
 }
-
-/**
- * Motion-aware entrances: expressive springs, calm fades. Read from
- * [LocalExpressiveMotionEnabled] so the settings toggle applies everywhere.
- */
-@Composable
-private fun searchEnter() =
-    if (LocalExpressiveMotionEnabled.current) {
-        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-            expandVertically(animationSpec = MoriMotion.chromeSpring())
-    } else {
-        fadeIn(animationSpec = MoriMotion.calmFade())
-    }
-
-@Composable
-private fun toolbarEnter() =
-    if (LocalExpressiveMotionEnabled.current) {
-        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-            slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 2 }
-    } else {
-        fadeIn(animationSpec = MoriMotion.calmFade())
-    }
-
-@Composable
-private fun resumeEnter() =
-    if (LocalExpressiveMotionEnabled.current) {
-        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-            scaleIn(animationSpec = MoriMotion.heroSpring(), initialScale = 0.6f)
-    } else {
-        fadeIn(animationSpec = MoriMotion.calmFade())
-    }
 
 /**
  * M3 large app bar: emphasized collapsing headline with a live collection subtitle.
@@ -457,47 +425,20 @@ private fun LibraryEmptyState(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp)
-            .padding(bottom = 96.dp)
-            .testTag(LibraryTestTags.EmptyState),
-    ) {
-        Icon(
-            imageVector = MoriIcons.MenuBook,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(64.dp),
-        )
-        Text(
-            text = if (searching) "No comics match your search" else "Your library is empty",
-            style = MoriEmphasized.titleLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        Text(
-            text = if (searching) {
-                "Try a different title, series, or number."
-            } else {
-                "Import comics to see them here."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Button(
-            onClick = onRefresh,
-            modifier = Modifier
-                .padding(top = 24.dp)
-                .testTag(LibraryTestTags.EmptyRescan),
-        ) {
-            Text("Rescan library")
-        }
-    }
+    MoriEmptyState(
+        icon = MoriIcons.MenuBook,
+        title = if (searching) "No comics match your search" else "Your library is empty",
+        body = if (searching) {
+            "Try a different title, series, or number."
+        } else {
+            "Import comics to see them here."
+        },
+        actionLabel = "Rescan library",
+        onAction = onRefresh,
+        modifier = modifier.testTag(LibraryTestTags.EmptyState),
+        bottomPadding = 96.dp,
+        actionTestTag = LibraryTestTags.EmptyRescan,
+    )
 }
 
 @ThemePreviews

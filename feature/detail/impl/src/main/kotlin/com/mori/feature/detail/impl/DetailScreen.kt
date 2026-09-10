@@ -50,8 +50,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
@@ -127,38 +130,15 @@ internal fun DetailScreen(
             .fillMaxSize()
             .padding(padding)) {
             when (uiState) {
-                DetailUiState.Loading -> Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    CircularProgressIndicator()
-                }
+                DetailUiState.Loading -> MoriLoading()
 
-                DetailUiState.Missing -> Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                ) {
-                    Text(
-                        text = "This comic was removed.",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "It is no longer in your library.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    Button(
-                        onClick = onBackClick,
-                        modifier = Modifier.padding(top = 24.dp),
-                    ) {
-                        Text("Back to library")
-                    }
-                }
+                DetailUiState.Missing -> MoriEmptyState(
+                    icon = MoriIcons.MenuBook,
+                    title = "This comic was removed.",
+                    body = "It is no longer in your library.",
+                    actionLabel = "Back to library",
+                    onAction = onBackClick,
+                )
 
                 is DetailUiState.Ready -> {
                     DetailContent(
@@ -215,22 +195,10 @@ private fun DetailContent(
                     .width(120.dp)
                     .aspectRatio(2f / 3f),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = MoriIcons.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(40.dp),
-                    )
-                    if (comic.coverPath != null) {
-                        AsyncImage(
-                            model = File(comic.coverPath),
-                            contentDescription = comic.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                }
+                MoriCoverArt(
+                    coverPath = comic.coverPath,
+                    contentDescription = comic.title,
+                )
             }
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),

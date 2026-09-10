@@ -42,6 +42,7 @@ import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.common.formatBytes
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
@@ -411,24 +412,5 @@ private fun SettingsScreenPreview() {
             onAction = {},
             onBackClick = {},
         )
-    }
-}
-
-/** Human-readable byte counts for the storage manager (B/KB/MB/GB, one decimal). */
-internal fun formatBytes(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val units = listOf("KB", "MB", "GB")
-    var value = bytes.toDouble() / 1024
-    var unit = units[0]
-    for (next in units.drop(1)) {
-        if (value < 1024) break
-        value /= 1024
-        unit = next
-    }
-    val rounded = (value * 10).toLong() / 10.0
-    return if (rounded == rounded.toLong().toDouble()) {
-        "${rounded.toLong()} $unit"
-    } else {
-        "$rounded $unit"
     }
 }

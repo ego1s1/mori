@@ -38,8 +38,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.ImportReport
@@ -124,7 +126,7 @@ private fun WelcomeContent(
 ) {
     AnimatedVisibility(
         visible = true,
-        enter = welcomeEnter(),
+        enter = MoriMotion.enter(MoriEnterKind.RISE),
         exit = fadeOut(animationSpec = MoriMotion.calmFade()),
         modifier = modifier.fillMaxSize(),
     ) {
@@ -176,19 +178,6 @@ private fun WelcomeContent(
         }
     }
 }
-
-/**
- * Welcome entrance: content rises gently on the chrome spring, or fades quietly
- * under the calm setting.
- */
-@Composable
-private fun welcomeEnter() =
-    if (LocalExpressiveMotionEnabled.current) {
-        fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-            slideInVertically(animationSpec = MoriMotion.chromeSpring()) { it / 4 }
-    } else {
-        fadeIn(animationSpec = MoriMotion.calmFade())
-    }
 
 @Composable
 private fun ImportingContent(
