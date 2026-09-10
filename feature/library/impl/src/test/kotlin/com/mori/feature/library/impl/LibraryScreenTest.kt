@@ -89,16 +89,6 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun filterChipsDispatchSelection() {
-        val actions = mutableListOf<LibraryAction>()
-        setScreen(success(), actions = actions)
-
-        composeTestRule.onNodeWithText("Reading").performClick()
-
-        assert(actions.contains(LibraryAction.FilterSelected(LibraryFilter.IN_PROGRESS)))
-    }
-
-    @Test
     fun cardTapReadsFromSavedPage() {
         var opened: Pair<String, Int>? = null
         setScreen(success(), onReadClick = { id, index -> opened = id to index })

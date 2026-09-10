@@ -217,12 +217,6 @@ private fun LibraryContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // One-tap shelf filters (Reddit-chip style): the same filters as
-            // the sheet, always a thumb away.
-            FilterChipRow(
-                filter = state.query.filter,
-                onFilter = { onAction(LibraryAction.FilterSelected(it)) },
-            )
             AnimatedVisibility(
                 visible = state.searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),
@@ -317,40 +311,6 @@ private fun LibraryContent(
 }
 
 /**
- * One-tap shelf filters: tonal chips for the same filters the sheet offers.
- */
-@Composable
-private fun FilterChipRow(
-    filter: LibraryFilter,
-    onFilter: (LibraryFilter) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        items(LibraryFilter.entries.toList(), key = { it.name }) { option ->
-            FilterChip(
-                selected = filter == option,
-                onClick = { onFilter(option) },
-                label = { Text(chipLabel(option)) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun chipLabel(option: LibraryFilter): String = stringResource(
-    when (option) {
-        LibraryFilter.ALL -> R.string.library_filter_all
-        LibraryFilter.IN_PROGRESS -> R.string.library_filter_reading
-        LibraryFilter.UNREAD -> R.string.library_filter_unread
-        LibraryFilter.FINISHED -> R.string.library_filter_finished
-    },
-)
-
-/**
  * Static compact app bar: the title and collection subtitle never move and the
  * background never shifts while scrolling (reference-reader style). One bar,
  * one color, always.
@@ -366,7 +326,7 @@ private fun LibraryTopBar(
             Column {
                 Text(
                     text = stringResource(R.string.library_title),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MoriEmphasized.displaySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

@@ -4,8 +4,12 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
@@ -100,6 +104,11 @@ internal fun MainScreen(
     // Single navigator: the library's floating toolbar switches tabs. No
     // bottom bar — one navigator, not two.
     Scaffold(
+        // Edge-to-edge bottom: the grid draws behind the system nav bar (the
+        // floating toolbar floats above it); top and sides stay inset.
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
+        ),
         modifier = modifier,
     ) { padding ->
         // Bouncy spring entry the first time home appears.
