@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#4F7D40"/>
+      <stop offset="0.55" stop-color="#35602F"/>
+      <stop offset="1" stop-color="#1D4724"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.3" cy="0.12" r="0.55">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="moon" cx="0.42" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#A5C97E"/>
+      <stop offset="1" stop-color="#7AA75C"/>
+    </radialGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#A5C97E" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#A5C97E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A8A45"/>
+      <stop offset="1" stop-color="#477336"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#173E20"/>
+      <stop offset="1" stop-color="#0F3018"/>
+    </linearGradient>
+    <linearGradient id="hillFront" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#477936"/>
+      <stop offset="1" stop-color="#2A5426"/>
+    </linearGradient>
+    <clipPath id="round">
+      <rect x="6" y="6" width="500" height="500" rx="112"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect x="6" y="6" width="500" height="500" fill="url(#sky)"/>
+    <rect x="6" y="6" width="500" height="500" fill="url(#sheen)"/>
+    <circle cx="370" cy="110" r="62" fill="url(#moonGlow)"/>
+    <circle cx="370" cy="110" r="35" fill="url(#moon)"/>
+    <path d="M-10,242 C70,232 140,238 205,262 C270,286 300,308 360,300 C420,292 475,264 522,240 L522,522 L-10,522 Z" fill="url(#hillBack)"/>
+    <path d="M-10,300 C90,294 170,302 240,322 C310,342 360,344 420,332 C460,325 495,328 522,338 L522,522 L-10,522 Z" fill="url(#hillMid)"/>
+    <path d="M-10,425 C120,410 240,380 360,348 C430,330 480,326 522,325 L522,522 L-10,522 Z" fill="url(#hillFront)"/>
+    <g transform="translate(123.2,310.7) scale(0.235,-0.235)">
+      <path d="M508 333C475 361 465 370 429 398C404 371 397 362 372 333H320V403C344 410 355 417 355 425C355 436 338 440 278 444C265 445 243 447 216 449C220 419 221 404 221 382V333H101C80 333 64 335 43 341L49 306C68 310 84 312 103 312H208C187 259 172 231 145 186C108 124 79 87 8 9L14 1C116 59 150 86 222 166L221 83C220 30 219 7 216 -60C216 -77 220 -79 255 -79C310 -79 324 -73 324 -51C324 -40 324 -33 324 -27C324 -20 324 -11 324 -2C322 73 321 158 321 254C352 218 365 194 386 137C395 110 400 104 412 104C438 104 465 139 465 175C465 216 433 237 321 271V312H610C586 262 570 235 539 190C486 114 447 68 379 8L387 -1C445 28 471 43 512 72C562 109 587 132 633 183L632 114C632 77 629 -8 627 -59C627 -76 632 -78 666 -78C696 -78 722 -75 728 -71C732 -68 734 -64 734 -55C733 -1 733 -1 732 29C731 95 731 95 731 123L729 295C756 226 756 226 766 203C784 159 808 118 836 81C864 44 899 11 911 11C916 11 919 15 923 25C940 78 955 101 985 114L986 125C910 151 861 177 811 221C780 247 766 265 740 312H963C969 312 973 314 973 318C973 320 971 323 968 327C928 361 915 371 873 403C847 374 838 364 811 333H731V399C756 407 765 413 765 422C765 433 751 436 685 442C672 443 651 445 625 447C628 416 629 402 629 378V333ZM371 700C334 654 312 631 270 592C199 527 147 490 40 428L45 419C132 443 178 461 249 498C319 535 364 566 442 633V584C442 565 442 556 439 516C437 477 437 477 436 447C436 430 440 428 473 428C537 428 550 432 550 456C549 475 548 521 546 593V681C618 575 694 511 803 463C835 449 864 439 871 439C878 439 881 442 884 452C899 497 921 524 958 545V556C835 564 765 580 680 617C627 640 605 656 558 700H925C929 700 933 703 933 706C933 708 931 711 928 715C880 752 865 764 814 799C783 767 774 756 743 721H546V790C575 799 585 805 585 814C585 826 581 827 435 842C440 805 441 787 441 763V721H151C126 721 107 724 83 730L88 693C111 698 127 700 151 700Z" fill="#F7F1DC"/>
+    </g>
+  </g>
+</svg>

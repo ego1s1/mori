@@ -4,6 +4,8 @@
     <application
         android:name=".MoriApplication"
         android:label="Mori"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Mori"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true">
