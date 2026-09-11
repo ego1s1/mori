@@ -108,7 +108,7 @@ class OnboardingScreenTest {
         var folderPicks = 0
         var filePicks = 0
         setScreen(
-            OnboardingUiState.Import(StorageLocation.APP, link = false),
+            OnboardingUiState.Import(StorageLocation.APP),
             onPickFolder = { folderPicks += 1 },
             onPickFiles = { filePicks += 1 },
         )
@@ -125,7 +125,7 @@ class OnboardingScreenTest {
 
     @Test
     fun importStepCustomOffersFolderOnly() {
-        setScreen(OnboardingUiState.Import(StorageLocation.CUSTOM, link = false))
+        setScreen(OnboardingUiState.Import(StorageLocation.CUSTOM))
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.ImportStep).assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performScrollTo()
@@ -150,20 +150,6 @@ class OnboardingScreenTest {
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.Progress).assertIsDisplayed()
         composeTestRule.onNodeWithText("Scanning for comics…").assertIsDisplayed()
-    }
-
-    @Test
-    fun importStepModeChoiceDispatchesLink() {
-        val actions = mutableListOf<OnboardingAction>()
-        setScreen(
-            OnboardingUiState.Import(StorageLocation.CUSTOM, link = false),
-            actions = actions,
-        )
-
-        composeTestRule.onNodeWithTag(OnboardingTestTags.LinkMode).performClick()
-        assert(actions.contains(OnboardingAction.SetLinkMode(true)))
-        composeTestRule.onNodeWithTag(OnboardingTestTags.CopyMode).performClick()
-        assert(actions.contains(OnboardingAction.SetLinkMode(false)))
     }
 
     @Test

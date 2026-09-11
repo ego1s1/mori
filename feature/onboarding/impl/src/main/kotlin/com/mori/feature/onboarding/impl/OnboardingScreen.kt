@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -16,6 +17,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
@@ -40,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -223,7 +228,7 @@ internal fun OnboardingScreen(
                 stepIndex = 2,
                 totalSteps = 3,
                 title = stringResource(R.string.onboarding_import_title),
-                body = if (uiState.link) {
+                body = if (uiState.location == StorageLocation.CUSTOM) {
                     stringResource(R.string.onboarding_import_body_link)
                 } else {
                     stringResource(R.string.onboarding_import_body_default)
@@ -238,8 +243,6 @@ internal fun OnboardingScreen(
             ) {
                 ImportOptions(
                     customOnly = uiState.location == StorageLocation.CUSTOM,
-                    link = uiState.link,
-                    onSetLink = { onAction(OnboardingAction.SetLinkMode(it)) },
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
                 )
@@ -460,24 +463,36 @@ private fun WizardStep(
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(20.dp)
                 .padding(horizontal = 24.dp, vertical = 8.dp),
         ) {
             repeat(totalSteps) { index ->
-                val fraction = when {
-                    index < stepIndex -> 1f
-                    index == stepIndex -> 0.6f
-                    else -> 0f
+                key(index) {
+                    // M3 expressive segments keep their stop-indicator dots;
+                    // equal weights, one height, one gap, centered row keeps
+                    // every dot and cap on the same baseline.
+                    val target = when {
+                        index < stepIndex -> 1f
+                        index == stepIndex -> 0.6f
+                        else -> 0f
+                    }
+                    val fill by animateFloatAsState(
+                        targetValue = target,
+                        animationSpec = MoriMotion.defaultEffectsSpec(),
+                        label = "stepSegment",
+                    )
+                    LinearProgressIndicator(
+                        progress = { fill },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
                 }
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
             }
         }
         Column(
@@ -586,18 +601,31 @@ private fun OptionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val border = if (selected) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = if (selected) {
+    // Selection glides instead of snapping: border and fill animate together.
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        },
+        label = "optionBorder",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) {
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
         } else {
             MaterialTheme.colorScheme.surface
         },
+        label = "optionFill",
+    )
+    val border = if (selected) {
+        BorderStroke(2.dp, borderColor)
+    } else {
+        BorderStroke(1.dp, borderColor)
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
         border = border,
         modifier = modifier
             .fillMaxWidth()
@@ -707,12 +735,11 @@ private fun AppearanceOptions(
     }
 }
 
-/** Import step: folder + files pickers, plus the copy/link choice for folders. */
+/** Import step: folder + files pickers. The storage step already decided
+ * copy vs link, so this step only picks the source. */
 @Composable
 private fun ImportOptions(
     customOnly: Boolean,
-    link: Boolean,
-    onSetLink: (Boolean) -> Unit,
     onPickFolder: () -> Unit,
     onPickFiles: () -> Unit,
     modifier: Modifier = Modifier,
@@ -721,27 +748,6 @@ private fun ImportOptions(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Text(
-            text = stringResource(R.string.onboarding_import_mode_title),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OptionRow(
-            selected = !link,
-            icon = MoriIcons.FolderOpen,
-            title = stringResource(R.string.onboarding_import_copy),
-            subtitle = stringResource(R.string.onboarding_import_copy_subtitle),
-            onClick = { onSetLink(false) },
-            modifier = Modifier.testTag(OnboardingTestTags.CopyMode),
-        )
-        OptionRow(
-            selected = link,
-            icon = MoriIcons.Link,
-            title = stringResource(R.string.onboarding_import_link),
-            subtitle = stringResource(R.string.onboarding_import_link_subtitle),
-            onClick = { onSetLink(true) },
-            modifier = Modifier.testTag(OnboardingTestTags.LinkMode),
-        )
         Button(
             onClick = onPickFolder,
             modifier = Modifier

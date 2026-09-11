@@ -32,13 +32,7 @@
     <string name="onboarding_amoled_subtitle">True-black backgrounds in dark mode</string>
     <string name="onboarding_import_title">Import your comics</string>
     <string name="onboarding_import_body_default">Pick a folder and Mori copies CBZ and CBR files in. Originals stay put.</string>
-    <string name="onboarding_import_body_custom">Reading from “%1$s”. Copies land in your library.</string>
     <string name="onboarding_import_body_link">Mori reads your folder where it is — nothing is copied, and rescans stay fresh.</string>
-    <string name="onboarding_import_mode_title">How should Mori take them in?</string>
-    <string name="onboarding_import_copy">Copy into Mori</string>
-    <string name="onboarding_import_copy_subtitle">Duplicates land in the app library for offline reading.</string>
-    <string name="onboarding_import_link">Link in place</string>
-    <string name="onboarding_import_link_subtitle">Read straight from your folder. Nothing is copied.</string>
     <string name="onboarding_pick_folder">Choose folder</string>
     <string name="onboarding_pick_custom_folder">Choose library folder</string>
     <string name="onboarding_pick_files">Pick individual files</string>

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,13 +40,11 @@ internal class OnboardingViewModel @Inject constructor(
 
     private val step = MutableStateFlow(Step.WELCOME)
     private val importPhase = MutableStateFlow<ImportPhase?>(null)
-    private val linkMode = MutableStateFlow(false)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         preferences.themePreferences,
         preferences.storageLocation,
-        linkMode,
         importPhase,
         ::toUiState,
     ).stateIn(
@@ -58,7 +57,6 @@ internal class OnboardingViewModel @Inject constructor(
         step: Step,
         theme: ThemePreferences,
         location: StorageLocation,
-        link: Boolean,
         phase: ImportPhase?,
     ): OnboardingUiState {
         phase?.let {
@@ -71,7 +69,7 @@ internal class OnboardingViewModel @Inject constructor(
             Step.WELCOME -> OnboardingUiState.Welcome
             Step.STORAGE -> OnboardingUiState.Storage(location)
             Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
-            Step.IMPORT -> OnboardingUiState.Import(location, link)
+            Step.IMPORT -> OnboardingUiState.Import(location)
         }
     }
 
@@ -97,27 +95,24 @@ internal class OnboardingViewModel @Inject constructor(
                 preferences.setStorageLocation(action.location)
             }
             is OnboardingAction.FolderSelected -> {
-                if (linkMode.value) {
-                    // Link: persist the tree and index in place — zero copies.
-                    viewModelScope.launch {
+                // The storage choice implies the mode: custom folders link in
+                // place with zero copies, everything else copies in.
+                viewModelScope.launch {
+                    val custom = preferences.storageLocation.first() == StorageLocation.CUSTOM
+                    if (custom) {
                         preferences.setSourceTreeUri(action.uri.toString())
-                    }
-                    startImport(link = true) { onProgress ->
-                        repository.indexLinkedTree(action.uri, onProgress)
-                    }
-                } else {
-                    // Copy: duplicates land in app storage and no tree lingers
-                    // behind to surprise later rescans.
-                    viewModelScope.launch {
+                        startImport(link = true) { onProgress ->
+                            repository.indexLinkedTree(action.uri, onProgress)
+                        }
+                    } else {
+                        // Copies land in app storage and no tree lingers
+                        // behind to surprise later rescans.
                         preferences.setSourceTreeUri(null)
-                    }
-                    startImport(link = false) { onProgress ->
-                        importer.importTree(action.uri, onProgress)
+                        startImport(link = false) { onProgress ->
+                            importer.importTree(action.uri, onProgress)
+                        }
                     }
                 }
-            }
-            is OnboardingAction.SetLinkMode -> {
-                linkMode.value = action.link
             }
             is OnboardingAction.FilesSelected -> startImport(link = false) { onProgress ->
                 importer.importDocuments(action.uris, onProgress)
