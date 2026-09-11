@@ -89,13 +89,14 @@ internal fun DetailRoute(
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
-            val text = when (message) {
+            when (message) {
                 DetailMessage.RescanFailed ->
-                    context.getString(R.string.detail_snack_rescan_failed)
+                    snackbarHost.showSnackbar(context.getString(R.string.detail_snack_rescan_failed))
                 DetailMessage.RemoveFailed ->
-                    context.getString(R.string.detail_snack_remove_failed)
+                    snackbarHost.showSnackbar(context.getString(R.string.detail_snack_remove_failed))
+                is DetailMessage.ShareFile ->
+                    launchShare(context, message, context.getString(R.string.detail_share_title))
             }
-            snackbarHost.showSnackbar(text)
         }
     }
     DetailScreen(
@@ -224,6 +225,15 @@ private fun DetailTopActions(
                         R.string.detail_action_bookmark
                     },
                 ),
+            )
+        }
+        IconButton(
+            onClick = { onAction(DetailAction.Share) },
+            modifier = Modifier.testTag(DetailTestTags.ShareButton),
+        ) {
+            Icon(
+                imageVector = MoriIcons.Share,
+                contentDescription = stringResource(R.string.detail_action_share),
             )
         }
         IconButton(

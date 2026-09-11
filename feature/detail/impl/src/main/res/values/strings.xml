@@ -9,6 +9,8 @@
     <string name="detail_action_remove_comic">Remove comic</string>
     <string name="detail_action_bookmark">Add to favorites</string>
     <string name="detail_action_unbookmark">Remove from favorites</string>
+    <string name="detail_action_share">Share comic file</string>
+    <string name="detail_share_title">Share comic</string>
     <string name="detail_meta_pages">%1$d pages • %2$s</string>
     <string name="detail_meta_position">Page %1$d of %2$d</string>
     <string name="detail_section_pages">Pages</string>

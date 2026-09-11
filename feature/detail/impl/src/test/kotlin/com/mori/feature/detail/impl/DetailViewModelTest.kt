@@ -58,6 +58,22 @@ class DetailViewModelTest {
     }
 
     @Test
+    fun shareEmitsFileMessage() = runTest {
+        val (viewModel, _) = viewModel()
+        viewModel.uiState.test { awaitReady() }
+        viewModel.messages.test {
+            viewModel.onAction(DetailAction.Share)
+            val message = awaitItem()
+            assertTrue(message is DetailMessage.ShareFile)
+            message as DetailMessage.ShareFile
+            assertEquals("/lib/a.cbz", message.uri)
+            assertEquals("a.cbz", message.displayName)
+            assertEquals("application/zip", message.mimeType)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun toggleBookmarkFlipsPersistedFlag() = runTest {
         val (viewModel, _) = viewModel()
         viewModel.uiState.test {

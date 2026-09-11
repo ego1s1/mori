@@ -26,6 +26,8 @@ sealed interface DetailAction {
     data object ConfirmRemove : DetailAction
 
     data object ToggleBookmark : DetailAction
+
+    data object Share : DetailAction
 }
 
 /** One-shot detail messages; the UI maps each to localized copy. */
@@ -33,4 +35,11 @@ sealed interface DetailMessage {
     data object RescanFailed : DetailMessage
 
     data object RemoveFailed : DetailMessage
+
+    /** Open the Sharesheet for the comic file (URI + display name + MIME). */
+    data class ShareFile(
+        val uri: String,
+        val displayName: String,
+        val mimeType: String,
+    ) : DetailMessage
 }

@@ -73,6 +73,16 @@ class DetailScreenTest {
     }
 
     @Test
+    fun shareButtonDispatchesShare() {
+        val actions = mutableListOf<DetailAction>()
+        setScreen(ready(), actions = actions)
+
+        composeTestRule.onNodeWithTag(DetailTestTags.ShareButton).performClick()
+
+        assert(actions.contains(DetailAction.Share))
+    }
+
+    @Test
     fun heroShowsTitleAndMetadata() {
         setScreen(ready())
 

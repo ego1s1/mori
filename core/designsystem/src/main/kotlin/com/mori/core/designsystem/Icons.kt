@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ScreenRotation
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.SkipNext
@@ -55,6 +56,7 @@ object MoriIcons {
     val ScreenRotation = Icons.Rounded.ScreenRotation
     val Search = Icons.Rounded.Search
     val Settings = Icons.Rounded.Settings
+    val Share = Icons.Rounded.Share
     val Tune = Icons.Rounded.Tune
     val SkipNext = Icons.Rounded.SkipNext
     val SkipPrevious = Icons.Rounded.SkipPrevious

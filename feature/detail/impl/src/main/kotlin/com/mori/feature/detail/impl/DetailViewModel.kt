@@ -70,6 +70,18 @@ internal class DetailViewModel @Inject constructor(
             DetailAction.ToggleBookmark -> {
                 viewModelScope.launch { repository.toggleBookmark(args.comicId) }
             }
+            DetailAction.Share -> {
+                val comic = (uiState.value as? DetailUiState.Ready)?.comic ?: return
+                viewModelScope.launch {
+                    messageChannel.send(
+                        DetailMessage.ShareFile(
+                            uri = comic.sourcePath,
+                            displayName = comic.sourceDisplayName,
+                            mimeType = shareMimeType(comic.sourceDisplayName),
+                        ),
+                    )
+                }
+            }
         }
     }
 
