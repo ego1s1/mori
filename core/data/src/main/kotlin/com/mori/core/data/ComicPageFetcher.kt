@@ -22,6 +22,7 @@ data class ComicPageKey(
     val comicId: String,
     val pageIndex: Int,
     val maxDimension: Int,
+    val cropMargins: Boolean = false,
 )
 
 /**
@@ -52,7 +53,13 @@ class ComicPageFetcher internal constructor(
         val page = inspected.pages.getOrNull(data.pageIndex)
             ?: throw IndexOutOfBoundsException("Page ${data.pageIndex} of ${data.comicId}")
         val bytes = backend.readPageBytes(file, page)
-        val decoded = decoder.decode(bytes, page.mediaType, DecodeOptions(maxDimension = data.maxDimension))
+        // Crop rides the decode (and the key above), so toggling it can never
+        // serve a stale cached bitmap.
+        val decoded = decoder.decode(
+            bytes,
+            page.mediaType,
+            DecodeOptions(maxDimension = data.maxDimension, cropMargins = data.cropMargins),
+        )
         return ImageFetchResult(
             image = decoded.bitmap.asImage(),
             isSampled = data.maxDimension > 0,

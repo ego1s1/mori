@@ -181,15 +181,17 @@ public final class com/mori/comic/model/ComicPage {
 
 public final class com/mori/comic/model/DecodeOptions {
 	public fun <init> ()V
-	public fun <init> (IILandroid/graphics/Bitmap$Config;Z)V
-	public synthetic fun <init> (IILandroid/graphics/Bitmap$Config;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (IILandroid/graphics/Bitmap$Config;ZZ)V
+	public synthetic fun <init> (IILandroid/graphics/Bitmap$Config;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()I
 	public final fun component2 ()I
 	public final fun component3 ()Landroid/graphics/Bitmap$Config;
 	public final fun component4 ()Z
-	public final fun copy (IILandroid/graphics/Bitmap$Config;Z)Lcom/mori/comic/model/DecodeOptions;
-	public static synthetic fun copy$default (Lcom/mori/comic/model/DecodeOptions;IILandroid/graphics/Bitmap$Config;ZILjava/lang/Object;)Lcom/mori/comic/model/DecodeOptions;
+	public final fun component5 ()Z
+	public final fun copy (IILandroid/graphics/Bitmap$Config;ZZ)Lcom/mori/comic/model/DecodeOptions;
+	public static synthetic fun copy$default (Lcom/mori/comic/model/DecodeOptions;IILandroid/graphics/Bitmap$Config;ZZILjava/lang/Object;)Lcom/mori/comic/model/DecodeOptions;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCropMargins ()Z
 	public final fun getMaxDimension ()I
 	public final fun getPreferredConfig ()Landroid/graphics/Bitmap$Config;
 	public final fun getRespectExif ()Z

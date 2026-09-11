@@ -342,6 +342,7 @@ private fun ReaderContent(
                         pageNumber = page + 1,
                         pageFit = state.pageFit,
                         direction = state.direction,
+                        cropMargins = state.cropMargins,
                         modifier = Modifier.graphicsLayer {
                             val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
                             scaleX = scale

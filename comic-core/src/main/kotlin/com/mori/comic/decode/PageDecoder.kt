@@ -40,13 +40,68 @@ class PageDecoder {
         val dimensions = readDimensions(bytes, mediaType)
         val sampleSize = chooseSampleSize(dimensions, options)
         val bitmap = decodeSubsampled(bytes, sampleSize, options, dimensions)
+        // Note: the source is deliberately not recycled — createBitmap may
+        // share its buffer, and the GC reclaims the transient anyway.
+        val final = if (options.cropMargins) trimUniformMargins(bitmap) else bitmap
         return DecodedPage(
-            bitmap = bitmap,
+            bitmap = final,
             sourceWidth = dimensions.width,
             sourceHeight = dimensions.height,
             sampleSize = sampleSize,
             mediaType = mediaType,
         )
+    }
+
+    /**
+     * Trims uniform border margins: edge rows/columns within tolerance of the
+     * top-left corner color are removed, capped per side so light content
+     * (skies, paper texture) survives. Never returns an empty bitmap.
+     */
+    internal fun trimUniformMargins(bitmap: Bitmap): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= 2 || height <= 2) return bitmap
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        val background = pixels[0]
+        fun rowIsMargin(y: Int, left: Int, right: Int): Boolean {
+            val row = y * width
+            for (x in left..right) {
+                if (!nearColor(pixels[row + x], background)) return false
+            }
+            return true
+        }
+        fun columnIsMargin(x: Int, top: Int, bottom: Int): Boolean {
+            for (y in top..bottom) {
+                if (!nearColor(pixels[y * width + x], background)) return false
+            }
+            return true
+        }
+        // Per-side trim cap (10%): light content must survive aggressive
+        // gutters. Local literal (not const) to stay out of the ABI dump.
+        val maxTrimX = (width * 0.10f).toInt().coerceAtLeast(1)
+        val maxTrimY = (height * 0.10f).toInt().coerceAtLeast(1)
+        // Trim each side independently against the background within caps,
+        // keeping at least one pixel.
+        var l = 0
+        while (l < maxTrimX && l + 1 < width && columnIsMargin(l, 0, height - 1)) l++
+        var r = width - 1
+        while (r > l && width - 1 - r < maxTrimX && columnIsMargin(r, 0, height - 1)) r--
+        var t = 0
+        while (t < maxTrimY && t + 1 < height && rowIsMargin(t, l, r)) t++
+        var b = height - 1
+        while (b > t && height - 1 - b < maxTrimY && rowIsMargin(b, l, r)) b--
+        if (l == 0 && t == 0 && r == width - 1 && b == height - 1) return bitmap
+        return Bitmap.createBitmap(bitmap, l, t, r - l + 1, b - t + 1)
+    }
+
+    private fun nearColor(pixel: Int, background: Int): Boolean {
+        val dr = (pixel shr 16 and 0xFF) - (background shr 16 and 0xFF)
+        val dg = (pixel shr 8 and 0xFF) - (background shr 8 and 0xFF)
+        val db = (pixel and 0xFF) - (background and 0xFF)
+        // Squared RGB tolerance (~14 levels per channel). Local literals (not
+        // consts) so they stay out of the module's public ABI dump.
+        return dr * dr + dg * dg + db * db <= 600
     }
 
     /**

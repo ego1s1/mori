@@ -308,6 +308,70 @@ class PageDecoderTest {
         ) + payload
     }
 
+    // --- Margin cropping ---
+
+    private fun borderedArt(size: Int = 100, border: Int = 20): Bitmap {
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(android.graphics.Color.WHITE)
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint().apply { color = android.graphics.Color.BLACK }
+        canvas.drawRect(
+            border.toFloat(),
+            border.toFloat(),
+            (size - border).toFloat(),
+            (size - border).toFloat(),
+            paint,
+        )
+        return bitmap
+    }
+
+    @Test
+    fun trimRemovesUniformBorders() {
+        val trimmed = decoder.trimUniformMargins(borderedArt(border = 8))
+
+        assertEquals(85, trimmed.width)
+        assertEquals(85, trimmed.height)
+    }
+
+    @Test
+    fun trimLeavesFramedArtUntouched() {
+        // Pixel-direct diagonal (Canvas strokes are flaky under Robolectric):
+        // every edge carries ink against a light corner, so nothing trims.
+        // (A uniform frame the corner's own color IS margin by definition.)
+        val art = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.WHITE)
+        }
+        val ink = android.graphics.Color.BLACK
+        for (i in 0 until 100) {
+            art.setPixel(i, i, ink)
+        }
+
+        assertEquals(art, decoder.trimUniformMargins(art))
+    }
+
+    @Test
+    fun trimNeverEmptiesUniformArt() {
+        val solid = Bitmap.createBitmap(100, 80, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.WHITE)
+        }
+        val trimmed = decoder.trimUniformMargins(solid)
+
+        // Capped at 10% per side: 80x64 of solid white survives.
+        assertEquals(80, trimmed.width)
+        assertEquals(64, trimmed.height)
+    }
+
+    @Test
+    fun decodeHonorsCropMarginsOption() {
+        val bytes = Fixtures.Images.landscapeJpg()
+        val plain = decoder.decode(bytes, MediaType.JPEG, DecodeOptions())
+        val page = decoder.decode(bytes, MediaType.JPEG, DecodeOptions(cropMargins = true))
+
+        // Cropping never grows the bitmap.
+        assertTrue(page.bitmap.width <= plain.bitmap.width)
+        assertTrue(page.bitmap.height <= plain.bitmap.height)
+    }
+
     private fun findApp0End(bytes: ByteArray): Int {
         var i = 2
         while (i < bytes.size - 1) {

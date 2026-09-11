@@ -17,12 +17,16 @@ import android.graphics.Bitmap
  * @property respectExif whether EXIF orientation metadata is applied so the bitmap appears
  *   upright. Comic page scans are almost always already upright, so this defaults to false,
  *   but flipped photos (common with loose image sources) may enable it.
+ * @property cropMargins whether uniform border margins are trimmed after decoding.
+ *   Edge rows/columns within tolerance of the corner color are removed (capped per
+ *   side), so scanned gutters don't eat viewport space. Defaults to false.
  */
 data class DecodeOptions(
     val maxDimension: Int = 0,
     val sampleSize: Int = 1,
     val preferredConfig: Bitmap.Config = Bitmap.Config.ARGB_8888,
     val respectExif: Boolean = false,
+    val cropMargins: Boolean = false,
 ) {
     init {
         require(maxDimension >= 0) { "maxDimension must be >= 0" }

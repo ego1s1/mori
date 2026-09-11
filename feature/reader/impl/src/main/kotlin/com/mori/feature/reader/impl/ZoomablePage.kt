@@ -71,6 +71,7 @@ internal fun ZoomablePage(
     pageNumber: Int,
     pageFit: PageFit,
     direction: ReadingDirection,
+    cropMargins: Boolean,
     onZoneTap: (ReaderZone) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -205,6 +206,7 @@ internal fun ZoomablePage(
                 comicId = comicId,
                 pageIndex = pageIndex,
                 pageNumber = pageNumber,
+                cropMargins = cropMargins,
             )
         }
     }
@@ -220,12 +222,13 @@ private fun PageArt(
     comicId: String,
     pageIndex: Int,
     pageNumber: Int,
+    cropMargins: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var attempt by remember(comicId, pageIndex) { mutableIntStateOf(0) }
     key(attempt) {
         val painter = rememberAsyncImagePainter(
-            model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION),
+            model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION, cropMargins),
             contentScale = ContentScale.Fit,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
