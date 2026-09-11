@@ -46,6 +46,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 keepScreenOn = prefs[KEEP_SCREEN_ON] ?: true,
                 showPageCounter = prefs[SHOW_PAGE_COUNTER] ?: true,
                 swipeToTurn = prefs[SWIPE_TO_TURN] ?: true,
+                showTapZones = prefs[SHOW_TAP_ZONES] ?: false,
             )
         }
 
@@ -69,6 +70,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[KEEP_SCREEN_ON] = updated.keepScreenOn
             it[SHOW_PAGE_COUNTER] = updated.showPageCounter
             it[SWIPE_TO_TURN] = updated.swipeToTurn
+            it[SHOW_TAP_ZONES] = updated.showTapZones
         }
     }
 
@@ -146,6 +148,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val SHOW_PAGE_COUNTER = booleanPreferencesKey("show_page_counter")
         val SWIPE_TO_TURN = booleanPreferencesKey("swipe_to_turn")
+        val SHOW_TAP_ZONES = booleanPreferencesKey("show_tap_zones")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

@@ -241,6 +241,18 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun tapZonePreviewPersistsToPreferences() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            assertEquals(false, awaitReady().showTapZones)
+            viewModel.onAction(ReaderAction.ToggleTapZones)
+            assertEquals(true, awaitReadyWhere { it.showTapZones }.showTapZones)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun hideChromeNeverTogglesBackOn() = runTest {
         val viewModel = viewModel()
         viewModel.uiState.test {

@@ -132,7 +132,7 @@ internal class ReaderViewModel @Inject constructor(
             settingsOpen = chrome.settingsOpen,
             volumeKeys = prefs.volumeKeys,
             keepScreenOn = prefs.keepScreenOn,
-            showTapZones = chrome.showTapZones,
+            showTapZones = prefs.showTapZones,
             showPageCounter = prefs.showPageCounter,
             swipeToTurn = prefs.swipeToTurn,
             turnAnimated = turnAnimated,
@@ -172,9 +172,7 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
             ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }
-            ReaderAction.ToggleTapZones -> chrome.value = chrome.value.copy(
-                showTapZones = !chrome.value.showTapZones,
-            )
+            ReaderAction.ToggleTapZones -> updatePrefs { it.copy(showTapZones = !it.showTapZones) }
         }
     }
 
@@ -234,7 +232,6 @@ internal class ReaderViewModel @Inject constructor(
     private data class ChromeState(
         val visible: Boolean = true,
         val settingsOpen: Boolean = false,
-        val showTapZones: Boolean = false,
     )
 
     companion object {

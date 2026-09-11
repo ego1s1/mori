@@ -23,4 +23,6 @@ data class ReaderPreferences(
     val showPageCounter: Boolean = true,
     /** Swipe pager gestures turn pages alongside tap zones; on by default. */
     val swipeToTurn: Boolean = true,
+    /** Zone overlay preview; persisted like the other reader defaults. */
+    val showTapZones: Boolean = false,
 )
