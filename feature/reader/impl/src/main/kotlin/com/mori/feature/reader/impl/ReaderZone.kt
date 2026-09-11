@@ -69,26 +69,21 @@ internal fun panOrTurn(
 private const val PAN_STEP_FRACTION = 0.4f
 
 /**
- * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). Every tap
- * holds this window before firing (Mihon single-tap-confirmed); a second tap
- * inside it pairs into a zoom instead.
+ * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). After an
+ * optimistic center-tap toggle, the state machine watches for a second tap
+ * this long; edge taps dispatch immediately so rapid page skipping never waits
+ * on animation or timeout.
  */
 internal const val DOUBLE_TAP_TIMEOUT_MS = 300L
 
 /**
  * Pair-matching radius for a double-tap, as a multiple of touch slop. The
- * generous radius pairs a second tap that drifted (e.g. straddling the
- * center/edge boundary) back into one zoom instead of dealing a surprise
- * page turn.
+ * strict zone/slop classifier ([decideTap]) would split a double-tap whose
+ * second tap drifts (e.g. straddling the center/edge boundary) into a chrome
+ * toggle plus a surprise page turn; the detector pairs anything inside this
+ * radius back into one zoom instead.
  */
 internal const val DOUBLE_TAP_SLOP_SCALE = 2f
-
-/**
- * Rhythm window after a fired edge tap: further edge taps inside it dispatch
- * instantly for fast page skipping. Center taps always hold, so
- * double-tap-to-zoom works from any state.
- */
-internal const val RHYTHM_TIMEOUT_MS = 1000L
 
 /** A tap awaiting its double-tap window. */
 internal data class TapRecord(
@@ -97,30 +92,43 @@ internal data class TapRecord(
     val zone: ReaderZone,
 )
 
-/**
- * Whether the tap ending at [nowMs] pairs with a held [first] tap into one
- * double-tap: inside the timeout window and the pair radius. Sequentiality
- * (no overlapping contact) is tracked structurally by the detector, not here.
- * Pure for testability; all pairing math runs on pointer-event time.
- */
-internal fun shouldPair(
-    first: TapRecord?,
-    nowMs: Long,
-    position: Offset,
-    touchSlopPx: Float,
-    doubleTapTimeoutMs: Long = DOUBLE_TAP_TIMEOUT_MS,
-): Boolean {
-    if (first == null) return false
-    if (nowMs - first.timeMs !in 0..doubleTapTimeoutMs) return false
-    return (position - first.position).getDistance() <= touchSlopPx * DOUBLE_TAP_SLOP_SCALE
+/** Outcome of feeding one tap-up through [decideTap]. */
+internal sealed interface TapDecision {
+    /** Dispatch now (page turn, or an optimistic chrome toggle). */
+    data class Dispatch(val zone: ReaderZone) : TapDecision
+
+    /**
+     * Center tap: dispatched optimistically as a chrome toggle while the
+     * double-tap watch arms — a second center tap in-window becomes [Zoom].
+     */
+    data object AwaitSecondTap : TapDecision
+
+    /** Second center tap in-window: zoom (compensating the optimistic toggle). */
+    data object Zoom : TapDecision
 }
 
 /**
- * Whether an edge tap at [nowMs] rides the instant-rhythm window opened by
- * [lastEdgeMs]. Pure for testability.
+ * Routes a tap-up without ever delaying dispatch.
+ *
+ * Only a center tap following another center tap — close in time (within
+ * [doubleTapTimeoutMs]) and space (within [touchSlopPx]) — becomes [TapDecision.Zoom].
+ * A lone center tap is [TapDecision.AwaitSecondTap]: the caller toggles chrome
+ * immediately and watches for the second tap. Everything else dispatches at once,
+ * even back-to-back mid page-turn animation, so skipping pages fast feels instant.
  */
-internal fun isRhythmActive(
-    lastEdgeMs: Long,
+internal fun decideTap(
+    previous: TapRecord?,
     nowMs: Long,
-    rhythmTimeoutMs: Long = RHYTHM_TIMEOUT_MS,
-): Boolean = lastEdgeMs != 0L && nowMs - lastEdgeMs in 0..rhythmTimeoutMs
+    position: Offset,
+    zone: ReaderZone,
+    doubleTapTimeoutMs: Long = DOUBLE_TAP_TIMEOUT_MS,
+    touchSlopPx: Float,
+): TapDecision {
+    if (zone == ReaderZone.MENU && previous?.zone == ReaderZone.MENU &&
+        nowMs - previous.timeMs in 0..doubleTapTimeoutMs &&
+        (position - previous.position).getDistance() <= touchSlopPx
+    ) {
+        return TapDecision.Zoom
+    }
+    return if (zone == ReaderZone.MENU) TapDecision.AwaitSecondTap else TapDecision.Dispatch(zone)
+}
