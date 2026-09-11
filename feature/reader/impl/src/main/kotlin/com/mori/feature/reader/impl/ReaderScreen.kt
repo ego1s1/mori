@@ -3,7 +3,6 @@ package com.mori.feature.reader.impl
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -42,17 +41,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -85,6 +79,7 @@ import com.mori.core.designsystem.exit
 import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
+import com.mori.feature.reader.api.ReaderKeyInterceptor
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
@@ -95,6 +90,26 @@ internal fun ReaderRoute(
     viewModel: ReaderViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val latestState = rememberUpdatedState(uiState)
+    val latestAction = rememberUpdatedState(viewModel::onAction)
+    // Activity-level volume handling lives here (not in composition focus):
+    // while the reader is visible, MainActivity offers every key event to
+    // this handler before the system sees it.
+    DisposableEffect(Unit) {
+        ReaderKeyInterceptor.handler = { event ->
+            when (val outcome = routeVolumeKey(latestState.value, event.keyCode, event.action)) {
+                VolumeKeyOutcome.Ignored -> false
+                VolumeKeyOutcome.Consumed -> true
+                is VolumeKeyOutcome.Navigate -> {
+                    latestAction.value(outcome.action)
+                    true
+                }
+            }
+        }
+        onDispose {
+            ReaderKeyInterceptor.handler = null
+        }
+    }
     ReaderScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
@@ -190,10 +205,6 @@ private fun ReaderContent(
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
     val contentScope = rememberCoroutineScope()
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
 
     // Back exits through the NavHost: Navigation Compose scrubs the pop
     // transitions with the system gesture, so the library shows through for
@@ -258,21 +269,10 @@ private fun ReaderContent(
     }
 
     Box(
+        // Volume keys are handled at the activity level (ReaderRoute registers
+        // with ReaderKeyInterceptor), so no focus juggling lives here.
         modifier = modifier
-            .fillMaxSize()
-            // Key input (volume keys) needs a focused node: the reader takes focus
-            // on entry so page turns work with no tappable focused first.
-            .focusRequester(focusRequester)
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                val action = volumeKeyAction(event.key, event.type, state.volumeKeys)
-                if (action != null) {
-                    onAction(action)
-                    true
-                } else {
-                    false
-                }
-            },
+            .fillMaxSize(),
     ) {
         // Constrain the page well on expanded windows (M3 guidance caps gallery
         // content around 840dp); phones stay full-bleed.

@@ -505,7 +505,10 @@ class ReaderScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun volumeKeysTurnPagesWhenEnabled() {
+    fun composeIgnoresVolumeKeys() {
+        // Volume paging is owned by the activity interceptor, not
+        // composition: key presses here must never navigate, so a press can
+        // never double-fire through both paths.
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
             MoriTheme {
@@ -520,12 +523,14 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performKeyInput {
             pressKey(Key.VolumeDown)
         }
-        assert(actions.contains(ReaderAction.NextPage))
-
         composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performKeyInput {
             pressKey(Key.VolumeUp)
         }
-        assert(actions.contains(ReaderAction.PrevPage))
+        assert(
+            actions.none {
+                it == ReaderAction.NextPage || it == ReaderAction.PrevPage
+            },
+        )
     }
 
     @OptIn(ExperimentalTestApi::class)
