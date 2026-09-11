@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -86,6 +87,21 @@ class LibraryScreenTest {
 
         // Banana: lastPageIndex 2 of 10 -> 7 pages left; Apple is untouched.
         composeTestRule.onNodeWithText("7 left").assertIsDisplayed()
+    }
+
+    @Test
+    fun bookmarkedCardShowsFavoriteBadge() {
+        val actions = mutableListOf<LibraryAction>()
+        setScreen(
+            success().copy(
+                comics = listOf(
+                    TestComicsRepository.comic("a", title = "Apple").copy(bookmarked = true),
+                ),
+            ),
+            actions = actions,
+        )
+
+        composeTestRule.onNodeWithContentDescription("Favorited").assertIsDisplayed()
     }
 
     @Test

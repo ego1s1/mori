@@ -67,6 +67,9 @@ internal class DetailViewModel @Inject constructor(
             DetailAction.AskRemove -> confirmRemove.value = true
             DetailAction.CancelRemove -> confirmRemove.value = false
             DetailAction.ConfirmRemove -> remove()
+            DetailAction.ToggleBookmark -> {
+                viewModelScope.launch { repository.toggleBookmark(args.comicId) }
+            }
         }
     }
 

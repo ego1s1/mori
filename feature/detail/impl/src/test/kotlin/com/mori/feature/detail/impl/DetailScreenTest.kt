@@ -63,6 +63,16 @@ class DetailScreenTest {
     }
 
     @Test
+    fun bookmarkButtonTogglesFavorite() {
+        val actions = mutableListOf<DetailAction>()
+        setScreen(ready(), actions = actions)
+
+        composeTestRule.onNodeWithTag(DetailTestTags.BookmarkButton).performClick()
+
+        assert(actions.contains(DetailAction.ToggleBookmark))
+    }
+
+    @Test
     fun heroShowsTitleAndMetadata() {
         setScreen(ready())
 

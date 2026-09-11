@@ -116,6 +116,7 @@ private fun filterLabel(filter: LibraryFilter): String = stringResource(
         LibraryFilter.IN_PROGRESS -> R.string.library_filter_in_progress
         LibraryFilter.UNREAD -> R.string.library_filter_unread
         LibraryFilter.FINISHED -> R.string.library_filter_finished
+        LibraryFilter.FAVORITES -> R.string.library_filter_favorites
     },
 )
 

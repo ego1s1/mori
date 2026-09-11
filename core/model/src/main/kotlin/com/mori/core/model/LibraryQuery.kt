@@ -14,6 +14,7 @@ enum class LibraryFilter {
     IN_PROGRESS,
     UNREAD,
     FINISHED,
+    FAVORITES,
 }
 
 /** A text query plus sort/filter preferences for the library grid. */

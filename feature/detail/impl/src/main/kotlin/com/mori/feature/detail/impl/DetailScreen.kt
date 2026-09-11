@@ -120,12 +120,12 @@ internal fun DetailScreen(
 ) {
     Scaffold(
         topBar = {
-            val readyTitle = (uiState as? DetailUiState.Ready)?.comic?.title
-            if (readyTitle != null) {
+            val readyComic = (uiState as? DetailUiState.Ready)?.comic
+            if (readyComic != null) {
                 MediumTopAppBar(
                     title = {
                         Text(
-                            text = readyTitle,
+                            text = readyComic.title,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -137,6 +137,7 @@ internal fun DetailScreen(
                     },
                     actions = {
                         DetailTopActions(
+                            bookmarked = readyComic.bookmarked,
                             onAction = onAction,
                             modifier = Modifier,
                         )
@@ -205,10 +206,26 @@ internal fun DetailScreen(
 
 @Composable
 private fun DetailTopActions(
+    bookmarked: Boolean,
     onAction: (DetailAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier) {
+        IconButton(
+            onClick = { onAction(DetailAction.ToggleBookmark) },
+            modifier = Modifier.testTag(DetailTestTags.BookmarkButton),
+        ) {
+            Icon(
+                imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
+                contentDescription = stringResource(
+                    if (bookmarked) {
+                        R.string.detail_action_unbookmark
+                    } else {
+                        R.string.detail_action_bookmark
+                    },
+                ),
+            )
+        }
         IconButton(
             onClick = { onAction(DetailAction.Refresh) },
             modifier = Modifier.testTag(DetailTestTags.RefreshButton),

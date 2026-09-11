@@ -72,6 +72,15 @@ class LibraryQueryFilterTest {
     }
 
     @Test
+    fun favoritesFilterMatchesBookmarked() {
+        val starred = comics.map {
+            if (it.id == "b") it.copy(bookmarked = true) else it
+        }
+        val ids = starred.applyQuery(LibraryQuery(filter = LibraryFilter.FAVORITES)).map { it.id }
+        assertEquals(listOf("b"), ids)
+    }
+
+    @Test
     fun textQueryMatchesTitleSeriesNumber() {
         val withSeries = comics + FakeComicsRepository.comic("e", title = "Egg").copy(series = "Banana Series")
         val ids = withSeries.applyQuery(LibraryQuery(text = "banana")).map { it.id }

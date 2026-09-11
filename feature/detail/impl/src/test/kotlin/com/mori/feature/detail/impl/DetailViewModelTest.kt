@@ -58,6 +58,19 @@ class DetailViewModelTest {
     }
 
     @Test
+    fun toggleBookmarkFlipsPersistedFlag() = runTest {
+        val (viewModel, _) = viewModel()
+        viewModel.uiState.test {
+            assertEquals(false, awaitReady().comic.bookmarked)
+            viewModel.onAction(DetailAction.ToggleBookmark)
+            assertEquals(true, awaitReady().comic.bookmarked)
+            viewModel.onAction(DetailAction.ToggleBookmark)
+            assertEquals(false, awaitReady().comic.bookmarked)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun refreshDelegatesToRepository() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {

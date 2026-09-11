@@ -21,15 +21,16 @@
     <string name="library_empty_choose_folder">Choose folder</string>
     <string name="library_card_unreadable">Can\'t read</string>
     <string name="library_card_pages_left">%1$d left</string>
+    <string name="library_card_favorite">Favorited</string>
     <string name="library_card_read">Read %1$s</string>
     <string name="library_card_details">Comic details</string>
     <string name="library_sheet_filter">Filter</string>
     <string name="library_sheet_sort_by">Sort by</string>
     <string name="library_sheet_hide_errors">Hide unreadable comics</string>
     <string name="library_filter_all">All</string>
-    <string name="library_filter_reading">Reading</string>
     <string name="library_filter_unread">Unread</string>
     <string name="library_filter_finished">Finished</string>
+    <string name="library_filter_favorites">Favorites</string>
     <string name="library_filter_in_progress">In progress</string>
     <string name="library_sort_recently_added">Recently added</string>
     <string name="library_sort_recently_read">Recently read</string>

@@ -24,6 +24,8 @@ sealed interface DetailAction {
     data object CancelRemove : DetailAction
 
     data object ConfirmRemove : DetailAction
+
+    data object ToggleBookmark : DetailAction
 }
 
 /** One-shot detail messages; the UI maps each to localized copy. */

@@ -4,6 +4,7 @@ package com.mori.feature.detail.impl
 object DetailTestTags {
     const val Hero = "detailHero"
     const val ReadButton = "detailRead"
+    const val BookmarkButton = "detailBookmark"
     const val RefreshButton = "detailRefresh"
     const val RemoveButton = "detailRemove"
     const val RemoveDialog = "detailRemoveDialog"

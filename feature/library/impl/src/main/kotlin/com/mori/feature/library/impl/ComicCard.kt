@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
 
@@ -94,6 +98,7 @@ internal fun ComicCard(
 
                 // Pages-left corner badge while in progress (reference-library
                 // style): glanceable remaining count next to the progress bar.
+                // Otherwise a bookmark badge marks favorites in the same slot.
                 if (comic.isInProgress) {
                     val left = comic.pageCount - comic.lastPageIndex - 1
                     Surface(
@@ -108,6 +113,23 @@ internal fun ComicCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                } else if (comic.bookmarked) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.92f),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = MoriIcons.Bookmark,
+                            contentDescription = stringResource(R.string.library_card_favorite),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .size(16.dp),
                         )
                     }
                 }

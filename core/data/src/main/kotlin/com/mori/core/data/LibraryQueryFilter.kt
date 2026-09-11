@@ -20,6 +20,7 @@ fun List<Comic>.applyQuery(query: LibraryQuery): List<Comic> {
         LibraryFilter.IN_PROGRESS -> result.filter { it.isInProgress }
         LibraryFilter.UNREAD -> result.filter { !it.isInProgress && !it.isFinished }
         LibraryFilter.FINISHED -> result.filter { it.isFinished }
+        LibraryFilter.FAVORITES -> result.filter { it.bookmarked }
     }
     val text = query.text.trim()
     if (text.isNotEmpty()) {
