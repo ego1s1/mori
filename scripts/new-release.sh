@@ -60,4 +60,5 @@ git push origin "$TAG"
 
 echo "Pushed $TAG."
 echo "CI now builds, signs, and publishes the production GitHub Release:"
-echo "  https://github.com/$(git remote get-url origin | sed -E 's#.*[:/]([^/]+/[^/]+)(\.git)?$#\1#')/releases/tag/$TAG"
+REPO="$(git remote get-url origin | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#')"
+echo "  https://github.com/$REPO/releases/tag/$TAG"
