@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1
+
+- Unified onboarding storage choice (custom folders link in place with zero
+  copies; app storage copies), transient Done beat into the library
+- Reader gesture overhaul to Mihon parity: hold-to-confirm taps, double-tap
+  zoom on second contact, instant rhythm skipping, pager-first swipe routing,
+  long-press guard
+- App-wide expressive motion standards (gated fade-through/fade transitions,
+  documented duration table)
+- Vector launcher icon with monochrome themed-icon layer; release pipeline
+  (`scripts/new-release.sh`) and signed local release builds
+
 ## 1.0.0
 
 First production release.
