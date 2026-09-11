@@ -250,6 +250,24 @@ internal fun SettingsContent(
                 checked = reader.keepScreenOn,
                 onCheckedChange = { onAction(SettingsAction.ToggleKeepScreenOn) },
             )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_crop_title),
+                subtitle = stringResource(R.string.settings_crop_subtitle),
+                checked = reader.cropMargins,
+                onCheckedChange = { onAction(SettingsAction.ToggleCropMargins) },
+            )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_counter_title),
+                subtitle = stringResource(R.string.settings_counter_subtitle),
+                checked = reader.showPageCounter,
+                onCheckedChange = { onAction(SettingsAction.TogglePageCounter) },
+            )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_swipe_title),
+                subtitle = stringResource(R.string.settings_swipe_subtitle),
+                checked = reader.swipeToTurn,
+                onCheckedChange = { onAction(SettingsAction.ToggleSwipeToTurn) },
+            )
         }
 
         SettingsCard(title = stringResource(R.string.settings_card_storage)) {

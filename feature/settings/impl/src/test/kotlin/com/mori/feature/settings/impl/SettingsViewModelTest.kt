@@ -68,6 +68,23 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun readerDisplayTogglesPersist() = runTest {
+        val preferences = TestPreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(SettingsAction.ToggleCropMargins)
+            viewModel.onAction(SettingsAction.TogglePageCounter)
+            viewModel.onAction(SettingsAction.ToggleSwipeToTurn)
+            val settled = awaitReadyWhere {
+                it.reader.cropMargins && !it.reader.showPageCounter && !it.reader.swipeToTurn
+            }
+            assertEquals(true, settled.reader.cropMargins)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun motionActionPersists() = runTest {
         val preferences = TestPreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, TestComicsRepository())

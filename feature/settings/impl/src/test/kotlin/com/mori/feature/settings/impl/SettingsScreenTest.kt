@@ -124,6 +124,9 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Page fit").assertExists()
         composeTestRule.onNodeWithText("Volume keys turn pages").assertExists()
         composeTestRule.onNodeWithText("Keep screen on").assertExists()
+        composeTestRule.onNodeWithText("Crop page margins").assertExists()
+        composeTestRule.onNodeWithText("Page counter").assertExists()
+        composeTestRule.onNodeWithText("Swipe to turn pages").assertExists()
     }
 
     @Test

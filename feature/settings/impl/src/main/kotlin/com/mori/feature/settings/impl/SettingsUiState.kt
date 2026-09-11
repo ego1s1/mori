@@ -39,5 +39,11 @@ sealed interface SettingsAction {
 
     data object ToggleKeepScreenOn : SettingsAction
 
+    data object ToggleCropMargins : SettingsAction
+
+    data object TogglePageCounter : SettingsAction
+
+    data object ToggleSwipeToTurn : SettingsAction
+
     data object ClearThumbnailCache : SettingsAction
 }
