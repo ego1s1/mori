@@ -58,11 +58,12 @@ import kotlinx.coroutines.launch
  * The page fills the viewport edge to edge on a seamless black bed — no side gaps, no
  * rounded corners, no tonal fillers — so portrait and landscape art alike blend into
  * the reader chrome. Single taps resolve to [ReaderZone] outcomes via [zoneForTap]
- * instead of bubbling to a parent click handler. Edge taps dispatch on tap-up with
- * no double-tap wait, so rapid taps mid page-turn animation still turn pages;
- * center taps toggle chrome optimistically on tap-up, and a second center tap
- * in-window zooms (toggling chrome back, so a double-tap stays a pure zoom).
- * Artwork loads through Coil ([ComicPageKey]) with the page number behind as
+ * instead of bubbling to a parent click handler. Taps hold a small
+ * double-tap window before firing (Mihon single-tap-confirmed): a second
+ * contact in-window pairs into a zoom on the way down and neither tap
+ * dispatches, so double-taps never deal surprise page turns; held edge taps
+ * open a short rhythm window of instant turns for fast skipping. Artwork
+ * loads through Coil ([ComicPageKey]) with the page number behind as
  * a placeholder.
  */
 @Composable
@@ -186,12 +187,7 @@ internal fun ZoomablePage(
                             onZoneTap(zone)
                         }
                     },
-                    onZoom = { tap, center ->
-                        // The first tap already toggled chrome optimistically;
-                        // toggling back keeps a double-tap a pure zoom.
-                        latestZoomToggle.value(tap, center)
-                        onZoneTap(ReaderZone.MENU)
-                    },
+                    onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
                     consumeUp = true,
                 )
                 .transformable(transformableState),

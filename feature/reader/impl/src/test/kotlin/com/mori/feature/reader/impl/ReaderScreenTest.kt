@@ -262,9 +262,13 @@ class ReaderScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun rapidTapStormTurnsEveryPage() {
-        // Three taps back-to-back with no clock advance: edge taps dispatch on
-        // tap-up with no double-tap wait, so none may be swallowed.
+    fun rapidSameSpotPairZoomsWithoutTurning() {
+        // Three taps back-to-back with a frozen clock: the first pair is a
+        // double-tap (zoom, no dispatch) and the third is still held. Neither
+        // the page nor the container fallback may turn or toggle. Auto-advance
+        // stays off so the frozen pair can't be split by clock pumping; the
+        // held tap firing is covered by the spaced-tap tests.
+        composeTestRule.mainClock.autoAdvance = false
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
             MoriTheme {
@@ -285,14 +289,16 @@ class ReaderScreenTest {
             }
         }
 
-        assertEquals(3, actions.filterIsInstance<ReaderAction.NextPage>().size)
+        assertEquals(0, actions.filterIsInstance<ReaderAction.NextPage>().size)
+        assertEquals(0, actions.filterIsInstance<ReaderAction.ToggleChrome>().size)
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun overlappingTwoFingerTapsBothRegister() {
         // Fast skippers alternate fingers: the second finger lands before the
-        // first lifts. Each finger-up must still dispatch its own tap.
+        // first lifts. Overlapping downs never pair, so each finger-up still
+        // dispatches its own tap (the second after its confirmation window).
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
             MoriTheme {
@@ -313,6 +319,7 @@ class ReaderScreenTest {
             up(0)
             up(1)
         }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
 
         assertEquals(2, actions.filterIsInstance<ReaderAction.NextPage>().size)
     }
