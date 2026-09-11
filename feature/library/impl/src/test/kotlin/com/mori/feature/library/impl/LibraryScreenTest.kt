@@ -35,17 +35,21 @@ class LibraryScreenTest {
         filterOpen: Boolean = false,
         searchOpen: Boolean = false,
         linked: Boolean = true,
-    ) = LibraryUiState.Success(
-        comics = listOf(
+    ): LibraryUiState.Success {
+        val comics = listOf(
             TestComicsRepository.comic("a", title = "Apple"),
             TestComicsRepository.comic("b", title = "Banana", lastPageIndex = 2, pageCount = 10),
-        ),
-        query = query,
-        refreshing = refreshing,
-        filterOpen = filterOpen,
-        searchOpen = searchOpen,
-        linked = linked,
-    )
+        )
+        return LibraryUiState.Success(
+            comics = comics,
+            query = query,
+            refreshing = refreshing,
+            filterOpen = filterOpen,
+            searchOpen = searchOpen,
+            linked = linked,
+            continueReading = comics.filter { it.isInProgress },
+        )
+    }
 
     private fun setScreen(
         uiState: LibraryUiState,
@@ -76,8 +80,8 @@ class LibraryScreenTest {
         setScreen(success())
 
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Apple").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Banana").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).assertIsDisplayed()
         composeTestRule.onNodeWithText("2 comics on the shelf").assertIsDisplayed()
     }
 
@@ -124,6 +128,18 @@ class LibraryScreenTest {
         }
 
         assert(detailed == "a")
+    }
+
+    @Test
+    fun continueShelfRendersAndOpens() {
+        var opened: Pair<String, Int>? = null
+        setScreen(success(), onReadClick = { id, index -> opened = id to index })
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.Shelf).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Continue reading").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.shelfCardFor("b")).performClick()
+
+        assert(opened == ("b" to 2))
     }
 
     @Test

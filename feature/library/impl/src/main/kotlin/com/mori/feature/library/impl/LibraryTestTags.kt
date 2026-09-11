@@ -12,10 +12,13 @@ object LibraryTestTags {
     const val EmptyState = "libraryEmpty"
     const val EmptyRescan = "libraryEmptyRescan"
     const val EmptyChooseFolder = "libraryEmptyChooseFolder"
+    const val Shelf = "libraryContinueShelf"
     const val Snackbar = "librarySnackbar"
     const val MenuButton = "libraryMenuButton"
     const val MenuPopup = "libraryMenuPopup"
     const val SettingsSheet = "librarySettingsSheet"
 
     fun cardFor(id: String): String = "libraryCard:$id"
+
+    fun shelfCardFor(id: String): String = "libraryShelfCard:$id"
 }

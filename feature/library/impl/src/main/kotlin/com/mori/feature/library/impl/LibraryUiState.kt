@@ -14,8 +14,9 @@ sealed interface LibraryUiState {
         val refreshing: Boolean,
         val filterOpen: Boolean,
         val searchOpen: Boolean,
-        /** A source tree is linked: rescan and rescue paths apply. */
         val linked: Boolean,
+        /** In-progress books by recency, backing the continue shelf. */
+        val continueReading: List<Comic>,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
     }

@@ -131,6 +131,10 @@ class LibraryViewModel @Inject constructor(
         filterOpen = chrome.filterOpen,
         searchOpen = chrome.searchOpen,
         linked = linked,
+        continueReading = comics
+            .filter { it.isInProgress }
+            .sortedByDescending { it.updatedAt }
+            .take(CONTINUE_SHELF_MAX),
     )
 
     init {
@@ -226,5 +230,8 @@ class LibraryViewModel @Inject constructor(
     private companion object {
         const val KEY_QUERY_TEXT = "mori_query_text"
         const val SEARCH_DEBOUNCE_MS = 250L
+
+        /** Continue shelf length: glanceable, not a second library. */
+        const val CONTINUE_SHELF_MAX = 10
     }
 }

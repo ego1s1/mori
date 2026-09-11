@@ -6,18 +6,24 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
@@ -36,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -70,6 +77,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
@@ -227,6 +235,7 @@ internal fun LibraryScreen(
                         refreshing = uiState.refreshing,
                         searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
+                        shelf = uiState.continueReading,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
@@ -251,6 +260,7 @@ private fun LibraryContent(
     refreshing: Boolean,
     searchOpen: Boolean,
     linked: Boolean,
+    shelf: List<Comic>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -301,12 +311,13 @@ private fun LibraryContent(
                 queryText = query.text,
                 refreshing = refreshing,
                 linked = linked,
+                shelf = shelf,
                 onAction = onAction,
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
                 onChooseFolder = onChooseFolder,
                 modifier = Modifier.weight(1f),
-            )
+    )
         }
     }
 }
@@ -435,6 +446,7 @@ private fun LibraryBody(
     queryText: String,
     refreshing: Boolean,
     linked: Boolean,
+    shelf: List<Comic>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -495,8 +507,21 @@ private fun LibraryBody(
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag(LibraryTestTags.Grid),
-                ) {
-                    items(
+            ) {
+                // Continue shelf rides above the grid when anything is in
+                // progress; hidden entirely otherwise (no empty header).
+                if (shelf.isNotEmpty() && queryText.isBlank()) {
+                    item(
+                        span = { GridItemSpan(maxLineSpan) },
+                        contentType = "continueShelf",
+                    ) {
+                        ContinueShelf(
+                            comics = shelf,
+                            onReadClick = onReadClick,
+                        )
+                    }
+                }
+                items(
                         comics,
                         key = { it.id },
                         // Bitmask bucket: error/in-progress/finished variants never
@@ -520,6 +545,96 @@ private fun LibraryBody(
         }
     }
 }
+
+/**
+ * Horizontal continue-reading shelf: compact cards for in-progress books by
+ * recency. Same information as the grid cards, denser; tapping continues at
+ * the saved page.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ContinueShelf(
+    comics: List<Comic>,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.testTag(LibraryTestTags.Shelf)) {
+        Text(
+            text = stringResource(R.string.library_continue_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(comics, key = { it.id }) { comic ->
+                ContinueCard(
+                    comic = comic,
+                    onReadClick = onReadClick,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ContinueCard(
+    comic: Comic,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val click = remember(comic) { { onReadClick(comic.id, comic.lastPageIndex) } }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier
+            .width(120.dp)
+            .testTag(LibraryTestTags.shelfCardFor(comic.id))
+            .combinedClickable(
+                onClick = click,
+                onClickLabel = stringResource(R.string.library_card_read, comic.title),
+            ),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier.aspectRatio(COVER_ASPECT),
+            ) {
+                MoriCoverArt(
+                    coverPath = comic.coverPath,
+                    contentDescription = comic.title,
+                )
+            }
+            Column(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = comic.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    minLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                LinearProgressIndicator(
+                    progress = { comic.progress },
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp)
+                        .height(3.dp),
+                )
+            }
+        }
+    }
+}
+
+private const val COVER_ASPECT = 2f / 3f
 
 @Composable
 private fun LibraryEmptyState(
@@ -575,6 +690,7 @@ private fun LibraryScreenPreview() {
                 filterOpen = false,
                 searchOpen = false,
                 linked = true,
+                continueReading = emptyList(),
             ),
             onAction = {},
             onReadClick = { _, _ -> },
