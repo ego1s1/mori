@@ -3,8 +3,6 @@ package com.mori.feature.reader.impl
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -89,10 +87,6 @@ internal fun ZoomablePage(
         motionJob?.cancel()
         motionJob = scope.launch { block() }
     }
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-        scale = (scale * zoomChange).coerceIn(1f, MAX_ZOOM)
-        offset = if (scale <= 1f) Offset.Zero else offset + panChange
-    }
     // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
     // so it must read scale through a ref instead of a stale closure. Zooming in
     // anchors on the tap point (the tapped art stays under the finger); zooming
@@ -148,9 +142,9 @@ internal fun ZoomablePage(
                     translationX = offset.x,
                     translationY = offset.y,
                 )
-                // Tap detection precedes transformable: a clean tap resolves to a zone
-                // before the transform gesture tracker can claim the press, while pinches
-                // (second pointer down) cancel tap tracking and flow to transformable.
+                // Tap detection precedes pan/zoom: a clean tap resolves to a zone
+                // before the gesture tracker can claim the press, while pinches
+                // (second pointer down) cancel tap tracking and flow below.
                 // Claimed tap-ups are consumed so the reader-level fallback detector
                 // (see ReaderContent) stands down and each tap dispatches exactly once.
                 // While zoomed, edge taps pan toward the tapped side first and turn
@@ -190,7 +184,17 @@ internal fun ZoomablePage(
                     onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
                     consumeUp = true,
                 )
-                .transformable(transformableState),
+                // Pan/zoom routing (Mihon PhotoView parity): single-finger
+                // drags at fit pass straight through to the pager; pinches
+                // always zoom; pans act only while zoomed and release to the
+                // pager at the pan limits (edge handoff).
+                .zoomPan(
+                    getScale = { scale },
+                    setScale = { scale = it },
+                    getOffset = { offset },
+                    setOffset = { offset = it },
+                    onCancelMotion = { motionJob?.cancel() },
+                ),
         ) {
             Text(
                 text = pageNumber.toString(),
@@ -274,7 +278,6 @@ private fun Modifier.pageFit(fit: PageFit): Modifier = when (fit) {
     PageFit.ORIGINAL -> fillMaxWidth().aspectRatio(PAGE_ASPECT)
 }
 
-private const val MAX_ZOOM = 4f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val PAGE_ASPECT = 2f / 3f
 private const val DOUBLE_TAP_ZOOM_MS = 350

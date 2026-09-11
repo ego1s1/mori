@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTouchInput
@@ -447,6 +448,30 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.Prev).performClick()
 
         assert(actions.contains(ReaderAction.NextPage))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun swipeLeftTurnsToNextPage() {
+        // Single-finger drags at fit belong to the pager, not the pan/zoom
+        // tracker: a left swipe must settle on the next page.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.contains(ReaderAction.PageChanged(13)))
     }
 
     @OptIn(ExperimentalTestApi::class)

@@ -1,0 +1,33 @@
+package com.mori.feature.reader.impl
+
+import androidx.compose.ui.geometry.Offset
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class ZoomPanTest {
+
+    @Test
+    fun fitScaleAlwaysRecenters() {
+        assertEquals(
+            Offset.Zero,
+            clampPan(Offset(100f, -50f), scale = 1f, widthPx = 400f, heightPx = 600f),
+        )
+    }
+
+    @Test
+    fun panInsideBoundsPassesThrough() {
+        assertEquals(
+            Offset(100f, -50f),
+            clampPan(Offset(100f, -50f), scale = 2f, widthPx = 400f, heightPx = 600f),
+        )
+    }
+
+    @Test
+    fun panClampsPerAxis() {
+        // 2x on a 400x600 box: limits are +-200 x, +-300 y.
+        assertEquals(
+            Offset(200f, -300f),
+            clampPan(Offset(500f, -900f), scale = 2f, widthPx = 400f, heightPx = 600f),
+        )
+    }
+}
