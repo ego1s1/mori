@@ -4,8 +4,6 @@ package com.mori.feature.onboarding.impl
 object OnboardingTestTags {
     const val PickFolder = "onboardingPickFolder"
     const val PickFiles = "onboardingPickFiles"
-    const val CopyMode = "onboardingCopyMode"
-    const val LinkMode = "onboardingLinkMode"
     const val Progress = "onboardingProgress"
     const val GetStarted = "onboardingGetStarted"
     const val StorageStep = "onboardingStorageStep"

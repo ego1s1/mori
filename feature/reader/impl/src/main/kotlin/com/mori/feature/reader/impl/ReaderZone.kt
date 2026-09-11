@@ -116,6 +116,16 @@ internal fun shouldPair(
 }
 
 /**
+ * Whether a press from [downMs] to [upMs] is a tap rather than a long press.
+ * Pure for testability; defaults to the system long-press timeout.
+ */
+internal fun isTapDurationValid(
+    downMs: Long,
+    upMs: Long,
+    longPressTimeoutMs: Long = android.view.ViewConfiguration.getLongPressTimeout().toLong(),
+): Boolean = upMs - downMs in 0..longPressTimeoutMs
+
+/**
  * Whether an edge tap at [nowMs] rides the instant-rhythm window opened by
  * [lastEdgeMs]. Pure for testability.
  */

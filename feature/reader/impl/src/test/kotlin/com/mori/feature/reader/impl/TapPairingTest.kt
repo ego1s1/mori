@@ -87,6 +87,21 @@ class TapPairingTest {
         assertFalse(isRhythmActive(lastEdgeMs = 0L, nowMs = 1_000L))
     }
 
+    @Test
+    fun quickPressIsTap() {
+        assertTrue(isTapDurationValid(downMs = 1_000L, upMs = 1_200L, longPressTimeoutMs = 400L))
+    }
+
+    @Test
+    fun heldPressIsNotTap() {
+        assertFalse(isTapDurationValid(downMs = 1_000L, upMs = 1_600L, longPressTimeoutMs = 400L))
+    }
+
+    @Test
+    fun clockSkewIsNotTap() {
+        assertFalse(isTapDurationValid(downMs = 1_000L, upMs = 900L, longPressTimeoutMs = 400L))
+    }
+
     private companion object {
         const val SLOP = 16f
     }

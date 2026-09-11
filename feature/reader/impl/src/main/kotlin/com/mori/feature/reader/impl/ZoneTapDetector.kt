@@ -136,6 +136,7 @@ internal fun Modifier.zoneTaps(
 
     awaitEachGesture {
         val downPositions = mutableMapOf<PointerId, Offset>()
+        val downTimes = mutableMapOf<PointerId, Long>()
         // False when another finger was already down: overlapping contact
         // can never open a double-tap pair (system-detector parity).
         val sequentialDowns = mutableSetOf<PointerId>()
@@ -159,6 +160,7 @@ internal fun Modifier.zoneTaps(
                             sequentialDowns += change.id
                         }
                         downPositions[change.id] = change.position
+                        downTimes[change.id] = change.uptimeMillis
                         // Second contact pairs a held tap-up into a zoom
                         // immediately (Mihon onDoubleTap timing).
                         if (change.id in sequentialDowns) {
@@ -180,6 +182,7 @@ internal fun Modifier.zoneTaps(
             for (change in event.changes) {
                 if (!change.pressed && change.previousPressed) {
                     val start = downPositions.remove(change.id)
+                    val downMs = downTimes.remove(change.id)
                     val sequential = sequentialDowns.remove(change.id)
                     currentPositions.remove(change.id)
                     if (change.id in consumedIds) {
@@ -197,7 +200,13 @@ internal fun Modifier.zoneTaps(
                         val current = currentPositions[id] ?: startPos
                         (current - startPos).getDistance() <= touchSlop
                     }
-                    if (ownDrift != null && ownDrift <= touchSlop && othersStill && !change.isConsumed) {
+                    // Presses held past the long-press timeout are long
+                    // presses, not taps (Mihon/AOSP parity) — a two-second
+                    // touch must never turn a page on release.
+                    val quickTap = downMs?.let { isTapDurationValid(it, change.uptimeMillis) } == true
+                    if (ownDrift != null && ownDrift <= touchSlop && othersStill &&
+                        quickTap && !change.isConsumed
+                    ) {
                         if (consumeUp) {
                             change.consume()
                         }

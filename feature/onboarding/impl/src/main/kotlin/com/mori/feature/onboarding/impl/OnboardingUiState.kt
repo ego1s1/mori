@@ -20,8 +20,6 @@ sealed interface OnboardingUiState {
 
     data class Import(
         val location: StorageLocation,
-        /** Link the folder in place instead of copying files in. */
-        val link: Boolean,
     ) : OnboardingUiState
 
     data class Importing(val done: Int, val total: Int, val link: Boolean) : OnboardingUiState
@@ -45,9 +43,6 @@ sealed interface OnboardingAction {
 
     /** The user picked a source folder to import from now. */
     data class FolderSelected(val uri: Uri) : OnboardingAction
-
-    /** Copy picked folders into the library, or link them in place. */
-    data class SetLinkMode(val link: Boolean) : OnboardingAction
 
     /** The user picked individual archive files. */
     data class FilesSelected(val uris: List<Uri>) : OnboardingAction

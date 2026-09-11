@@ -160,7 +160,8 @@ class OnboardingViewModelTest {
         )
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
-            viewModel.onAction(OnboardingAction.SetLinkMode(true))
+            // The storage choice implies the mode: custom folders link.
+            viewModel.onAction(OnboardingAction.SelectStorage(StorageLocation.CUSTOM))
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
             assertTrue(awaitImporting() is OnboardingUiState.Importing)
             assertTrue(awaitItem() is OnboardingUiState.Done)
@@ -223,27 +224,6 @@ class OnboardingViewModelTest {
             viewModel.onAction(OnboardingAction.ImportMore)
             val back = awaitItem()
             assertTrue(back is OnboardingUiState.Import)
-        }
-    }
-
-    @Test
-    fun linkChoiceSurfacesInImportStep() = runTest {
-        val (viewModel, _, _) = viewModel()
-        viewModel.uiState.test {
-            assertEquals(OnboardingUiState.Welcome, awaitItem())
-            viewModel.onAction(OnboardingAction.GetStarted)
-            assertTrue(awaitItem() is OnboardingUiState.Storage)
-            viewModel.onAction(OnboardingAction.ContinueStep)
-            assertTrue(awaitItem() is OnboardingUiState.Appearance)
-            viewModel.onAction(OnboardingAction.ContinueStep)
-            val import = awaitItem()
-            assertTrue(import is OnboardingUiState.Import)
-            assertEquals(false, (import as OnboardingUiState.Import).link)
-            viewModel.onAction(OnboardingAction.SetLinkMode(true))
-            val linked = awaitItem()
-            assertTrue(linked is OnboardingUiState.Import)
-            assertEquals(true, (linked as OnboardingUiState.Import).link)
-            cancelAndIgnoreRemainingEvents()
         }
     }
 
