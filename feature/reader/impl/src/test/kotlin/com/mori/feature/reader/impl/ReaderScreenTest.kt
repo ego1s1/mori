@@ -452,6 +452,35 @@ class ReaderScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun longPressDoesNotTurnPage() {
+        // A press held past the long-press timeout is a long press, not a
+        // tap: nothing may dispatch on release, however still the finger.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            down(0, spot)
+            repeat(6) { move(delayMillis = 100) }
+            up(0)
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assertEquals(0, actions.filterIsInstance<ReaderAction.NextPage>().size)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun swipeLeftTurnsToNextPage() {
         // Single-finger drags at fit belong to the pager, not the pan/zoom
         // tracker: a left swipe must settle on the next page.
