@@ -445,38 +445,52 @@ private fun LibraryBody(
         modifier = modifier.fillMaxSize(),
     ) {
         if (comics.isEmpty()) {
-            LibraryEmptyState(
-                searching = queryText.isNotBlank(),
-                onRefresh = { onAction(LibraryAction.Refresh) },
-            )
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = gridPadding,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(LibraryTestTags.Grid),
+            // One-shot arrival fade; static visibility never replays it.
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
+                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
-                items(
-                    comics,
-                    key = { it.id },
-                    // Bitmask bucket: error/in-progress/finished variants never
-                    // cross-recycle, with no per-item string allocation.
-                    contentType = { comic ->
-                        (if (comic.error != null) 4 else 0) +
-                            (if (comic.isInProgress) 2 else 0) +
-                            (if (comic.isFinished) 1 else 0)
-                    },
-                ) { comic ->
-                    ComicCard(
-                        comic = comic,
-                        onRead = onCardRead,
-                        onDetails = onCardDetails,
-                        sharedCover = launchingId == comic.id,
-                        modifier = Modifier,
-                    )
+                LibraryEmptyState(
+                    searching = queryText.isNotBlank(),
+                    onRefresh = { onAction(LibraryAction.Refresh) },
+                )
+            }
+        } else {
+            // One-shot arrival fade; static visibility never replays it.
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
+                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+            ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(GRID_CELL_MIN),
+                    contentPadding = gridPadding,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(LibraryTestTags.Grid),
+                ) {
+                    items(
+                        comics,
+                        key = { it.id },
+                        // Bitmask bucket: error/in-progress/finished variants never
+                        // cross-recycle, with no per-item string allocation.
+                        contentType = { comic ->
+                            (if (comic.error != null) 4 else 0) +
+                                (if (comic.isInProgress) 2 else 0) +
+                                (if (comic.isFinished) 1 else 0)
+                        },
+                    ) { comic ->
+                        ComicCard(
+                            comic = comic,
+                            onRead = onCardRead,
+                            onDetails = onCardDetails,
+                            sharedCover = launchingId == comic.id,
+                            modifier = Modifier,
+                        )
+                    }
                 }
             }
         }

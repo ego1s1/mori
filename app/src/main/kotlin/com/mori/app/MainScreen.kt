@@ -198,7 +198,7 @@ private const val LIBRARY_TAB = 0
 private const val SETTINGS_TAB = 1
 
 /** Tab-switch fade: short enough to feel instant, long enough to read. */
-private const val TAB_FADE_MS = 200
+private const val TAB_FADE_MS = 240
 
 /** Fade-through entrance scale for the incoming tab. */
 private const val TAB_SCALE_FROM = 0.98f

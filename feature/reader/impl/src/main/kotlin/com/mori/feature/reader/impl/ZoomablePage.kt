@@ -281,8 +281,8 @@ private fun Modifier.pageFit(fit: PageFit): Modifier = when (fit) {
 private const val MAX_ZOOM = 4f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val PAGE_ASPECT = 2f / 3f
-private const val DOUBLE_TAP_ZOOM_MS = 300
-private const val EDGE_PAN_MS = 150
+private const val DOUBLE_TAP_ZOOM_MS = 350
+private const val EDGE_PAN_MS = 180
 
 /**
  * Double-tap zoom target: zoomed pages reset to fit, unzoomed pages jump to the

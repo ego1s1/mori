@@ -16,6 +16,10 @@ interface ComicDao {
     @Query("SELECT * FROM comics WHERE id = :id")
     suspend fun getById(id: String): ComicEntity?
 
+    /** Whole table in one round trip for batch refreshes (no per-file queries). */
+    @Query("SELECT * FROM comics")
+    suspend fun getAll(): List<ComicEntity>
+
     @Query("SELECT id FROM comics")
     suspend fun getIds(): List<String>
 

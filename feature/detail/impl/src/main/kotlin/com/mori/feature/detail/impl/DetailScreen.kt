@@ -1,5 +1,9 @@
 package com.mori.feature.detail.impl
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +68,7 @@ import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
@@ -157,21 +162,38 @@ internal fun DetailScreen(
             when (uiState) {
                 DetailUiState.Loading -> MoriLoading()
 
-                DetailUiState.Missing -> MoriEmptyState(
-                    icon = MoriIcons.MenuBook,
-                    title = stringResource(R.string.detail_removed_title),
-                    body = stringResource(R.string.detail_removed_body),
-                    actionLabel = stringResource(R.string.detail_back_to_library),
-                    onAction = onBackClick,
-                )
+                DetailUiState.Missing -> AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
+                    exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                ) {
+                    MoriEmptyState(
+                        icon = MoriIcons.MenuBook,
+                        title = stringResource(R.string.detail_removed_title),
+                        body = stringResource(R.string.detail_removed_body),
+                        actionLabel = stringResource(R.string.detail_back_to_library),
+                        onAction = onBackClick,
+                    )
+                }
 
                 is DetailUiState.Ready -> {
+                    // One-shot arrival fade; static visibility never replays it.
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                            scaleIn(
+                                animationSpec = MoriMotion.defaultSpatialSpec(),
+                                initialScale = 0.98f,
+                            ),
+                        exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                    ) {
                     DetailContent(
                         comic = uiState.comic,
                         refreshing = uiState.refreshing,
                         onAction = onAction,
                         onReadClick = onReadClick,
                     )
+                    }
                     if (uiState.confirmRemove) {
                         RemoveDialog(
                             title = uiState.comic.title,

@@ -4,12 +4,16 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,6 +137,9 @@ internal fun OnboardingRoute(
 }
 
 @Composable
+// The step transition keys on the step alone while rendering live state,
+// so progress ticks recompose in place without restarting the animation.
+@Suppress("UnusedContentLambdaTargetStateParameter")
 internal fun OnboardingScreen(
     uiState: OnboardingUiState,
     onPickFolder: () -> Unit,
@@ -142,6 +149,42 @@ internal fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        // Step changes fade through so the wizard never hard-cuts. Keyed on
+        // the step alone: progress ticks inside Importing recompose in place
+        // without restarting the transition.
+        val stepKey = when (uiState) {
+            OnboardingUiState.Welcome -> 0
+            is OnboardingUiState.Storage -> 1
+            is OnboardingUiState.Appearance -> 2
+            is OnboardingUiState.Import -> 3
+            is OnboardingUiState.Importing -> 4
+            is OnboardingUiState.Done -> 5
+        }
+        AnimatedContent(
+            targetState = stepKey,
+            transitionSpec = {
+                (fadeIn(
+                    animationSpec = tween(
+                        STEP_FADE_MS,
+                        easing = MoriMotion.EmphasizedDecelerate,
+                    ),
+                ) + scaleIn(
+                    animationSpec = tween(
+                        STEP_FADE_MS,
+                        easing = MoriMotion.EmphasizedDecelerate,
+                    ),
+                    initialScale = STEP_SCALE_FROM,
+                )) togetherWith fadeOut(
+                    animationSpec = tween(
+                        STEP_FADE_MS,
+                        easing = MoriMotion.EmphasizedAccelerate,
+                    ),
+                )
+            },
+            label = "onboardingStep",
+        ) { _ ->
+        // Renders the live state (not the step key) so progress ticks
+        // recompose in place without restarting the transition.
         when (uiState) {
             OnboardingUiState.Welcome -> WelcomeContent(
                 onGetStarted = { onAction(OnboardingAction.GetStarted) },
@@ -229,8 +272,13 @@ internal fun OnboardingScreen(
                 },
             )
         }
+        }
     }
 }
+
+/** Step-change fade-through; slightly unhurried so the wizard feels calm. */
+private const val STEP_FADE_MS = 250
+private const val STEP_SCALE_FROM = 0.98f
 
 @Composable
 private fun WelcomeContent(
@@ -242,7 +290,7 @@ private fun WelcomeContent(
     var step by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         repeat(WELCOME_STEPS) {
-            delay(90)
+            delay(110)
             step++
         }
     }
@@ -798,11 +846,22 @@ private fun ImportingContent(
             .padding(32.dp)
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
-        if (total <= 0) {
-            CircularProgressIndicator(modifier = Modifier.testTag(OnboardingTestTags.Progress))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = stringResource(R.string.onboarding_scanning), style = MaterialTheme.typography.bodyLarge)
-        } else {
+        AnimatedContent(
+            targetState = total <= 0,
+            transitionSpec = {
+                fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) togetherWith
+                    fadeOut(animationSpec = MoriMotion.calmFade())
+            },
+            label = "importPhase",
+        ) { scanning ->
+            if (scanning) {
+                CircularProgressIndicator(modifier = Modifier.testTag(OnboardingTestTags.Progress))
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.onboarding_scanning),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            } else {
             Text(
                 text = if (link) {
                     stringResource(R.string.onboarding_adding, done, total)
@@ -826,6 +885,7 @@ private fun ImportingContent(
                     .fillMaxWidth()
                     .testTag(OnboardingTestTags.Progress),
             )
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
         TextButton(onClick = onCancel) {

@@ -84,7 +84,7 @@ object MoriMotion {
     fun pageTurnSpec(): FiniteAnimationSpec<Float> =
         tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
 
-    private const val PAGE_TURN_MS = 150
+    private const val PAGE_TURN_MS = 180
 
     @Composable
     fun enterTween() = tween<IntOffset>(EnterScreenMs, easing = EmphasizedDecelerate)

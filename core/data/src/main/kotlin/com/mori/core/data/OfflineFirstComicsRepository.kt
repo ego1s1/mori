@@ -66,10 +66,11 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val files = libraryDir.walkTopDown()
             .filter { it.isFile && isSupportedArchive(it.name) }
             .toList()
-        // Batch the writes: one upsert per refresh, not one per file. Per-file
-        // upserts re-emit observeAll N times (each re-sorting the grid); the
-        // batched write emits once with the final state.
-        val rows = files.map { file -> indexFile(file) }
+        // Batch the reads and writes: one fetch plus one upsert per refresh,
+        // not N round trips. Per-file traffic re-emits observeAll N times
+        // (each re-sorting the grid); the batched pass emits once.
+        val knownById = dao.getAll().associateBy { it.id }
+        val rows = files.map { file -> indexFile(file, existing = knownById[file.name]) }
         if (rows.isNotEmpty()) {
             dao.upsertAll(rows)
         }
@@ -89,7 +90,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val root = DocumentFile.fromTreeUri(context, treeUri)
             ?: return@withContext ImportReport(0, 0, 0, emptyList())
         val docs = collectLinkedArchives(root)
-        // Batch like refreshLibrary: one upsert, one observer emission.
+        // Batch like refreshLibrary: one fetch, one upsert, one emission.
+        val knownById = dao.getAll().associateBy { it.id }
         val rows = mutableListOf<ComicEntity>()
         val items = mutableListOf<ImportItem>()
         var failed = 0
@@ -97,7 +99,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             val uri = doc.uri.toString()
             val name = doc.name ?: uri.substringAfterLast('/')
             try {
-                val known = dao.getById(uri)
+                val known = knownById[uri]
                 val modified = doc.lastModified()
                 val row = if (known != null && known.sourceModified == modified &&
                     known.coverPath?.let { File(it).isFile } == true
