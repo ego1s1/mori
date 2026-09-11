@@ -11,7 +11,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -29,9 +28,9 @@ internal abstract class DataModule {
     ): ComicBackendDataSource
 
     @Binds
-    abstract fun bindComicImporter(
-        impl: AppComicImporter,
-    ): ComicImporter
+    abstract fun bindLinkedTreeLister(
+        impl: DocumentLinkedTreeLister,
+    ): LinkedTreeLister
 }
 
 @Module
@@ -50,9 +49,4 @@ internal object DataProviders {
     @Provides
     @Singleton
     fun providePageDecoder(): PageDecoder = PageDecoder()
-
-    @Provides
-    @Singleton
-    fun provideLibraryDir(@ApplicationContext context: Context): File =
-        File(context.filesDir, OfflineFirstComicsRepository.LIBRARY_DIR)
 }

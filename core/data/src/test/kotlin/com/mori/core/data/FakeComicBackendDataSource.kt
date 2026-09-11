@@ -12,12 +12,14 @@ internal class FakeComicBackendDataSource(
     var inspected: Map<String, InspectedComic> = emptyMap(),
     var pageBytes: Map<String, ByteArray> = emptyMap(),
     var failWith: Exception? = null,
+    /** Fallback inspect for files not in [inspected] (e.g. cache-keyed temps). */
+    var defaultInspected: InspectedComic? = null,
 ) : ComicBackendDataSource {
 
     private fun fail(): Nothing = throw failWith ?: IllegalStateException("not stubbed")
 
     override suspend fun inspect(file: File): InspectedComic =
-        failWith?.let { throw it } ?: inspected[file.name] ?: fail()
+        failWith?.let { throw it } ?: inspected[file.name] ?: defaultInspected ?: fail()
 
     override suspend fun readPageBytes(file: File, page: ComicPage): ByteArray =
         failWith?.let { throw it } ?: pageBytes[page.name] ?: ByteArray(0)

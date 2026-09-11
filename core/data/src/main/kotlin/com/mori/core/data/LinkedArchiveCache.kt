@@ -70,7 +70,7 @@ class LinkedArchiveCache @Inject constructor(
         }
     }
 
-    private companion object {
+    internal companion object {
         const val LINKED_DIR = "linked"
         const val CACHE_BOUND_BYTES = 256L * 1024 * 1024
     }

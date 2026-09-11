@@ -3,7 +3,6 @@ package com.mori.core.data
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
@@ -18,7 +17,6 @@ internal class FakeComicsRepository(
 ) : ComicsRepository {
 
     private val comics = MutableStateFlow(initial)
-    var refreshLibraryReport = IndexReport(0, 0, 0)
     val removedIds = mutableListOf<String>()
     val linkedTrees = mutableListOf<android.net.Uri>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
@@ -35,8 +33,6 @@ internal class FakeComicsRepository(
 
     override suspend fun getComic(id: String): Comic? =
         comics.value.firstOrNull { it.id == id }
-
-    override suspend fun refreshLibrary(): IndexReport = refreshLibraryReport
 
     override suspend fun indexLinkedTree(
         treeUri: android.net.Uri,

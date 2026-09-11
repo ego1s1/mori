@@ -18,6 +18,7 @@
     <string name="library_empty_search_title">No comics match your search</string>
     <string name="library_empty_search_body">Try a different title, series, or number.</string>
     <string name="library_empty_rescan">Rescan library</string>
+    <string name="library_empty_choose_folder">Choose folder</string>
     <string name="library_card_unreadable">Can\'t read</string>
     <string name="library_card_pages_left">%1$d left</string>
     <string name="library_card_read">Read %1$s</string>

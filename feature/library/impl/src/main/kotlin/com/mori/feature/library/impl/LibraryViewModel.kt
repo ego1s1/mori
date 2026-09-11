@@ -93,8 +93,9 @@ class LibraryViewModel @Inject constructor(
         comics,
         query,
         combine(refreshing, filterOpen, searchOpen, ::Chrome),
-    ) { comics, query, chrome ->
-        toUiState(comics, query, chrome)
+        preferences.sourceTreeUri,
+    ) { comics, query, chrome, treeUri ->
+        toUiState(comics, query, chrome, linked = treeUri != null)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -122,13 +123,35 @@ class LibraryViewModel @Inject constructor(
         comics: List<Comic>,
         query: LibraryQuery,
         chrome: Chrome,
+        linked: Boolean,
     ): LibraryUiState = LibraryUiState.Success(
         comics = comics,
         query = query,
         refreshing = chrome.refreshing,
         filterOpen = chrome.filterOpen,
         searchOpen = chrome.searchOpen,
+        linked = linked,
     )
+
+    init {
+        // Lazy first index: onboarding navigates straight through with no
+        // progress screens, so an empty shelf with a linked tree indexes
+        // itself once here and fills live. Manual rescans cover the rest. A
+        // fresh subscription (not the shared flow's replay) decides
+        // emptiness, so a populated shelf never re-indexes on cold start.
+        viewModelScope.launch {
+            val treeUri = preferences.sourceTreeUri.first() ?: return@launch
+            if (repository.observeLibrary(LibraryQuery()).first().isNotEmpty()) return@launch
+            refreshing.value = true
+            try {
+                runCatching {
+                    repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }
+                }
+            } finally {
+                refreshing.value = false
+            }
+        }
+    }
 
     fun onAction(action: LibraryAction) {
         when (action) {
@@ -143,6 +166,7 @@ class LibraryViewModel @Inject constructor(
             LibraryAction.CloseFilter -> filterOpen.value = false
             LibraryAction.ToggleSearch -> searchOpen.update { !it }
             LibraryAction.Refresh -> refresh()
+            is LibraryAction.FolderSelected -> linkFolder(action.uri.toString())
         }
     }
 
@@ -164,18 +188,30 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             refreshing.value = true
             try {
-                val report = repository.refreshLibrary()
-                // Linked custom folder (Mihon local-source policy): refresh it
-                // in place — never copied, rescan stays fresh without dupes.
-                val treeUri = preferences.sourceTreeUri.first()
-                var linkedFailed = 0
-                if (treeUri != null) {
-                    runCatching {
-                        val uri = android.net.Uri.parse(treeUri)
-                        linkedFailed = repository.indexLinkedTree(uri) { _, _ -> }.failed
-                    }
+                // Link-only rescan: re-index the persisted tree in place.
+                // Nothing is ever copied; with no tree linked there is
+                // nothing to rescan.
+                val treeUri = preferences.sourceTreeUri.first() ?: return@launch
+                val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
+                if (failed > 0) {
+                    messageChannel.send(LibraryMessage.IndexFailed(failed))
                 }
-                val failed = report.failed + linkedFailed
+            } catch (e: Exception) {
+                messageChannel.send(LibraryMessage.RescanFailed)
+            } finally {
+                refreshing.value = false
+            }
+        }
+    }
+
+    /** Post-onboarding rescue: link a folder straight from the empty shelf. */
+    private fun linkFolder(treeUri: String) {
+        if (refreshing.value) return
+        viewModelScope.launch {
+            refreshing.value = true
+            try {
+                preferences.setSourceTreeUri(treeUri)
+                val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
                 if (failed > 0) {
                     messageChannel.send(LibraryMessage.IndexFailed(failed))
                 }

@@ -33,6 +33,7 @@ class LibraryScreenTest {
         refreshing: Boolean = false,
         filterOpen: Boolean = false,
         searchOpen: Boolean = false,
+        linked: Boolean = true,
     ) = LibraryUiState.Success(
         comics = listOf(
             TestComicsRepository.comic("a", title = "Apple"),
@@ -42,6 +43,7 @@ class LibraryScreenTest {
         refreshing = refreshing,
         filterOpen = filterOpen,
         searchOpen = searchOpen,
+        linked = linked,
     )
 
     private fun setScreen(
@@ -118,6 +120,15 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.EmptyState).assertIsDisplayed()
         composeTestRule.onNodeWithText("Your library is empty").assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.EmptyRescan).assertExists()
+    }
+
+    @Test
+    fun emptyStateUnlinkedOffersChooseFolder() {
+        setScreen(success(linked = false).copy(comics = emptyList()))
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.EmptyState).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.EmptyChooseFolder).assertExists()
+        composeTestRule.onNodeWithTag(LibraryTestTags.EmptyRescan).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

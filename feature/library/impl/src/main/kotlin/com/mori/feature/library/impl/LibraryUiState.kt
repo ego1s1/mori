@@ -14,6 +14,8 @@ sealed interface LibraryUiState {
         val refreshing: Boolean,
         val filterOpen: Boolean,
         val searchOpen: Boolean,
+        /** A source tree is linked: rescan and rescue paths apply. */
+        val linked: Boolean,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
     }
@@ -35,6 +37,9 @@ sealed interface LibraryAction {
     data object ToggleSearch : LibraryAction
 
     data object Refresh : LibraryAction
+
+    /** Link a folder straight from the empty shelf (post-onboarding rescue). */
+    data class FolderSelected(val uri: android.net.Uri) : LibraryAction
 }
 
 /** One-shot library messages; the UI maps each to localized copy. */

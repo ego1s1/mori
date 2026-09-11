@@ -267,10 +267,6 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            PlaceholderRow(
-                title = stringResource(R.string.settings_location_title),
-                subtitle = stringResource(R.string.settings_location_subtitle),
-            )
         }
 
         SettingsCard(title = stringResource(R.string.settings_card_soon)) {

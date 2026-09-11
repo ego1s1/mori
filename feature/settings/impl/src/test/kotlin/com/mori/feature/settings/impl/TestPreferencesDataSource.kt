@@ -3,11 +3,9 @@ package com.mori.feature.settings.impl
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.ReaderPreferences
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
@@ -29,8 +27,6 @@ internal class TestPreferencesDataSource(
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
-    private val storageLocationFlow = MutableStateFlow(StorageLocation.APP)
-    override val storageLocation: Flow<StorageLocation> = storageLocationFlow.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
@@ -46,10 +42,6 @@ internal class TestPreferencesDataSource(
 
     override suspend fun setSourceTreeUri(uri: String?) {
         treeUri.value = uri
-    }
-
-    override suspend fun setStorageLocation(location: StorageLocation) {
-        storageLocationFlow.value = location
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {
@@ -87,8 +79,6 @@ internal class TestComicsRepository(
         MutableStateFlow<Comic?>(null).asStateFlow()
 
     override suspend fun getComic(id: String): Comic? = null
-
-    override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
 
     override suspend fun indexLinkedTree(
         treeUri: android.net.Uri,

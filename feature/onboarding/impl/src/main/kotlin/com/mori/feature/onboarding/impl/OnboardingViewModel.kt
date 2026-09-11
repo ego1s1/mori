@@ -2,50 +2,35 @@ package com.mori.feature.onboarding.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mori.core.data.ComicImporter
-import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Step wizard: Welcome → Storage → Appearance → Import, then the transient
- * Importing/Done phases. Theme and storage choices persist immediately so
- * quitting mid-wizard never loses them; Skip finishes without importing.
+ * Link-only step wizard: Welcome → Folder → Appearance. Theme choices persist
+ * immediately so quitting mid-wizard never loses them; Skip finishes without
+ * linking. Nothing is ever copied or indexed here — the library picks up the
+ * persisted tree on arrival.
  */
 @HiltViewModel
 internal class OnboardingViewModel @Inject constructor(
-    private val importer: ComicImporter,
-    private val repository: ComicsRepository,
     private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
-    private enum class Step { WELCOME, STORAGE, APPEARANCE, IMPORT }
-
-    private sealed interface ImportPhase {
-        data class Progress(val done: Int, val total: Int, val link: Boolean) : ImportPhase
-        data class Finished(val report: com.mori.core.model.ImportReport) : ImportPhase
-    }
+    private enum class Step { WELCOME, FOLDER, APPEARANCE }
 
     private val step = MutableStateFlow(Step.WELCOME)
-    private val importPhase = MutableStateFlow<ImportPhase?>(null)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         preferences.themePreferences,
-        preferences.storageLocation,
-        importPhase,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -53,72 +38,27 @@ internal class OnboardingViewModel @Inject constructor(
         initialValue = OnboardingUiState.Welcome,
     )
 
-    private fun toUiState(
-        step: Step,
-        theme: ThemePreferences,
-        location: StorageLocation,
-        phase: ImportPhase?,
-    ): OnboardingUiState {
-        phase?.let {
-            return when (it) {
-                is ImportPhase.Progress -> OnboardingUiState.Importing(it.done, it.total, it.link)
-                is ImportPhase.Finished -> OnboardingUiState.Done(it.report)
-            }
-        }
-        return when (step) {
+    private fun toUiState(step: Step, theme: ThemePreferences): OnboardingUiState =
+        when (step) {
             Step.WELCOME -> OnboardingUiState.Welcome
-            Step.STORAGE -> OnboardingUiState.Storage(location)
+            Step.FOLDER -> OnboardingUiState.Folder
             Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
-            Step.IMPORT -> OnboardingUiState.Import(location)
         }
-    }
-
-    private var importJob: Job? = null
 
     fun onAction(action: OnboardingAction) {
         when (action) {
-            OnboardingAction.GetStarted -> step.value = Step.STORAGE
+            OnboardingAction.GetStarted -> step.value = Step.FOLDER
             OnboardingAction.Skip -> finish()
             OnboardingAction.BackStep -> step.value = when (step.value) {
                 Step.WELCOME -> Step.WELCOME
-                Step.STORAGE -> Step.WELCOME
-                Step.APPEARANCE -> Step.STORAGE
-                Step.IMPORT -> Step.APPEARANCE
-            }
-            OnboardingAction.ContinueStep -> step.value = when (step.value) {
-                Step.WELCOME -> Step.STORAGE
-                Step.STORAGE -> Step.APPEARANCE
-                Step.APPEARANCE -> Step.IMPORT
-                Step.IMPORT -> Step.IMPORT
-            }
-            is OnboardingAction.SelectStorage -> viewModelScope.launch {
-                preferences.setStorageLocation(action.location)
+                Step.FOLDER -> Step.WELCOME
+                Step.APPEARANCE -> Step.FOLDER
             }
             is OnboardingAction.FolderSelected -> {
-                // The storage choice implies the mode: custom folders link in
-                // place with zero copies, everything else copies in.
                 viewModelScope.launch {
-                    val custom = preferences.storageLocation.first() == StorageLocation.CUSTOM
-                    if (custom) {
-                        preferences.setSourceTreeUri(action.uri.toString())
-                        startImport(link = true) { onProgress ->
-                            repository.indexLinkedTree(action.uri, onProgress)
-                        }
-                    } else {
-                        // Copies land in app storage and no tree lingers
-                        // behind to surprise later rescans.
-                        preferences.setSourceTreeUri(null)
-                        startImport(link = false) { onProgress ->
-                            importer.importTree(action.uri, onProgress)
-                        }
-                    }
+                    preferences.setSourceTreeUri(action.uri.toString())
                 }
-            }
-            is OnboardingAction.FilesSelected -> startImport(link = false) { onProgress ->
-                importer.importDocuments(action.uris, onProgress)
-            }
-            OnboardingAction.CancelImport -> {
-                importJob?.cancel()
+                step.value = Step.APPEARANCE
             }
             is OnboardingAction.SetThemeMode -> updateTheme { it.copy(mode = action.mode) }
             is OnboardingAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }
@@ -126,10 +66,6 @@ internal class OnboardingViewModel @Inject constructor(
                 it.copy(colorScheme = action.scheme, dynamicColor = false)
             }
             is OnboardingAction.SetAmoled -> updateTheme { it.copy(amoled = action.enabled) }
-            OnboardingAction.ImportMore -> {
-                importPhase.value = null
-                step.value = Step.IMPORT
-            }
             OnboardingAction.Finish -> finish()
         }
     }
@@ -145,50 +81,4 @@ internal class OnboardingViewModel @Inject constructor(
             preferences.setOnboardingCompleted(true)
         }
     }
-
-    private fun startImport(
-        link: Boolean,
-        run: suspend ((done: Int, total: Int) -> Unit) -> com.mori.core.model.ImportReport,
-    ) {
-        if (importJob?.isActive == true) return
-        step.value = Step.IMPORT
-        importPhase.value = ImportPhase.Progress(done = 0, total = 0, link = link)
-        var lastIndexed = 0
-        importJob = viewModelScope.launch {
-            try {
-                val report = run { done, total ->
-                    val current = importPhase.value
-                    if (current is ImportPhase.Progress) {
-                        importPhase.value = current.copy(done = done, total = total)
-                    }
-                    // Index incrementally so the shelf fills live behind the
-                    // progress screen instead of appearing only at the end.
-                    if (shouldRefreshIndex(done, total, lastIndexed)) {
-                        lastIndexed = done
-                        launch { runCatching { repository.refreshLibrary() } }
-                    }
-                }
-                // Copying alone leaves the library empty: index the new files now
-                // so the shelf is populated when onboarding finishes. A failed
-                // index must not fail the import itself; rescan stays available.
-                if (report.succeeded > 0) {
-                    runCatching { repository.refreshLibrary() }
-                }
-                importPhase.value = ImportPhase.Finished(report)
-            } catch (e: CancellationException) {
-                importPhase.value = null
-                throw e
-            }
-        }
-    }
 }
-
-/**
- * Refresh the index at most every [INDEX_REFRESH_EVERY] files (plus always on
- * the final tick): each refresh re-walks the library, so per-file refreshes
- * would turn an N-file import quadratic.
- */
-internal fun shouldRefreshIndex(done: Int, total: Int, lastRefreshDone: Int): Boolean =
-    total > 0 && (done >= total || done - lastRefreshDone >= INDEX_REFRESH_EVERY)
-
-private const val INDEX_REFRESH_EVERY = 10

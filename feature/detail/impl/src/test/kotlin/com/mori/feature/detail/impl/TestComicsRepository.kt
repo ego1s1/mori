@@ -4,7 +4,6 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,8 +28,6 @@ internal class TestComicsRepository(
         comics.asStateFlow().map { it[id] }
 
     override suspend fun getComic(id: String): Comic? = comics.value[id]
-
-    override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
 
     override suspend fun indexLinkedTree(
         treeUri: android.net.Uri,

@@ -10,7 +10,6 @@ import com.mori.comic.model.PageDimensions
 import com.mori.core.data.ComicBackendDataSource
 import com.mori.core.data.InspectedComic
 import com.mori.core.model.Comic
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
 import kotlinx.coroutines.flow.Flow
@@ -58,9 +57,7 @@ class MoriImageLoaderFactoryTest {
 
         override suspend fun getComic(id: String): Comic? = null
 
-        override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
-
-        override suspend fun indexLinkedTree(
+            override suspend fun indexLinkedTree(
             treeUri: android.net.Uri,
             onProgress: (done: Int, total: Int) -> Unit,
         ): com.mori.core.model.ImportReport =

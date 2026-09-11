@@ -10,7 +10,6 @@ import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.MotionStyle
@@ -32,13 +31,6 @@ internal class DataStorePreferencesDataSource @Inject constructor(
 
     override val sourceTreeUri: Flow<String?> =
         dataStore.data.map { it[SOURCE_TREE_URI] }
-
-    override val storageLocation: Flow<StorageLocation> =
-        dataStore.data.map { prefs ->
-            prefs[STORAGE_LOCATION]?.let {
-                runCatching { StorageLocation.valueOf(it) }.getOrDefault(StorageLocation.APP)
-            } ?: StorageLocation.APP
-        }
 
     override val readerPreferences: Flow<ReaderPreferences> =
         dataStore.data.map { prefs ->
@@ -65,10 +57,6 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit {
             if (uri == null) it.remove(SOURCE_TREE_URI) else it[SOURCE_TREE_URI] = uri
         }
-    }
-
-    override suspend fun setStorageLocation(location: StorageLocation) {
-        dataStore.edit { it[STORAGE_LOCATION] = location.name }
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {
@@ -151,7 +139,6 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val SOURCE_TREE_URI = stringPreferencesKey("source_tree_uri")
-        val STORAGE_LOCATION = stringPreferencesKey("storage_location")
         val READING_DIRECTION = stringPreferencesKey("reading_direction")
         val PAGE_FIT = stringPreferencesKey("page_fit")
         val CROP_MARGINS = booleanPreferencesKey("crop_margins")

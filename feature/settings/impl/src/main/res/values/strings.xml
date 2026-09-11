@@ -31,8 +31,6 @@
     <string name="settings_storage_summary">%1$d comics • %2$s library • %3$s covers</string>
     <string name="settings_clear_cache">Clear thumbnail cache</string>
     <string name="settings_clear_caption">Covers regenerate the next time each comic is indexed.</string>
-    <string name="settings_location_title">Library location</string>
-    <string name="settings_location_subtitle">App-private storage</string>
     <string name="settings_card_soon">Coming soon</string>
     <string name="settings_soon_cb">CB7 and CBT support</string>
     <string name="settings_soon_cb_subtitle">More archive formats</string>

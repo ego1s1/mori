@@ -1,5 +1,8 @@
 package com.mori.feature.library.impl
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -128,6 +131,21 @@ private fun LibraryRouteContent(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val context = LocalContext.current
+    // Post-onboarding rescue: linking straight from the empty shelf, with the
+    // same persistable permission the onboarding picker takes.
+    val folderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel.onAction(LibraryAction.FolderSelected(uri))
+        }
+    }
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
             val text = when (message) {
@@ -155,6 +173,7 @@ private fun LibraryRouteContent(
         onAction = viewModel::onAction,
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
+        onChooseFolder = { folderLauncher.launch(null) },
         snackbarHost = snackbarHost,
         modifier = modifier,
     )
@@ -168,6 +187,7 @@ internal fun LibraryScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onChooseFolder: () -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
@@ -206,9 +226,11 @@ internal fun LibraryScreen(
                         query = uiState.query,
                         refreshing = uiState.refreshing,
                         searchOpen = uiState.searchOpen,
+                        linked = uiState.linked,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
+                        onChooseFolder = onChooseFolder,
                     )
                     if (uiState.filterOpen) {
                         LibrarySortFilterSheet(
@@ -228,9 +250,11 @@ private fun LibraryContent(
     query: LibraryQuery,
     refreshing: Boolean,
     searchOpen: Boolean,
+    linked: Boolean,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -276,9 +300,11 @@ private fun LibraryContent(
                 comics = comics,
                 queryText = query.text,
                 refreshing = refreshing,
+                linked = linked,
                 onAction = onAction,
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
+                onChooseFolder = onChooseFolder,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -408,9 +434,11 @@ private fun LibraryBody(
     comics: List<Comic>,
     queryText: String,
     refreshing: Boolean,
+    linked: Boolean,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Only the launching card registers a shared element; null = plain grid.
@@ -447,7 +475,9 @@ private fun LibraryBody(
             ) {
                 LibraryEmptyState(
                     searching = queryText.isNotBlank(),
+                    linked = linked,
                     onRefresh = { onAction(LibraryAction.Refresh) },
+                    onChooseFolder = onChooseFolder,
                 )
             }
         } else {
@@ -494,9 +524,14 @@ private fun LibraryBody(
 @Composable
 private fun LibraryEmptyState(
     searching: Boolean,
+    linked: Boolean,
     onRefresh: () -> Unit,
+    onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Unlinked and not searching, rescan is a dead end: offer the folder
+    // rescue instead. Searching or linked shelves keep rescan.
+    val rescue = !searching && !linked
     MoriEmptyState(
         icon = MoriIcons.MenuBook,
         title = if (searching) {
@@ -509,11 +544,19 @@ private fun LibraryEmptyState(
         } else {
             stringResource(R.string.library_empty_body)
         },
-        actionLabel = stringResource(R.string.library_empty_rescan),
-        onAction = onRefresh,
+        actionLabel = if (rescue) {
+            stringResource(R.string.library_empty_choose_folder)
+        } else {
+            stringResource(R.string.library_empty_rescan)
+        },
+        onAction = if (rescue) onChooseFolder else onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
         bottomPadding = 112.dp,
-        actionTestTag = LibraryTestTags.EmptyRescan,
+        actionTestTag = if (rescue) {
+            LibraryTestTags.EmptyChooseFolder
+        } else {
+            LibraryTestTags.EmptyRescan
+        },
     )
 }
 
@@ -531,6 +574,7 @@ private fun LibraryScreenPreview() {
                 refreshing = false,
                 filterOpen = false,
                 searchOpen = false,
+                linked = true,
             ),
             onAction = {},
             onReadClick = { _, _ -> },

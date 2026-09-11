@@ -4,7 +4,6 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.data.applyQuery
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicFormat
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,10 +16,9 @@ internal class TestComicsRepository(
 ) : ComicsRepository {
 
     private val comics = MutableStateFlow(initial)
-    var refreshReport = IndexReport(0, 0, 0)
-    var refreshCalls = 0
+    var linkReport = com.mori.core.model.ImportReport(0, 0, 0, emptyList())
     val linkedTrees = mutableListOf<android.net.Uri>()
-    var failRefreshWith: Exception? = null
+    var failLinkWith: Exception? = null
     val progressSaves = mutableListOf<Pair<String, Int>>()
 
     fun send(comics: List<Comic>) {
@@ -36,18 +34,13 @@ internal class TestComicsRepository(
     override suspend fun getComic(id: String): Comic? =
         comics.value.firstOrNull { it.id == id }
 
-    override suspend fun refreshLibrary(): IndexReport {
-        refreshCalls += 1
-        failRefreshWith?.let { throw it }
-        return refreshReport
-    }
-
     override suspend fun indexLinkedTree(
         treeUri: android.net.Uri,
         onProgress: (done: Int, total: Int) -> Unit,
     ): com.mori.core.model.ImportReport {
         linkedTrees += treeUri
-        return com.mori.core.model.ImportReport(0, 0, 0, emptyList())
+        failLinkWith?.let { throw it }
+        return linkReport
     }
 
     override suspend fun refreshComic(id: String): Comic? = getComic(id)

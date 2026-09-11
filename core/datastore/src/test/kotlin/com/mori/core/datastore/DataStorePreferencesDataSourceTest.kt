@@ -6,7 +6,6 @@ import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.ThemeMode
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -120,16 +119,6 @@ class DataStorePreferencesDataSourceTest {
             val prefs = awaitItem()
             assertEquals(ReadingDirection.RIGHT_TO_LEFT, prefs.direction)
             assertEquals(PageFit.WIDTH, prefs.pageFit)
-        }
-    }
-
-    @Test
-    fun storageLocationDefaultsToAppThenPersists() = runTest {
-        val dataSource = dataSource()
-        dataSource.storageLocation.test {
-            assertEquals(StorageLocation.APP, awaitItem())
-            dataSource.setStorageLocation(StorageLocation.CUSTOM)
-            assertEquals(StorageLocation.CUSTOM, awaitItem())
         }
     }
 

@@ -1,85 +1,21 @@
 package com.mori.feature.onboarding.impl
 
-import android.net.Uri
-import com.mori.core.data.ComicImporter
 import com.mori.core.data.ComicsRepository
-import com.mori.core.data.ImportCandidate
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
-import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
-import com.mori.core.model.ImportItem
-import com.mori.core.model.ImportReport
-import com.mori.core.model.ImportStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
-/** Deterministic importer double: scripted reports, optional hang for cancellation tests. */
-internal class FakeComicImporter(
-    var treeReport: ImportReport = ImportReport(0, 0, 0, emptyList()),
-    var documentsReport: ImportReport = ImportReport(0, 0, 0, emptyList()),
-    var candidatesReport: ImportReport = ImportReport(0, 0, 0, emptyList()),
-    var hangImport: Boolean = false,
-) : ComicImporter {
-
-    val seenTrees = mutableListOf<Uri>()
-    val seenDocuments = mutableListOf<List<Uri>>()
-
-    override suspend fun importCandidates(
-        candidates: List<ImportCandidate>,
-        onProgress: (done: Int, total: Int) -> Unit,
-    ): ImportReport {
-        if (hangImport) kotlinx.coroutines.suspendCancellableCoroutine<Nothing> {}
-        return candidatesReport
-    }
-
-    override suspend fun importTree(
-        treeUri: Uri,
-        onProgress: (done: Int, total: Int) -> Unit,
-    ): ImportReport {
-        seenTrees += treeUri
-        if (hangImport) kotlinx.coroutines.suspendCancellableCoroutine<Nothing> {}
-        val report = treeReport
-        report.items.forEachIndexed { index, _ ->
-            onProgress(index + 1, report.total)
-        }
-        return report
-    }
-
-    override suspend fun importDocuments(
-        uris: List<Uri>,
-        onProgress: (done: Int, total: Int) -> Unit,
-    ): ImportReport {
-        seenDocuments += uris
-        if (hangImport) kotlinx.coroutines.suspendCancellableCoroutine<Nothing> {}
-        val report = documentsReport
-        report.items.forEachIndexed { index, _ ->
-            onProgress(index + 1, report.total)
-        }
-        return report
-    }
-
-    companion object {
-        fun success(total: Int, succeeded: Int = total): ImportReport {
-            val items = (1..total).map {
-                ImportItem("comic$it.cbz", ImportStatus.SUCCEEDED, null)
-            }
-            return ImportReport(total, succeeded, total - succeeded, items)
-        }
-    }
-}
-
-/** Repository double tracking index refreshes after import. */
+/** Repository double (unused by the link-only wizard; kept for UI tests). */
 internal class FakeComicsRepository : ComicsRepository {
-    var refreshCalls = 0
     val linkedTrees = mutableListOf<android.net.Uri>()
 
     override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
@@ -89,11 +25,6 @@ internal class FakeComicsRepository : ComicsRepository {
         MutableStateFlow<Comic?>(null).asStateFlow()
 
     override suspend fun getComic(id: String): Comic? = null
-
-    override suspend fun refreshLibrary(): IndexReport {
-        refreshCalls += 1
-        return IndexReport(0, 0, 0)
-    }
 
     override suspend fun indexLinkedTree(
         treeUri: android.net.Uri,
@@ -126,8 +57,6 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
     override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
-    private val storageLocationFlow = MutableStateFlow(StorageLocation.APP)
-    override val storageLocation: Flow<StorageLocation> = storageLocationFlow.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     private val motionStyleFlow = MutableStateFlow(MotionStyle.EXPRESSIVE)
@@ -143,10 +72,6 @@ internal class FakePreferencesDataSource : MoriPreferencesDataSource {
 
     override suspend fun setSourceTreeUri(uri: String?) {
         treeUri.value = uri
-    }
-
-    override suspend fun setStorageLocation(location: StorageLocation) {
-        storageLocationFlow.value = location
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {

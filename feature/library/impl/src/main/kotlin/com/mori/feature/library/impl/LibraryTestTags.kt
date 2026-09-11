@@ -11,6 +11,7 @@ object LibraryTestTags {
     const val SortFilterSheet = "librarySortFilterSheet"
     const val EmptyState = "libraryEmpty"
     const val EmptyRescan = "libraryEmptyRescan"
+    const val EmptyChooseFolder = "libraryEmptyChooseFolder"
     const val Snackbar = "librarySnackbar"
     const val MenuButton = "libraryMenuButton"
     const val MenuPopup = "libraryMenuPopup"

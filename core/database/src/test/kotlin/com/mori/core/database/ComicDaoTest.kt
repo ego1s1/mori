@@ -34,14 +34,14 @@ class ComicDaoTest {
         database.close()
     }
 
-    private fun entity(id: String) = ComicEntity(
+    private fun entity(id: String, sourcePath: String? = null) = ComicEntity(
         id = id,
         title = "Title $id",
         series = null,
         number = null,
         format = "CBZ",
         pageCount = 10,
-        sourcePath = "/lib/$id.cbz",
+        sourcePath = sourcePath ?: "/lib/$id.cbz",
         coverPath = null,
         lastPageIndex = 0,
         sourceDisplayName = "$id.cbz",
@@ -105,11 +105,31 @@ class ComicDaoTest {
     }
 
     @Test
-    fun deleteMissingKeepsListedIds() = runTest {
-        dao.upsertAll(listOf(entity("a"), entity("b"), entity("c")))
-        dao.deleteMissing(listOf("a", "c"))
+    fun deleteMissingLinkedPrunesOnlyAbsentUris() = runTest {
+        dao.upsertAll(
+            listOf(
+                entity("a"),
+                entity("content://tree/x", sourcePath = "content://tree/x"),
+                entity("content://tree/y", sourcePath = "content://tree/y"),
+            ),
+        )
+        dao.deleteMissingLinked(listOf("content://tree/x"))
         dao.observeAll().test {
-            assertEquals(setOf("a", "c"), awaitItem().map { it.id }.toSet())
+            assertEquals(setOf("a", "content://tree/x"), awaitItem().map { it.id }.toSet())
+        }
+    }
+
+    @Test
+    fun deleteAllLinkedKeepsLocalRows() = runTest {
+        dao.upsertAll(
+            listOf(
+                entity("a"),
+                entity("content://tree/x", sourcePath = "content://tree/x"),
+            ),
+        )
+        dao.deleteAllLinked()
+        dao.observeAll().test {
+            assertEquals(listOf("a"), awaitItem().map { it.id })
         }
     }
 }

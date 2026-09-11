@@ -93,7 +93,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import com.mori.core.designsystem.previewColor
 import com.mori.core.model.ColorSchemeChoice
-import com.mori.core.model.StorageLocation
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import com.mori.core.designsystem.MoriTheme
@@ -123,17 +122,9 @@ internal fun OnboardingRoute(
             viewModel.onAction(OnboardingAction.FolderSelected(uri))
         }
     }
-    val filesLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenMultipleDocuments(),
-    ) { uris ->
-        if (uris.isNotEmpty()) {
-            viewModel.onAction(OnboardingAction.FilesSelected(uris))
-        }
-    }
     OnboardingScreen(
         uiState = uiState,
         onPickFolder = { folderLauncher.launch(null) },
-        onPickFiles = { filesLauncher.launch(arrayOf("*/*")) },
         onAction = viewModel::onAction,
         onOnboardingComplete = onOnboardingComplete,
         modifier = modifier,
@@ -147,7 +138,6 @@ internal fun OnboardingRoute(
 internal fun OnboardingScreen(
     uiState: OnboardingUiState,
     onPickFolder: () -> Unit,
-    onPickFiles: () -> Unit,
     onAction: (OnboardingAction) -> Unit,
     onOnboardingComplete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -157,16 +147,11 @@ internal fun OnboardingScreen(
         // context, so the expressive-aware specs resolve here.
         val stepEnter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH)
         val stepExit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH)
-        // Step changes fade through so the wizard never hard-cuts. Keyed on
-        // the step alone: progress ticks inside Importing recompose in place
-        // without restarting the transition.
+        // Step changes fade through so the wizard never hard-cuts.
         val stepKey = when (uiState) {
             OnboardingUiState.Welcome -> 0
-            is OnboardingUiState.Storage -> 1
+            is OnboardingUiState.Folder -> 1
             is OnboardingUiState.Appearance -> 2
-            is OnboardingUiState.Import -> 3
-            is OnboardingUiState.Importing -> 4
-            is OnboardingUiState.Done -> 5
         }
         AnimatedContent(
             targetState = stepKey,
@@ -175,7 +160,7 @@ internal fun OnboardingScreen(
             },
             label = "onboardingStep",
         ) { _ ->
-        // Renders the live state (not the step key) so progress ticks
+        // Renders the live state (not the step key) so theme ticks
         // recompose in place without restarting the transition.
         when (uiState) {
             OnboardingUiState.Welcome -> WelcomeContent(
@@ -185,54 +170,12 @@ internal fun OnboardingScreen(
                     onOnboardingComplete()
                 },
             )
-            is OnboardingUiState.Storage -> WizardStep(
-                modifier = Modifier.testTag(OnboardingTestTags.StorageStep),
+            is OnboardingUiState.Folder -> WizardStep(
+                modifier = Modifier.testTag(OnboardingTestTags.FolderStep),
                 stepIndex = 0,
-                totalSteps = 3,
-                title = stringResource(R.string.onboarding_storage_title),
-                body = stringResource(R.string.onboarding_storage_body),
-                onBack = { onAction(OnboardingAction.BackStep) },
-                onSkip = {
-                    onAction(OnboardingAction.Skip)
-                    onOnboardingComplete()
-                },
-                onContinue = { onAction(OnboardingAction.ContinueStep) },
-                continueLabel = stringResource(R.string.onboarding_continue),
-                continueCaption = stringResource(R.string.onboarding_storage_caption),
-            ) {
-                StorageOptions(
-                    location = uiState.location,
-                    onSelectApp = { onAction(OnboardingAction.SelectStorage(StorageLocation.APP)) },
-                    onSelectCustom = { onAction(OnboardingAction.SelectStorage(StorageLocation.CUSTOM)) },
-                )
-            }
-            is OnboardingUiState.Appearance -> WizardStep(
-                modifier = Modifier.testTag(OnboardingTestTags.AppearanceStep),
-                stepIndex = 1,
-                totalSteps = 3,
-                title = stringResource(R.string.onboarding_appearance_title),
-                body = stringResource(R.string.onboarding_appearance_body),
-                onBack = { onAction(OnboardingAction.BackStep) },
-                onSkip = {
-                    onAction(OnboardingAction.Skip)
-                    onOnboardingComplete()
-                },
-                onContinue = { onAction(OnboardingAction.ContinueStep) },
-                continueLabel = stringResource(R.string.onboarding_continue),
-                continueCaption = stringResource(R.string.onboarding_appearance_caption),
-            ) {
-                AppearanceOptions(theme = uiState.theme, onAction = onAction)
-            }
-            is OnboardingUiState.Import -> WizardStep(
-                modifier = Modifier.testTag(OnboardingTestTags.ImportStep),
-                stepIndex = 2,
-                totalSteps = 3,
-                title = stringResource(R.string.onboarding_import_title),
-                body = if (uiState.location == StorageLocation.CUSTOM) {
-                    stringResource(R.string.onboarding_import_body_link)
-                } else {
-                    stringResource(R.string.onboarding_import_body_default)
-                },
+                totalSteps = 2,
+                title = stringResource(R.string.onboarding_folder_title),
+                body = stringResource(R.string.onboarding_folder_body),
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
                     onAction(OnboardingAction.Skip)
@@ -241,32 +184,34 @@ internal fun OnboardingScreen(
                 continueLabel = "",
                 continueCaption = "",
             ) {
-                ImportOptions(
-                    customOnly = uiState.location == StorageLocation.CUSTOM,
-                    onPickFolder = onPickFolder,
-                    onPickFiles = onPickFiles,
-                )
+                FolderOptions(onPickFolder = onPickFolder)
             }
-            is OnboardingUiState.Importing -> ImportingContent(
-                done = uiState.done,
-                total = uiState.total,
-                link = uiState.link,
-                onCancel = { onAction(OnboardingAction.CancelImport) },
-            )
-            is OnboardingUiState.Done -> DoneContent(
-                report = uiState.report,
-                onImportMore = { onAction(OnboardingAction.ImportMore) },
-                onFinish = {
+            is OnboardingUiState.Appearance -> WizardStep(
+                modifier = Modifier.testTag(OnboardingTestTags.AppearanceStep),
+                stepIndex = 1,
+                totalSteps = 2,
+                title = stringResource(R.string.onboarding_appearance_title),
+                body = stringResource(R.string.onboarding_appearance_body),
+                onBack = { onAction(OnboardingAction.BackStep) },
+                onSkip = {
+                    onAction(OnboardingAction.Skip)
+                    onOnboardingComplete()
+                },
+                onContinue = {
                     onAction(OnboardingAction.Finish)
                     onOnboardingComplete()
                 },
-            )
+                continueLabel = stringResource(R.string.onboarding_continue),
+                continueCaption = stringResource(R.string.onboarding_appearance_caption),
+            ) {
+                AppearanceOptions(theme = uiState.theme, onAction = onAction)
+            }
         }
         }
     }
 }
 
-/** Step changes ride the shared fade-through; progress ticks stay in place. */
+/** Step changes ride the shared fade-through; theme ticks stay in place. */
 
 @Composable
 private fun WelcomeContent(
@@ -274,7 +219,7 @@ private fun WelcomeContent(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Staggered entrance: hero, headline, body, actions cascade in.
+    // Staggered entrance: hero, then actions cascade in.
     var step by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         repeat(WELCOME_STEPS) {
@@ -348,75 +293,50 @@ private fun WelcomeContent(
                 enter = MoriMotion.enter(MoriEnterKind.RISE),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
-                Text(
-                    text = stringResource(R.string.onboarding_eyebrow),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 4.sp,
-                    textAlign = TextAlign.Center,
-                )
-                // Breathing room before the display headline: tight tracking
-                // above huge type otherwise reads as a collision.
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = buildAnnotatedString {
-                        append(stringResource(R.string.onboarding_hero_prefix))
-                        withStyle(
-                            SpanStyle(
-                                fontStyle = FontStyle.Italic,
-                                color = MaterialTheme.colorScheme.primary,
-                            ),
-                        ) {
-                            append(stringResource(R.string.onboarding_hero_accent))
-                        }
-                        append(stringResource(R.string.onboarding_hero_suffix))
-                    },
-                    style = MoriEmphasized.displaySmall,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            AnimatedVisibility(
-                visible = visibleAt(2),
-                enter = MoriMotion.enter(MoriEnterKind.RISE),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
-            ) {
-                Text(
-                    text = stringResource(R.string.onboarding_intro_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            AnimatedVisibility(
-                visible = visibleAt(3),
-                enter = MoriMotion.enter(MoriEnterKind.RISE),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
-                        onClick = onGetStarted,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(OnboardingTestTags.GetStarted),
-                    ) {
-                        Text(stringResource(R.string.onboarding_get_started))
-                    }
-                    Text(
-                        text = stringResource(R.string.onboarding_get_started_caption),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
-                    )
+                Button(
+                    onClick = onGetStarted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(OnboardingTestTags.GetStarted),
+                ) {
+                    Text(stringResource(R.string.onboarding_get_started))
                 }
             }
         }
     }
 }
 
-private const val WELCOME_STEPS = 4
+private const val WELCOME_STEPS = 2
+
+/** Folder step: the single question. The picker button launches SAF; the
+ * surrounding card explains nothing is copied. */
+@Composable
+private fun FolderOptions(
+    onPickFolder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Button(
+            onClick = onPickFolder,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .testTag(OnboardingTestTags.PickFolder),
+        ) {
+            Text(stringResource(R.string.onboarding_pick_folder))
+        }
+        Text(
+            text = stringResource(R.string.onboarding_folder_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
 
 /**
  * Wizard step shell (reference style): back / STEP x OF n / Skip header,
@@ -563,110 +483,6 @@ private fun WizardStep(
     }
 }
 
-/** Storage step: a pure choice. The folder itself is picked later, once. */
-@Composable
-private fun StorageOptions(
-    location: StorageLocation,
-    onSelectApp: () -> Unit,
-    onSelectCustom: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        OptionRow(
-            selected = location == StorageLocation.APP,
-            icon = MoriIcons.FolderOpen,
-            title = stringResource(R.string.onboarding_storage_app),
-            subtitle = stringResource(R.string.onboarding_storage_app_subtitle),
-            onClick = onSelectApp,
-        )
-        OptionRow(
-            selected = location == StorageLocation.CUSTOM,
-            icon = MoriIcons.MenuBook,
-            title = stringResource(R.string.onboarding_storage_custom),
-            subtitle = stringResource(R.string.onboarding_storage_custom_subtitle),
-            onClick = onSelectCustom,
-        )
-    }
-}
-
-@Composable
-private fun OptionRow(
-    selected: Boolean,
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Selection glides instead of snapping: border and fill animate together.
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.outlineVariant
-        },
-        label = "optionBorder",
-    )
-    val containerColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        label = "optionFill",
-    )
-    val border = if (selected) {
-        BorderStroke(2.dp, borderColor)
-    } else {
-        BorderStroke(1.dp, borderColor)
-    }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = containerColor,
-        border = border,
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = onClick,
-                role = Role.RadioButton,
-            )
-            .semantics { this.selected = selected },
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            RadioButton(selected = selected, onClick = null)
-        }
-    }
-}
-
-/** Appearance step: theme mode, color scheme swatches, AMOLED. */
 @Composable
 private fun AppearanceOptions(
     theme: ThemePreferences,
@@ -735,57 +551,6 @@ private fun AppearanceOptions(
     }
 }
 
-/** Import step: folder + files pickers. The storage step already decided
- * copy vs link, so this step only picks the source. */
-@Composable
-private fun ImportOptions(
-    customOnly: Boolean,
-    onPickFolder: () -> Unit,
-    onPickFiles: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Button(
-            onClick = onPickFolder,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(OnboardingTestTags.PickFolder),
-        ) {
-            Text(
-                if (customOnly) {
-                    stringResource(R.string.onboarding_pick_custom_folder)
-                } else {
-                    stringResource(R.string.onboarding_pick_folder)
-                },
-            )
-        }
-        if (!customOnly) {
-            OutlinedButton(
-                onClick = onPickFiles,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.PickFiles),
-            ) {
-                Text(stringResource(R.string.onboarding_pick_files))
-            }
-        }
-        Text(
-            text = stringResource(R.string.onboarding_import_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-/**
- * Hero tile whose corners morph from rounded square toward circle on a bouncy
- * spring shortly after appearing (M3 Expressive shape language).
- */
 @Composable
 private fun MorphingHero(
     containerColor: Color,
@@ -826,183 +591,15 @@ private fun MorphingHero(
 
 private const val HERO_MORPH_DELAY_MS = 350L
 
-@Composable
-private fun ImportingContent(
-    done: Int,
-    total: Int,
-    link: Boolean,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-    ) {
-        val fadeEnter = MoriMotion.enter(MoriEnterKind.FADE)
-        val fadeExit = MoriMotion.exit(MoriEnterKind.FADE)
-        AnimatedContent(
-            targetState = total <= 0,
-            transitionSpec = {
-                fadeEnter togetherWith fadeExit
-            },
-            label = "importPhase",
-        ) { scanning ->
-            if (scanning) {
-                CircularProgressIndicator(modifier = Modifier.testTag(OnboardingTestTags.Progress))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.onboarding_scanning),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            } else {
-            Text(
-                text = if (link) {
-                    stringResource(R.string.onboarding_adding, done, total)
-                } else {
-                    stringResource(R.string.onboarding_copying, done, total)
-                },
-                style = MoriEmphasized.headlineSmall,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            // Spring-smoothed bar: file copies land in bursts, the indicator
-            // glides instead of jumping.
-            val rawProgress = done.toFloat() / total
-            val expressiveMotion = LocalExpressiveMotionEnabled.current
-            val smoothProgress by animateFloatAsState(
-                targetValue = rawProgress,
-                animationSpec = if (expressiveMotion) {
-                    MoriMotion.heroSpring()
-                } else {
-                    tween(durationMillis = 150, easing = MoriMotion.Emphasized)
-                },
-                label = "importProgress",
-            )
-            LinearProgressIndicator(
-                progress = { smoothProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.Progress),
-            )
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        TextButton(onClick = onCancel) {
-            Text(stringResource(R.string.onboarding_cancel))
-        }
-    }
-}
-
-/** Summary beat before Done auto-advances home. */
-private const val DONE_BEAT_MS = 1200L
-
-/**
- * Transient finish beat: the import summary scales in, then the wizard hands
- * off to the library — no blocking Start Reading page. The import-more link
- * stands the handoff down and returns to the Import step.
- */
-@Composable
-private fun DoneContent(
-    report: ImportReport,
-    onImportMore: () -> Unit,
-    onFinish: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Guarded so the timer and the link can't finish twice.
-    var gone by remember { mutableStateOf(false) }
-    fun finishOnce() {
-        if (!gone) {
-            gone = true
-            onFinish()
-        }
-    }
-    LaunchedEffect(report) {
-        delay(DONE_BEAT_MS)
-        finishOnce()
-    }
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-    ) {
-        AnimatedVisibility(
-            visible = true,
-            enter = MoriMotion.enter(MoriEnterKind.FAB),
-            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
-        ) {
-            MorphingHero(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                icon = MoriIcons.Check,
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(vertical = 20.dp, horizontal = 16.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.onboarding_imported_count, report.succeeded, report.total),
-                    style = MoriEmphasized.displaySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = stringResource(R.string.onboarding_imported_caption),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center,
-                )
-                if (report.failed > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.onboarding_import_failed, report.failed),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = stringResource(R.string.onboarding_done_opening),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(
-            onClick = {
-                gone = true
-                onImportMore()
-            },
-        ) {
-            Text(stringResource(R.string.onboarding_import_more))
-        }
-    }
-}
-
 @ThemePreviews
 @Composable
 private fun OnboardingWelcomePreview() {
     MoriTheme {
-        OnboardingScreen(
-            uiState = OnboardingUiState.Welcome,
-            onPickFolder = {},
-            onPickFiles = {},
-            onAction = {},
-            onOnboardingComplete = {},
-        )
+            OnboardingScreen(
+                uiState = OnboardingUiState.Welcome,
+                onPickFolder = {},
+                onAction = {},
+                onOnboardingComplete = {},
+            )
     }
 }

@@ -101,20 +101,25 @@ class LibraryViewModelTest {
     @Test
     fun refreshFailureMessageIsOneShot() = runTest {
         val repository = TestComicsRepository()
-        repository.refreshReport = com.mori.core.model.IndexReport(1, 2, 0)
-        val viewModel = viewModel(repository)
+        repository.linkReport = com.mori.core.model.ImportReport(2, 0, 2, emptyList())
+        val preferences = TestPreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/linked")
+        val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
             assertEquals(LibraryMessage.IndexFailed(2), awaitItem())
         }
-        assertEquals(1, repository.refreshCalls)
+        // Init gate plus manual refresh, both idempotent.
+        assertEquals(2, repository.linkedTrees.size)
     }
 
     @Test
     fun refreshExceptionMessageIsOneShot() = runTest {
         val repository = TestComicsRepository()
-        repository.failRefreshWith = IllegalStateException("disk gone")
-        val viewModel = viewModel(repository)
+        repository.failLinkWith = IllegalStateException("disk gone")
+        val preferences = TestPreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/linked")
+        val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
             assertEquals(LibraryMessage.RescanFailed, awaitItem())
@@ -122,7 +127,19 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun refreshPullsLinkedFolderThenReindexes() = runTest {
+    fun refreshWithoutTreeIsSilentNoOp() = runTest {
+        val repository = TestComicsRepository()
+        val viewModel = viewModel(repository)
+        viewModel.messages.test {
+            viewModel.onAction(LibraryAction.Refresh)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(repository.linkedTrees.isEmpty())
+    }
+
+    @Test
+    fun refreshReindexesLinkedTree() = runTest {
         val repository = TestComicsRepository()
         val preferences = TestPreferencesDataSource()
         val viewModel = viewModel(
@@ -140,12 +157,57 @@ class LibraryViewModelTest {
             assertEquals(false, (settled as LibraryUiState.Success).refreshing)
             cancelAndIgnoreRemainingEvents()
         }
-        // Linked trees index in place: no copies, one app rescan.
+        // Linked trees index in place: no copies, no app rescan. (The init
+        // gate read prefs before the tree was set here, so only the manual
+        // refresh fires — see emptyShelfAutoIndexesLinkedTree for the gate.)
+        val tree = android.net.Uri.parse("content://tree/linked")
+        assertEquals(
+            listOf(tree),
+            repository.linkedTrees,
+        )
+    }
+
+    @Test
+    fun folderSelectedLinksAndIndexes() = runTest {
+        val repository = TestComicsRepository()
+        val preferences = TestPreferencesDataSource()
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = preferences,
+        )
+        viewModel.uiState.test {
+            awaitSuccess()
+            viewModel.onAction(
+                LibraryAction.FolderSelected(android.net.Uri.parse("content://tree/new")),
+            )
+            val settled = viewModel.uiState.value
+            assertTrue(settled is LibraryUiState.Success)
+            assertEquals(false, (settled as LibraryUiState.Success).refreshing)
+            cancelAndIgnoreRemainingEvents()
+        }
+        preferences.sourceTreeUri.test {
+            assertEquals("content://tree/new", awaitItem())
+        }
+        assertEquals(
+            listOf(android.net.Uri.parse("content://tree/new")),
+            repository.linkedTrees,
+        )
+    }
+
+    @Test
+    fun emptyShelfAutoIndexesLinkedTree() = runTest {
+        val repository = TestComicsRepository()
+        val preferences = TestPreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/linked")
+        viewModel(
+            repository = repository,
+            preferences = preferences,
+        )
+        // The init gate fires on an empty shelf with a linked tree.
         assertEquals(
             listOf(android.net.Uri.parse("content://tree/linked")),
             repository.linkedTrees,
         )
-        assertEquals(1, repository.refreshCalls)
     }
 
     @Test
