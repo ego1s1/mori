@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.mori.hilt)
+    alias(libs.plugins.aboutlibraries)
 }
 
 android {
@@ -56,6 +57,7 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":comic-core"))
     implementation(libs.coil.compose)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)

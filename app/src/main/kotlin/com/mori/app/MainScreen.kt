@@ -62,6 +62,7 @@ fun NavController.navigateToMain() {
 fun NavGraphBuilder.mainScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onLicensesClick: () -> Unit,
 ) {
     composable<MainRoute> {
         CompositionLocalProvider(
@@ -70,6 +71,7 @@ fun NavGraphBuilder.mainScreen(
             MainScreen(
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
+                onLicensesClick = onLicensesClick,
             )
         }
     }
@@ -86,6 +88,7 @@ fun NavGraphBuilder.mainScreen(
 internal fun MainScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
+    onLicensesClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -131,7 +134,7 @@ internal fun MainScreen(
                             onComicLongClick = onComicLongClick,
                             onResumeAvailable = { resume = it },
                         )
-                        else -> SettingsTabContent()
+                        else -> SettingsTabContent(onLicensesClick = onLicensesClick)
                     }
                 }
             }

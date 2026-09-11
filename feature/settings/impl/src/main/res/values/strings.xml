@@ -40,6 +40,6 @@
     <string name="settings_about_app">Mori</string>
     <string name="settings_about_app_subtitle">Work in progress</string>
     <string name="settings_about_licenses">Open-source licenses</string>
-    <string name="settings_about_licenses_subtitle">Coming soon</string>
+    <string name="settings_about_licenses_subtitle">Libraries this app is built with</string>
     <string name="settings_soon_badge">Soon</string>
 </resources>

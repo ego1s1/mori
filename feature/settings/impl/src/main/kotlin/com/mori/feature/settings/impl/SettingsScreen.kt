@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriTheme
@@ -48,9 +51,11 @@ import com.mori.core.model.ThemePreferences
 
 @Composable
 fun SettingsTabContent(
+    onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     SettingsRouteContent(
+        onLicensesClick = onLicensesClick,
         modifier = modifier,
         viewModel = hiltViewModel(),
     )
@@ -58,6 +63,7 @@ fun SettingsTabContent(
 
 @Composable
 private fun SettingsRouteContent(
+    onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel,
 ) {
@@ -65,6 +71,7 @@ private fun SettingsRouteContent(
     SettingsScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
+        onLicensesClick = onLicensesClick,
         modifier = modifier,
     )
 }
@@ -73,6 +80,7 @@ private fun SettingsRouteContent(
 internal fun SettingsScreen(
     uiState: SettingsUiState,
     onAction: (SettingsAction) -> Unit,
+    onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -90,6 +98,7 @@ internal fun SettingsScreen(
                     motion = uiState.motion,
                     storage = uiState.storage,
                     onAction = onAction,
+                    onLicensesClick = onLicensesClick,
                 )
             }
         }
@@ -103,6 +112,7 @@ internal fun SettingsContent(
     motion: MotionStyle,
     storage: StorageUsage?,
     onAction: (SettingsAction) -> Unit,
+    onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -285,10 +295,32 @@ internal fun SettingsContent(
                 title = stringResource(R.string.settings_about_app),
                 subtitle = stringResource(R.string.settings_about_app_subtitle),
             )
-            PlaceholderRow(
-                title = stringResource(R.string.settings_about_licenses),
-                subtitle = stringResource(R.string.settings_about_licenses_subtitle),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CircleShape)
+                    .clickable(onClick = onLicensesClick, role = Role.Button)
+                    .padding(vertical = 8.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_about_licenses),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_about_licenses_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = MoriIcons.Forward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

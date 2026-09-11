@@ -105,6 +105,7 @@ fun MoriApp(
                                 navController.navigateToReader(comicId, pageIndex)
                             },
                             onComicLongClick = { navController.navigateToDetail(it) },
+                            onLicensesClick = { navController.navigateToLicenses() },
                         )
                         detailScreen(
                             onBackClick = { navController.popBackStack() },
@@ -113,6 +114,9 @@ fun MoriApp(
                             },
                         )
                         readerScreen(
+                            onBackClick = { navController.popBackStack() },
+                        )
+                        licensesScreen(
                             onBackClick = { navController.popBackStack() },
                         )
                     }

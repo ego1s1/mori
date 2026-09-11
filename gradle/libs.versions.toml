@@ -1,4 +1,5 @@
 [versions]
+aboutLibraries = "13.2.1"
 agp = "8.7.3"
 kotlin = "2.0.21"
 detekt = "1.23.7"
@@ -69,6 +70,9 @@ androidx-documentfile = { group = "androidx.documentfile", name = "documentfile"
 # Images
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 
+# Licenses UI
+aboutlibraries-compose = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
+
 # Testing
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
@@ -89,6 +93,7 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binaryCompatibilityValidator" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }
 mori-android-application = { id = "mori.android.application", version = "unspecified" }
 mori-android-library = { id = "mori.android.library", version = "unspecified" }
 mori-android-feature = { id = "mori.android.feature", version = "unspecified" }

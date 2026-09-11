@@ -102,7 +102,7 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Reader defaults").assertExists()
         composeTestRule.onNodeWithText("Storage").assertExists()
         // Section title only; placeholder rows carry specific subtitles.
-        composeTestRule.onAllNodesWithText("Coming soon").assertCountEquals(2)
+        composeTestRule.onAllNodesWithText("Coming soon").assertCountEquals(1)
         composeTestRule.onNodeWithText("About").assertExists()
     }
 
@@ -124,6 +124,28 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Page fit").assertExists()
         composeTestRule.onNodeWithText("Volume keys turn pages").assertExists()
         composeTestRule.onNodeWithText("Keep screen on").assertExists()
+    }
+
+    @Test
+    fun licensesRowOpensLicenses() {
+        var opened = false
+        composeTestRule.setContent {
+            MoriTheme {
+                SettingsContent(
+                    theme = ThemePreferences(),
+                    reader = ReaderPreferences(),
+                    motion = MotionStyle.EXPRESSIVE,
+                    storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                    onAction = {},
+                    onLicensesClick = { opened = true },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Open-source licenses").performScrollTo()
+        composeTestRule.onNodeWithText("Open-source licenses").performClick()
+
+        assert(opened)
     }
 
     @Test
