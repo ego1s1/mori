@@ -13,7 +13,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,8 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -65,7 +67,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -161,7 +162,7 @@ internal fun OnboardingScreen(
                     onOnboardingComplete()
                 },
                 onContinue = { onAction(OnboardingAction.ContinueStep) },
-                continueLabel = "Continue",
+                continueLabel = stringResource(R.string.onboarding_continue),
                 continueCaption = stringResource(R.string.onboarding_storage_caption),
             ) {
                 StorageOptions(
@@ -182,7 +183,7 @@ internal fun OnboardingScreen(
                     onOnboardingComplete()
                 },
                 onContinue = { onAction(OnboardingAction.ContinueStep) },
-                continueLabel = "Continue",
+                continueLabel = stringResource(R.string.onboarding_continue),
                 continueCaption = stringResource(R.string.onboarding_appearance_caption),
             ) {
                 AppearanceOptions(theme = uiState.theme, onAction = onAction)
@@ -192,7 +193,11 @@ internal fun OnboardingScreen(
                 stepIndex = 2,
                 totalSteps = 3,
                 title = stringResource(R.string.onboarding_import_title),
-                body = stringResource(R.string.onboarding_import_body_default),
+                body = if (uiState.link) {
+                    stringResource(R.string.onboarding_import_body_link)
+                } else {
+                    stringResource(R.string.onboarding_import_body_default)
+                },
                 onBack = { onAction(OnboardingAction.BackStep) },
                 onSkip = {
                     onAction(OnboardingAction.Skip)
@@ -203,6 +208,8 @@ internal fun OnboardingScreen(
             ) {
                 ImportOptions(
                     customOnly = uiState.location == StorageLocation.CUSTOM,
+                    link = uiState.link,
+                    onSetLink = { onAction(OnboardingAction.SetLinkMode(it)) },
                     onPickFolder = onPickFolder,
                     onPickFiles = onPickFiles,
                 )
@@ -210,6 +217,7 @@ internal fun OnboardingScreen(
             is OnboardingUiState.Importing -> ImportingContent(
                 done = uiState.done,
                 total = uiState.total,
+                link = uiState.link,
                 onCancel = { onAction(OnboardingAction.CancelImport) },
             )
             is OnboardingUiState.Done -> DoneContent(
@@ -240,10 +248,13 @@ private fun WelcomeContent(
     }
     fun visibleAt(index: Int) = step > index
     Column(modifier = modifier.fillMaxSize()) {
+        // Status-bar clearance: the brand/Skip row draws edge-to-edge and
+        // must clear the clock and status icons.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = 8.dp),
         ) {
             Text(
@@ -263,7 +274,7 @@ private fun WelcomeContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 24.dp),
         ) {
             AnimatedVisibility(
                 visible = visibleAt(0),
@@ -308,7 +319,9 @@ private fun WelcomeContent(
                     letterSpacing = 4.sp,
                     textAlign = TextAlign.Center,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                // Breathing room before the display headline: tight tracking
+                // above huge type otherwise reads as a collision.
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = buildAnnotatedString {
                         append(stringResource(R.string.onboarding_hero_prefix))
@@ -344,7 +357,6 @@ private fun WelcomeContent(
                 visible = visibleAt(3),
                 enter = MoriMotion.enter(MoriEnterKind.RISE),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
-                modifier = Modifier.padding(horizontal = 32.dp),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Button(
@@ -360,7 +372,7 @@ private fun WelcomeContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 32.dp),
+                        modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
                     )
                 }
             }
@@ -390,10 +402,12 @@ private fun WizardStep(
     content: @Composable () -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        // Same status-bar clearance as the welcome header.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = 8.dp),
         ) {
             IconButton(onClick = onBack) {
@@ -412,7 +426,7 @@ private fun WizardStep(
             }
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 8.dp),
@@ -450,34 +464,35 @@ private fun WizardStep(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     content()
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
         if (onContinue != null) {
+            // Muted bottom panel: the CTA button carries the emphasis, the
+            // panel itself stays a quiet tonal container.
             Surface(
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars),
                 ) {
                     Button(
                         onClick = { onContinue?.invoke() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -489,7 +504,7 @@ private fun WizardStep(
                         Text(
                             text = continueCaption,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(top = 8.dp),
                         )
@@ -659,10 +674,12 @@ private fun AppearanceOptions(
     }
 }
 
-/** Import step: folder + files pickers, location-aware copy. */
+/** Import step: folder + files pickers, plus the copy/link choice for folders. */
 @Composable
 private fun ImportOptions(
     customOnly: Boolean,
+    link: Boolean,
+    onSetLink: (Boolean) -> Unit,
     onPickFolder: () -> Unit,
     onPickFiles: () -> Unit,
     modifier: Modifier = Modifier,
@@ -671,6 +688,27 @@ private fun ImportOptions(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
+        Text(
+            text = stringResource(R.string.onboarding_import_mode_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OptionRow(
+            selected = !link,
+            icon = MoriIcons.FolderOpen,
+            title = stringResource(R.string.onboarding_import_copy),
+            subtitle = stringResource(R.string.onboarding_import_copy_subtitle),
+            onClick = { onSetLink(false) },
+            modifier = Modifier.testTag(OnboardingTestTags.CopyMode),
+        )
+        OptionRow(
+            selected = link,
+            icon = MoriIcons.Link,
+            title = stringResource(R.string.onboarding_import_link),
+            subtitle = stringResource(R.string.onboarding_import_link_subtitle),
+            onClick = { onSetLink(true) },
+            modifier = Modifier.testTag(OnboardingTestTags.LinkMode),
+        )
         Button(
             onClick = onPickFolder,
             modifier = Modifier
@@ -744,13 +782,11 @@ private fun MorphingHero(
 
 private const val HERO_MORPH_DELAY_MS = 350L
 
-/** Summary beat before Done auto-advances home. */
-private const val DONE_AUTO_ADVANCE_MS = 1500L
-
 @Composable
 private fun ImportingContent(
     done: Int,
     total: Int,
+    link: Boolean,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -759,7 +795,8 @@ private fun ImportingContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(32.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         if (total <= 0) {
             CircularProgressIndicator(modifier = Modifier.testTag(OnboardingTestTags.Progress))
@@ -767,7 +804,11 @@ private fun ImportingContent(
             Text(text = stringResource(R.string.onboarding_scanning), style = MaterialTheme.typography.bodyLarge)
         } else {
             Text(
-                text = stringResource(R.string.onboarding_copying, done, total),
+                text = if (link) {
+                    stringResource(R.string.onboarding_adding, done, total)
+                } else {
+                    stringResource(R.string.onboarding_copying, done, total)
+                },
                 style = MoriEmphasized.headlineSmall,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -793,6 +834,14 @@ private fun ImportingContent(
     }
 }
 
+/** Summary beat before Done auto-advances home. */
+private const val DONE_BEAT_MS = 1200L
+
+/**
+ * Transient finish beat: the import summary scales in, then the wizard hands
+ * off to the library — no blocking Start Reading page. The import-more link
+ * stands the handoff down and returns to the Import step.
+ */
 @Composable
 private fun DoneContent(
     report: ImportReport,
@@ -800,17 +849,16 @@ private fun DoneContent(
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Auto-advance home once the summary lands; the button skips the wait.
-    // Guarded so fast taps can't finish twice.
-    var finished by remember { mutableStateOf(false) }
+    // Guarded so the timer and the link can't finish twice.
+    var gone by remember { mutableStateOf(false) }
     fun finishOnce() {
-        if (!finished) {
-            finished = true
+        if (!gone) {
+            gone = true
             onFinish()
         }
     }
     LaunchedEffect(report) {
-        delay(DONE_AUTO_ADVANCE_MS)
+        delay(DONE_BEAT_MS)
         finishOnce()
     }
     Column(
@@ -818,13 +866,20 @@ private fun DoneContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(32.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
-        MorphingHero(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            icon = MoriIcons.Check,
-        )
+        AnimatedVisibility(
+            visible = true,
+            enter = MoriMotion.enter(MoriEnterKind.FAB),
+            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+        ) {
+            MorphingHero(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                icon = MoriIcons.Check,
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
@@ -859,39 +914,19 @@ private fun DoneContent(
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = ::finishOnce,
-            enabled = !finished,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(OnboardingTestTags.Finish),
-        ) {
-            Text(stringResource(R.string.onboarding_start_reading))
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(
-            onClick = onImportMore,
-            enabled = !finished,
-            modifier = Modifier.fillMaxWidth(),
+        Text(
+            text = stringResource(R.string.onboarding_done_opening),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(
+            onClick = {
+                gone = true
+                onImportMore()
+            },
         ) {
             Text(stringResource(R.string.onboarding_import_more))
-        }
-        if (report.failed > 0) {
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false),
-            ) {
-                items(report.items.filter { it.error != null }, key = { it.displayName }) { item ->
-                    Text(
-                        text = stringResource(R.string.onboarding_error_item, item.displayName, item.error.orEmpty()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
         }
     }
 }

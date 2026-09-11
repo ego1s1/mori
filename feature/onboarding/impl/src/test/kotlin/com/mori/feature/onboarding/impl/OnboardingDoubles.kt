@@ -80,6 +80,7 @@ internal class FakeComicImporter(
 /** Repository double tracking index refreshes after import. */
 internal class FakeComicsRepository : ComicsRepository {
     var refreshCalls = 0
+    val linkedTrees = mutableListOf<android.net.Uri>()
 
     override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
         MutableStateFlow(emptyList<Comic>()).asStateFlow()
@@ -92,6 +93,14 @@ internal class FakeComicsRepository : ComicsRepository {
     override suspend fun refreshLibrary(): IndexReport {
         refreshCalls += 1
         return IndexReport(0, 0, 0)
+    }
+
+    override suspend fun indexLinkedTree(
+        treeUri: android.net.Uri,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): com.mori.core.model.ImportReport {
+        linkedTrees += treeUri
+        return com.mori.core.model.ImportReport(0, 0, 0, emptyList())
     }
 
     override suspend fun refreshComic(id: String): Comic? = null

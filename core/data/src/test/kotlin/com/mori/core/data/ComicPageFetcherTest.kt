@@ -55,6 +55,7 @@ class ComicPageFetcherTest {
             FakeComicsRepository(),
             FakeComicBackendDataSource(),
             com.mori.comic.decode.PageDecoder(),
+            LinkedArchiveCache(context),
         )
         val loader = ImageLoader.Builder(context).build()
         val options = coil3.request.Options(context)
@@ -70,6 +71,7 @@ class ComicPageFetcherTest {
             repository = repositoryFor(file),
             backend = MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()),
             decoder = com.mori.comic.decode.PageDecoder(),
+            linkedCache = LinkedArchiveCache(context),
         )
 
         val result = fetcher.fetch()
@@ -89,6 +91,7 @@ class ComicPageFetcherTest {
             repository = FakeComicsRepository(),
             backend = FakeComicBackendDataSource(),
             decoder = com.mori.comic.decode.PageDecoder(),
+            linkedCache = LinkedArchiveCache(context),
         )
 
         var failed = false
@@ -108,6 +111,7 @@ class ComicPageFetcherTest {
             repository = repositoryFor(file),
             backend = MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder()),
             decoder = com.mori.comic.decode.PageDecoder(),
+            linkedCache = LinkedArchiveCache(context),
         )
 
         var failed = false

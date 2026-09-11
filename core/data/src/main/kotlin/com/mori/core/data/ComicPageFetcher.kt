@@ -1,5 +1,6 @@
 package com.mori.core.data
 
+import android.net.Uri
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DataSource
@@ -7,8 +8,8 @@ import coil3.fetch.FetchResult
 import coil3.fetch.Fetcher
 import coil3.fetch.ImageFetchResult
 import coil3.request.Options
-import com.mori.comic.model.DecodeOptions
 import com.mori.comic.decode.PageDecoder
+import com.mori.comic.model.DecodeOptions
 import java.io.File
 import javax.inject.Inject
 
@@ -34,12 +35,19 @@ class ComicPageFetcher internal constructor(
     private val repository: ComicsRepository,
     private val backend: ComicBackendDataSource,
     private val decoder: PageDecoder,
+    private val linkedCache: LinkedArchiveCache,
 ) : Fetcher {
 
     override suspend fun fetch(): FetchResult {
         val comic = repository.getComic(data.comicId)
             ?: throw IllegalArgumentException("Unknown comic: ${data.comicId}")
-        val file = File(comic.sourcePath)
+        // Linked rows materialize through the bounded read cache; the user
+        // original is never copied into the library.
+        val file = if (isLinkedSourcePath(comic.sourcePath)) {
+            linkedCache.materialize(Uri.parse(comic.sourcePath), comic.sourceDisplayName)
+        } else {
+            File(comic.sourcePath)
+        }
         val inspected = backend.inspect(file)
         val page = inspected.pages.getOrNull(data.pageIndex)
             ?: throw IndexOutOfBoundsException("Page ${data.pageIndex} of ${data.comicId}")
@@ -56,11 +64,12 @@ class ComicPageFetcher internal constructor(
         private val repository: ComicsRepository,
         private val backend: ComicBackendDataSource,
         private val decoder: PageDecoder,
+        private val linkedCache: LinkedArchiveCache,
     ) : Fetcher.Factory<ComicPageKey> {
         override fun create(
             data: ComicPageKey,
             options: Options,
             imageLoader: ImageLoader,
-        ): Fetcher = ComicPageFetcher(data, repository, backend, decoder)
+        ): Fetcher = ComicPageFetcher(data, repository, backend, decoder, linkedCache)
     }
 }

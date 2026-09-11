@@ -9,6 +9,9 @@ import com.mori.core.database.ComicEntity
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
+import com.mori.core.model.ImportItem
+import com.mori.core.model.ImportReport
+import com.mori.core.model.ImportStatus
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
@@ -24,12 +27,16 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.content.Context
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
+import java.security.MessageDigest
 
 @Singleton
 internal class OfflineFirstComicsRepository @Inject constructor(
     private val dao: ComicDao,
     private val backend: ComicBackendDataSource,
     private val covers: CoverGenerator,
+    private val linkedCache: LinkedArchiveCache,
     @ApplicationContext private val context: Context,
 ) : ComicsRepository {
 
@@ -69,14 +76,91 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val indexed = rows.count { it.error == null }
         val failed = rows.size - indexed
         val liveIds = files.map { it.name }.toSet()
-        val removed = (dao.getIds().toSet() - liveIds).size
+        val removed = (dao.getLocalIds().toSet() - liveIds).size
         dao.deleteMissing(liveIds.toList())
         cleanupOrphanCovers(liveIds)
         IndexReport(indexed, failed, removed)
     }
 
+    override suspend fun indexLinkedTree(
+        treeUri: Uri,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): ImportReport = withContext(Dispatchers.IO) {
+        val root = DocumentFile.fromTreeUri(context, treeUri)
+            ?: return@withContext ImportReport(0, 0, 0, emptyList())
+        val docs = collectLinkedArchives(root)
+        // Batch like refreshLibrary: one upsert, one observer emission.
+        val rows = mutableListOf<ComicEntity>()
+        val items = mutableListOf<ImportItem>()
+        var failed = 0
+        docs.forEachIndexed { index, doc ->
+            val uri = doc.uri.toString()
+            val name = doc.name ?: uri.substringAfterLast('/')
+            try {
+                val known = dao.getById(uri)
+                val modified = doc.lastModified()
+                val row = if (known != null && known.sourceModified == modified &&
+                    known.coverPath?.let { File(it).isFile } == true
+                ) {
+                    known
+                } else {
+                    val temp = linkedCache.materialize(doc.uri, name)
+                    // Titles fall back to the document name; ids/paths stay
+                    // URI-addressed so rescans refresh rows instead of dupes.
+                    indexFile(temp, existing = known, coverId = linkedCoverId(uri), fallbackTitle = name)
+                        .copy(
+                            id = uri,
+                            sourcePath = uri,
+                            sourceDisplayName = name,
+                            sourceModified = modified,
+                        )
+                }
+                rows += row
+                items += ImportItem(name, ImportStatus.SUCCEEDED, null)
+            } catch (e: Exception) {
+                failed += 1
+                items += ImportItem(name, ImportStatus.FAILED, e.message)
+            }
+            onProgress(index + 1, docs.size)
+        }
+        if (rows.isNotEmpty()) {
+            dao.upsertAll(rows)
+        }
+        // Prune books deleted from the tree out from under us.
+        val foundIds = rows.map { it.id }
+        if (foundIds.isEmpty()) {
+            dao.deleteAllLinked()
+        } else {
+            dao.deleteMissingLinked(foundIds)
+        }
+        ImportReport(docs.size, docs.size - failed, failed, items)
+    }
+
     override suspend fun refreshComic(id: String): Comic? = withContext(Dispatchers.IO) {
         val row = dao.getById(id) ?: return@withContext null
+        if (isLinkedSourcePath(row.sourcePath)) {
+            // Linked rows re-materialize transiently; the user original is
+            // never touched and progress/bookmarks carry over via `existing`.
+            return@withContext runCatching {
+                val doc = DocumentFile.fromSingleUri(context, Uri.parse(row.sourcePath))
+                    ?: return@withContext null
+                val name = doc.name ?: row.sourceDisplayName
+                val temp = linkedCache.materialize(doc.uri, name)
+                val updated = indexFile(
+                    temp,
+                    existing = row,
+                    coverId = linkedCoverId(row.id),
+                    fallbackTitle = name,
+                ).copy(
+                    id = row.id,
+                    sourcePath = row.sourcePath,
+                    sourceDisplayName = name,
+                    sourceModified = doc.lastModified(),
+                )
+                dao.upsert(updated)
+                updated.toModel()
+            }.getOrNull()
+        }
         val file = File(row.sourcePath)
         if (!file.isFile) {
             dao.deleteById(id)
@@ -91,7 +175,10 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     override suspend fun removeComic(id: String) = withContext(Dispatchers.IO) {
         val row = dao.getById(id)
         if (row != null) {
-            runCatching { File(row.sourcePath).delete() }
+            // Linked rows only unlink: the user's original must survive.
+            if (!isLinkedSourcePath(row.sourcePath)) {
+                runCatching { File(row.sourcePath).delete() }
+            }
             deleteCover(row.coverPath)
             dao.deleteById(id)
         }
@@ -133,8 +220,17 @@ internal class OfflineFirstComicsRepository @Inject constructor(
      * the write ([refreshLibrary] collects every row into one [ComicDao.upsertAll],
      * [refreshComic] upserts its single row) so observers emit once per
      * refresh instead of once per file.
+     *
+     * Linked rows reuse this with the materialized temp file: [coverId] pins
+     * the stable cover name and [fallbackTitle] the document name, since temp
+     * file names are cache keys, not titles.
      */
-    private suspend fun indexFile(file: File, existing: ComicEntity? = null): ComicEntity {
+    private suspend fun indexFile(
+        file: File,
+        existing: ComicEntity? = null,
+        coverId: String = file.name,
+        fallbackTitle: String? = null,
+    ): ComicEntity {
         val now = System.currentTimeMillis()
         val known = existing ?: dao.getById(file.name)
         if (known != null && known.sourceModified == file.lastModified() &&
@@ -146,8 +242,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             val inspected = backend.inspect(file)
             val format = ComicFormat.fromFileName(file.name) ?: ComicFormat.CBZ
             val title = inspected.metadata.title?.takeIf { it.isNotBlank() }
-                ?: file.nameWithoutExtension
-            val coverPath = covers.generateCover(file, file.name, inspected.pages)
+                ?: fallbackTitle ?: file.nameWithoutExtension
+            val coverPath = covers.generateCover(file, coverId, inspected.pages)
                 ?: known?.coverPath?.takeIf { File(it).isFile }
             val row = ComicEntity(
                 id = file.name,
@@ -168,7 +264,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             row
         } catch (e: Exception) {
             val error = mapError(e)
-            (known ?: emptyRow(file, now)).copy(
+            (known ?: emptyRow(file, now, fallbackTitle)).copy(
                 pageCount = 0,
                 coverPath = known?.coverPath,
                 sourceModified = file.lastModified(),
@@ -178,9 +274,9 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         }
     }
 
-    private fun emptyRow(file: File, now: Long): ComicEntity = ComicEntity(
+    private fun emptyRow(file: File, now: Long, fallbackTitle: String? = null): ComicEntity = ComicEntity(
         id = file.name,
-        title = file.nameWithoutExtension,
+        title = fallbackTitle ?: file.nameWithoutExtension,
         series = null,
         number = null,
         format = (ComicFormat.fromFileName(file.name) ?: ComicFormat.CBZ).name,
@@ -213,11 +309,43 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val coversDir = File(context.filesDir, CoverGenerator.COVERS_DIR)
         if (!coversDir.isDirectory) return
         coversDir.listFiles()?.forEach { cover ->
+            // Linked covers are owned by their source tree, not the app dir.
+            if (cover.name.startsWith(LINKED_COVER_PREFIX)) return@forEach
             val id = cover.nameWithoutExtension
             if (id !in liveIds) {
                 runCatching { cover.delete() }
             }
         }
+    }
+
+    /** Archive documents under a linked tree, depth-first. */
+    private fun collectLinkedArchives(root: DocumentFile): List<DocumentFile> {
+        val out = mutableListOf<DocumentFile>()
+        val stack = ArrayDeque<DocumentFile>()
+        stack.add(root)
+        while (stack.isNotEmpty()) {
+            val current = stack.removeFirst()
+            val children = runCatching { current.listFiles().toList() }.getOrDefault(emptyList())
+            children.forEach { child ->
+                if (child.isDirectory) {
+                    stack.add(child)
+                } else {
+                    val name = child.name ?: return@forEach
+                    if (isSupportedArchive(name)) {
+                        out += child
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /** Stable cover file key for a linked document URI. */
+    private fun linkedCoverId(documentUri: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(documentUri.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }.take(24)
+        return "$LINKED_COVER_PREFIX$hash"
     }
 
     private fun isSupportedArchive(name: String): Boolean {
@@ -228,5 +356,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
 
     companion object {
         const val LIBRARY_DIR = "comics"
+
+        /** Cover filename prefix for linked documents (see [linkedCoverId]). */
+        const val LINKED_COVER_PREFIX = "linked-"
     }
 }

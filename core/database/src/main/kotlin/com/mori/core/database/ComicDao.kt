@@ -19,6 +19,14 @@ interface ComicDao {
     @Query("SELECT id FROM comics")
     suspend fun getIds(): List<String>
 
+    /**
+     * Ids of app-private rows only. Linked rows address documents by URI and
+     * are owned by their source tree, so library rescans must never count or
+     * delete them as missing files.
+     */
+    @Query("SELECT id FROM comics WHERE sourcePath NOT LIKE 'content://%'")
+    suspend fun getLocalIds(): List<String>
+
     @Upsert
     suspend fun upsert(comic: ComicEntity)
 
@@ -37,6 +45,17 @@ interface ComicDao {
     @Query("DELETE FROM comics WHERE id = :id")
     suspend fun deleteById(id: String)
 
-    @Query("DELETE FROM comics WHERE id NOT IN (:ids)")
+    @Query("DELETE FROM comics WHERE id NOT IN (:ids) AND sourcePath NOT LIKE 'content://%'")
     suspend fun deleteMissing(ids: List<String>)
+
+    /**
+     * Prunes linked rows no longer present in their source tree. The app
+     * links a single tree, so every linked row belongs to the pass that just
+     * ran; anything not re-found was deleted out from under us.
+     */
+    @Query("DELETE FROM comics WHERE sourcePath LIKE 'content://%' AND id NOT IN (:ids)")
+    suspend fun deleteMissingLinked(ids: List<String>)
+
+    @Query("DELETE FROM comics WHERE sourcePath LIKE 'content://%'")
+    suspend fun deleteAllLinked()
 }

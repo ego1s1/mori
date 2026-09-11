@@ -6,7 +6,6 @@ import app.cash.turbine.test
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
-import com.mori.core.model.ImportReport
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,8 +27,7 @@ class LibraryViewModelTest {
         repository: TestComicsRepository = TestComicsRepository(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
         preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
-        importer: FakeComicImporter = FakeComicImporter(),
-    ) = LibraryViewModel(savedStateHandle, repository, importer, preferences)
+    ) = LibraryViewModel(savedStateHandle, repository, preferences)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
@@ -127,13 +125,9 @@ class LibraryViewModelTest {
     fun refreshPullsLinkedFolderThenReindexes() = runTest {
         val repository = TestComicsRepository()
         val preferences = TestPreferencesDataSource()
-        val importer = FakeComicImporter(
-            treeReport = ImportReport(2, 2, 0, emptyList()),
-        )
         val viewModel = viewModel(
             repository = repository,
             preferences = preferences,
-            importer = importer,
         )
         preferences.setSourceTreeUri("content://tree/linked")
         viewModel.uiState.test {
@@ -146,12 +140,12 @@ class LibraryViewModelTest {
             assertEquals(false, (settled as LibraryUiState.Success).refreshing)
             cancelAndIgnoreRemainingEvents()
         }
+        // Linked trees index in place: no copies, one app rescan.
         assertEquals(
             listOf(android.net.Uri.parse("content://tree/linked")),
-            importer.seenTrees,
+            repository.linkedTrees,
         )
-        // Initial index plus post-import reindex.
-        assertEquals(2, repository.refreshCalls)
+        assertEquals(1, repository.refreshCalls)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.mori.core.data
 
 import com.mori.core.model.Comic
+import com.mori.core.model.ImportReport
 import com.mori.core.model.IndexReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
@@ -21,9 +22,20 @@ interface ComicsRepository {
 
     /**
      * Scans the library directory, indexing new/changed archives and dropping rows whose
-     * files are gone. Covers regenerate only when missing or stale.
+     * files are gone. Covers regenerate only when missing or stale. Linked rows
+     * (custom folders) are never touched here; see [indexLinkedTree].
      */
     suspend fun refreshLibrary(): IndexReport
+
+    /**
+     * Indexes a user-linked folder in place: no files are copied, archives are
+     * read through transient cache materializations, and rows address documents
+     * by URI so rescans stay fresh without duplicating the collection.
+     */
+    suspend fun indexLinkedTree(
+        treeUri: android.net.Uri,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): ImportReport
 
     /** Re-indexes a single comic (e.g. after retrying a failed one). */
     suspend fun refreshComic(id: String): Comic?

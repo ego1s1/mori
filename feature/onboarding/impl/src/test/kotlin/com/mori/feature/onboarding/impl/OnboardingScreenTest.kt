@@ -77,6 +77,8 @@ class OnboardingScreenTest {
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.StorageStep).assertIsDisplayed()
         composeTestRule.onNodeWithText("On this device").assertIsDisplayed()
+        // Small viewports scroll the option card; settle it into view first.
+        composeTestRule.onNodeWithText("Custom folder").performScrollTo()
         composeTestRule.onNodeWithText("Custom folder").performClick()
         assert(actions.contains(OnboardingAction.SelectStorage(StorageLocation.CUSTOM)))
         // The CTA dispatches ContinueStep (navigation covered by VM tests; a
@@ -106,13 +108,16 @@ class OnboardingScreenTest {
         var folderPicks = 0
         var filePicks = 0
         setScreen(
-            OnboardingUiState.Import(StorageLocation.APP),
+            OnboardingUiState.Import(StorageLocation.APP, link = false),
             onPickFolder = { folderPicks += 1 },
             onPickFiles = { filePicks += 1 },
         )
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.ImportStep).assertIsDisplayed()
+        // The mode rows push the pickers below the fold; scroll like a user.
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performScrollTo()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performClick()
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).performScrollTo()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).performClick()
         assert(folderPicks == 1)
         assert(filePicks == 1)
@@ -120,9 +125,10 @@ class OnboardingScreenTest {
 
     @Test
     fun importStepCustomOffersFolderOnly() {
-        setScreen(OnboardingUiState.Import(StorageLocation.CUSTOM))
+        setScreen(OnboardingUiState.Import(StorageLocation.CUSTOM, link = false))
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.ImportStep).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performScrollTo()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).assertIsDisplayed()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFiles).assertDoesNotExist()
     }
@@ -130,7 +136,7 @@ class OnboardingScreenTest {
     @Test
     fun importingShowsProgressAndCancel() {
         val actions = mutableListOf<OnboardingAction>()
-        setScreen(OnboardingUiState.Importing(done = 2, total = 5), actions = actions)
+        setScreen(OnboardingUiState.Importing(done = 2, total = 5, link = false), actions = actions)
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.Progress).assertIsDisplayed()
         composeTestRule.onNodeWithText("Copying 2 of 5").assertIsDisplayed()
@@ -140,14 +146,28 @@ class OnboardingScreenTest {
 
     @Test
     fun importingWithoutTotalShowsSpinner() {
-        setScreen(OnboardingUiState.Importing(done = 0, total = 0))
+        setScreen(OnboardingUiState.Importing(done = 0, total = 0, link = false))
 
         composeTestRule.onNodeWithTag(OnboardingTestTags.Progress).assertIsDisplayed()
         composeTestRule.onNodeWithText("Scanning for comics…").assertIsDisplayed()
     }
 
     @Test
-    fun doneShowsSummaryAndFinish() {
+    fun importStepModeChoiceDispatchesLink() {
+        val actions = mutableListOf<OnboardingAction>()
+        setScreen(
+            OnboardingUiState.Import(StorageLocation.CUSTOM, link = false),
+            actions = actions,
+        )
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.LinkMode).performClick()
+        assert(actions.contains(OnboardingAction.SetLinkMode(true)))
+        composeTestRule.onNodeWithTag(OnboardingTestTags.CopyMode).performClick()
+        assert(actions.contains(OnboardingAction.SetLinkMode(false)))
+    }
+
+    @Test
+    fun doneBeatShowsSummaryThenFinishes() {
         val actions = mutableListOf<OnboardingAction>()
         var finished = 0
         setScreen(
@@ -156,22 +176,30 @@ class OnboardingScreenTest {
             onFinish = { finished += 1 },
         )
 
+        // Transient beat, not a page: summary plus handoff caption, no
+        // blocking Start Reading button.
         composeTestRule.onNodeWithText("3 of 4").assertIsDisplayed()
         composeTestRule.onNodeWithText("comics imported").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(OnboardingTestTags.Finish).performClick()
+        composeTestRule.onNodeWithText("Start reading").assertDoesNotExist()
+        assertEquals(0, finished)
+        composeTestRule.mainClock.advanceTimeBy(2_000)
         assert(actions.contains(OnboardingAction.Finish))
         assertEquals(1, finished)
     }
 
     @Test
-    fun doneAutoAdvancesHome() {
+    fun doneImportMoreCancelsAutoFinish() {
         var finished = 0
+        val actions = mutableListOf<OnboardingAction>()
         setScreen(
             OnboardingUiState.Done(FakeComicImporter.success(4, succeeded = 3)),
+            actions = actions,
             onFinish = { finished += 1 },
         )
 
+        composeTestRule.onNodeWithText("Import more").performClick()
+        assert(actions.contains(OnboardingAction.ImportMore))
         composeTestRule.mainClock.advanceTimeBy(2_000)
-        assertEquals(1, finished)
+        assertEquals(0, finished)
     }
 }

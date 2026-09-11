@@ -1,7 +1,6 @@
 package com.mori.app
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +60,7 @@ internal fun MainNavigator(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(4.dp),
         ) {
             NavDestination(
                 selected = selectedTab == 0,
@@ -137,28 +135,24 @@ private fun NavDestination(
         selected -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    // The active pill stretches wider than idle icons (reference style); the
-    // width glides on a spatial spring while the label fades/expands in.
-    val horizontalPadding by animateDpAsState(
-        targetValue = if (selected) 20.dp else 14.dp,
-        animationSpec = MoriMotion.defaultSpatialSpec(),
-        label = "pillWidth",
-    )
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .clip(CircleShape)
-            .background(container, CircleShape)
             .clickable(onClick = onClick, role = Role.Tab)
             .semantics { this.selected = selected }
             .testTag(testTag)
-            .sizeIn(minWidth = 48.dp)
-            .height(48.dp)
-            .padding(horizontal = horizontalPadding),
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
     ) {
+        // Indicator pill carries even insets on every side, so the highlight
+        // never sits closer to one bar edge than the others; the label only
+        // widens it, expanding in place with a fade.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .background(container, CircleShape)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
         ) {
             Icon(
                 imageVector = icon,

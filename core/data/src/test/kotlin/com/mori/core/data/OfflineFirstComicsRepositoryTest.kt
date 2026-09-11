@@ -53,6 +53,7 @@ class OfflineFirstComicsRepositoryTest {
         dao = dao,
         backend = backend,
         covers = CoverGenerator(context, backend),
+        linkedCache = LinkedArchiveCache(context),
         context = context,
     )
 
@@ -164,6 +165,40 @@ class OfflineFirstComicsRepositoryTest {
         assertEquals(1, report.removed)
         repository.observeLibrary(LibraryQuery()).test {
             assertTrue(awaitItem().isEmpty())
+        }
+    }
+
+    @Test
+    fun refreshLibraryPreservesLinkedRows() = runTest {
+        val backend = FakeComicBackendDataSource(inspected = emptyMap())
+        val repository = repository(backend)
+        dao.upsert(
+            com.mori.core.database.ComicEntity(
+                id = "content://com.example/tree/doc%2Falpha.cbz",
+                title = "Alpha",
+                series = null,
+                number = null,
+                format = "CBZ",
+                pageCount = 10,
+                sourcePath = "content://com.example/tree/doc%2Falpha.cbz",
+                coverPath = null,
+                lastPageIndex = 3,
+                sourceDisplayName = "alpha.cbz",
+                sourceModified = 123L,
+                error = null,
+                createdAt = 1L,
+                updatedAt = 2L,
+            ),
+        )
+
+        // Empty app dir: the linked row must survive, with zero removals.
+        val report = repository.refreshLibrary()
+
+        assertEquals(0, report.removed)
+        repository.observeLibrary(LibraryQuery()).test {
+            val comics = awaitItem()
+            assertEquals(1, comics.size)
+            assertEquals(3, comics.single().lastPageIndex)
         }
     }
 

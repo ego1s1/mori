@@ -20,6 +20,7 @@ internal class FakeComicsRepository(
     private val comics = MutableStateFlow(initial)
     var refreshLibraryReport = IndexReport(0, 0, 0)
     val removedIds = mutableListOf<String>()
+    val linkedTrees = mutableListOf<android.net.Uri>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
 
     fun send(comics: List<Comic>) {
@@ -36,6 +37,14 @@ internal class FakeComicsRepository(
         comics.value.firstOrNull { it.id == id }
 
     override suspend fun refreshLibrary(): IndexReport = refreshLibraryReport
+
+    override suspend fun indexLinkedTree(
+        treeUri: android.net.Uri,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): com.mori.core.model.ImportReport {
+        linkedTrees += treeUri
+        return com.mori.core.model.ImportReport(0, 0, 0, emptyList())
+    }
 
     override suspend fun refreshComic(id: String): Comic? = getComic(id)
 

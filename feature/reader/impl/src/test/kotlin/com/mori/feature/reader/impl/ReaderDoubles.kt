@@ -38,6 +38,12 @@ internal class TestComicsRepository(
 
     override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
 
+    override suspend fun indexLinkedTree(
+        treeUri: android.net.Uri,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): com.mori.core.model.ImportReport =
+        com.mori.core.model.ImportReport(0, 0, 0, emptyList())
+
     override suspend fun refreshComic(id: String): Comic? = getComic(id)
 
     override suspend fun removeComic(id: String) {

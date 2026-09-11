@@ -33,17 +33,19 @@ internal class OnboardingViewModel @Inject constructor(
     private enum class Step { WELCOME, STORAGE, APPEARANCE, IMPORT }
 
     private sealed interface ImportPhase {
-        data class Progress(val done: Int, val total: Int) : ImportPhase
+        data class Progress(val done: Int, val total: Int, val link: Boolean) : ImportPhase
         data class Finished(val report: com.mori.core.model.ImportReport) : ImportPhase
     }
 
     private val step = MutableStateFlow(Step.WELCOME)
     private val importPhase = MutableStateFlow<ImportPhase?>(null)
+    private val linkMode = MutableStateFlow(false)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         preferences.themePreferences,
         preferences.storageLocation,
+        linkMode,
         importPhase,
         ::toUiState,
     ).stateIn(
@@ -56,11 +58,12 @@ internal class OnboardingViewModel @Inject constructor(
         step: Step,
         theme: ThemePreferences,
         location: StorageLocation,
+        link: Boolean,
         phase: ImportPhase?,
     ): OnboardingUiState {
         phase?.let {
             return when (it) {
-                is ImportPhase.Progress -> OnboardingUiState.Importing(it.done, it.total)
+                is ImportPhase.Progress -> OnboardingUiState.Importing(it.done, it.total, it.link)
                 is ImportPhase.Finished -> OnboardingUiState.Done(it.report)
             }
         }
@@ -68,7 +71,7 @@ internal class OnboardingViewModel @Inject constructor(
             Step.WELCOME -> OnboardingUiState.Welcome
             Step.STORAGE -> OnboardingUiState.Storage(location)
             Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
-            Step.IMPORT -> OnboardingUiState.Import(location)
+            Step.IMPORT -> OnboardingUiState.Import(location, link)
         }
     }
 
@@ -94,14 +97,29 @@ internal class OnboardingViewModel @Inject constructor(
                 preferences.setStorageLocation(action.location)
             }
             is OnboardingAction.FolderSelected -> {
-                viewModelScope.launch {
-                    preferences.setSourceTreeUri(action.uri.toString())
-                }
-                startImport { onProgress ->
-                    importer.importTree(action.uri, onProgress)
+                if (linkMode.value) {
+                    // Link: persist the tree and index in place — zero copies.
+                    viewModelScope.launch {
+                        preferences.setSourceTreeUri(action.uri.toString())
+                    }
+                    startImport(link = true) { onProgress ->
+                        repository.indexLinkedTree(action.uri, onProgress)
+                    }
+                } else {
+                    // Copy: duplicates land in app storage and no tree lingers
+                    // behind to surprise later rescans.
+                    viewModelScope.launch {
+                        preferences.setSourceTreeUri(null)
+                    }
+                    startImport(link = false) { onProgress ->
+                        importer.importTree(action.uri, onProgress)
+                    }
                 }
             }
-            is OnboardingAction.FilesSelected -> startImport { onProgress ->
+            is OnboardingAction.SetLinkMode -> {
+                linkMode.value = action.link
+            }
+            is OnboardingAction.FilesSelected -> startImport(link = false) { onProgress ->
                 importer.importDocuments(action.uris, onProgress)
             }
             OnboardingAction.CancelImport -> {
@@ -134,11 +152,12 @@ internal class OnboardingViewModel @Inject constructor(
     }
 
     private fun startImport(
+        link: Boolean,
         run: suspend ((done: Int, total: Int) -> Unit) -> com.mori.core.model.ImportReport,
     ) {
         if (importJob?.isActive == true) return
         step.value = Step.IMPORT
-        importPhase.value = ImportPhase.Progress(done = 0, total = 0)
+        importPhase.value = ImportPhase.Progress(done = 0, total = 0, link = link)
         var lastIndexed = 0
         importJob = viewModelScope.launch {
             try {

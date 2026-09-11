@@ -3,6 +3,7 @@ package com.mori.app
 import androidx.test.core.app.ApplicationProvider
 import com.mori.core.data.ComicPageFetcher
 import com.mori.core.data.ComicsRepository
+import com.mori.core.data.LinkedArchiveCache
 import com.mori.comic.model.ComicPage
 import com.mori.comic.model.MediaType
 import com.mori.comic.model.PageDimensions
@@ -39,6 +40,7 @@ class MoriImageLoaderFactoryTest {
                 FakeRepository(),
                 FakeBackend(),
                 com.mori.comic.decode.PageDecoder(),
+                LinkedArchiveCache(context),
             ),
         )
 
@@ -57,6 +59,12 @@ class MoriImageLoaderFactoryTest {
         override suspend fun getComic(id: String): Comic? = null
 
         override suspend fun refreshLibrary(): IndexReport = IndexReport(0, 0, 0)
+
+        override suspend fun indexLinkedTree(
+            treeUri: android.net.Uri,
+            onProgress: (done: Int, total: Int) -> Unit,
+        ): com.mori.core.model.ImportReport =
+            com.mori.core.model.ImportReport(0, 0, 0, emptyList())
 
         override suspend fun refreshComic(id: String): Comic? = null
 

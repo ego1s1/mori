@@ -3,7 +3,6 @@ package com.mori.feature.library.impl
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mori.core.data.ComicImporter
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
@@ -34,7 +33,6 @@ import javax.inject.Inject
 class LibraryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: ComicsRepository,
-    private val importer: ComicImporter,
     private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
@@ -162,23 +160,22 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun refresh() {
-            if (refreshing.value) return
+        if (refreshing.value) return
         viewModelScope.launch {
             refreshing.value = true
             try {
                 val report = repository.refreshLibrary()
-                // Linked custom folder (Mihon local-source policy): pull new
-                // files in, then index. Copies are idempotent by name+size.
+                // Linked custom folder (Mihon local-source policy): refresh it
+                // in place — never copied, rescan stays fresh without dupes.
                 val treeUri = preferences.sourceTreeUri.first()
-                var linked = 0
+                var linkedFailed = 0
                 if (treeUri != null) {
                     runCatching {
                         val uri = android.net.Uri.parse(treeUri)
-                        linked = importer.importTree(uri) { _, _ -> }.succeeded
+                        linkedFailed = repository.indexLinkedTree(uri) { _, _ -> }.failed
                     }
                 }
-                val rescan = if (linked > 0) repository.refreshLibrary() else null
-                val failed = report.failed + (rescan?.failed ?: 0)
+                val failed = report.failed + linkedFailed
                 if (failed > 0) {
                     messageChannel.send(LibraryMessage.IndexFailed(failed))
                 }
