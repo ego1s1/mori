@@ -1,12 +1,6 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -412,8 +406,8 @@ private fun ReaderContent(
         // the one orientation cue readers keep when controls hide.
         AnimatedVisibility(
             visible = !state.chromeVisible && !state.settingsOpen && state.showPageCounter,
-            enter = fadeIn(animationSpec = MoriMotion.calmFade()),
-            exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+            enter = MoriMotion.enter(MoriEnterKind.FADE),
+            exit = MoriMotion.exit(MoriEnterKind.FADE),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             Surface(

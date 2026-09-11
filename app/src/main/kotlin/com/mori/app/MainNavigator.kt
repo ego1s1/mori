@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 
@@ -135,6 +136,7 @@ private fun NavDestination(
         selected -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -164,8 +166,12 @@ private fun NavDestination(
             )
             AnimatedVisibility(
                 visible = selected,
-                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                    expandHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()),
+                enter = if (expressiveMotion) {
+                    fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                        expandHorizontally(animationSpec = MoriMotion.defaultSpatialSpec())
+                } else {
+                    fadeIn(animationSpec = MoriMotion.calmFade())
+                },
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()) +
                     shrinkHorizontally(animationSpec = MoriMotion.calmFade()),
             ) {

@@ -1,12 +1,6 @@
 package com.mori.feature.library.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
@@ -448,8 +442,8 @@ private fun LibraryBody(
             // One-shot arrival fade; static visibility never replays it.
             AnimatedVisibility(
                 visible = true,
-                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                enter = MoriMotion.enter(MoriEnterKind.FADE),
+                exit = MoriMotion.exit(MoriEnterKind.FADE),
             ) {
                 LibraryEmptyState(
                     searching = queryText.isNotBlank(),
@@ -460,8 +454,8 @@ private fun LibraryBody(
             // One-shot arrival fade; static visibility never replays it.
             AnimatedVisibility(
                 visible = true,
-                enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                enter = MoriMotion.enter(MoriEnterKind.FADE),
+                exit = MoriMotion.exit(MoriEnterKind.FADE),
             ) {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(GRID_CELL_MIN),

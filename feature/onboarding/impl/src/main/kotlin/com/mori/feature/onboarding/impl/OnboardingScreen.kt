@@ -9,9 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +62,7 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -149,6 +148,10 @@ internal fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        // Gated transitions hoisted out: transitionSpec is not a composable
+        // context, so the expressive-aware specs resolve here.
+        val stepEnter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH)
+        val stepExit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH)
         // Step changes fade through so the wizard never hard-cuts. Keyed on
         // the step alone: progress ticks inside Importing recompose in place
         // without restarting the transition.
@@ -163,23 +166,7 @@ internal fun OnboardingScreen(
         AnimatedContent(
             targetState = stepKey,
             transitionSpec = {
-                (fadeIn(
-                    animationSpec = tween(
-                        STEP_FADE_MS,
-                        easing = MoriMotion.EmphasizedDecelerate,
-                    ),
-                ) + scaleIn(
-                    animationSpec = tween(
-                        STEP_FADE_MS,
-                        easing = MoriMotion.EmphasizedDecelerate,
-                    ),
-                    initialScale = STEP_SCALE_FROM,
-                )) togetherWith fadeOut(
-                    animationSpec = tween(
-                        STEP_FADE_MS,
-                        easing = MoriMotion.EmphasizedAccelerate,
-                    ),
-                )
+                stepEnter togetherWith stepExit
             },
             label = "onboardingStep",
         ) { _ ->
@@ -276,9 +263,7 @@ internal fun OnboardingScreen(
     }
 }
 
-/** Step-change fade-through; slightly unhurried so the wizard feels calm. */
-private const val STEP_FADE_MS = 250
-private const val STEP_SCALE_FROM = 0.98f
+/** Step changes ride the shared fade-through; progress ticks stay in place. */
 
 @Composable
 private fun WelcomeContent(
@@ -807,9 +792,14 @@ private fun MorphingHero(
         delay(HERO_MORPH_DELAY_MS)
         morphed = true
     }
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
     val corner by animateDpAsState(
         targetValue = if (morphed) 64.dp else 28.dp,
-        animationSpec = MoriMotion.heroSpring(),
+        animationSpec = if (expressiveMotion) {
+            MoriMotion.heroSpring()
+        } else {
+            tween(durationMillis = 300, easing = MoriMotion.Emphasized)
+        },
         label = "heroMorph",
     )
     Surface(
@@ -846,11 +836,12 @@ private fun ImportingContent(
             .padding(32.dp)
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
+        val fadeEnter = MoriMotion.enter(MoriEnterKind.FADE)
+        val fadeExit = MoriMotion.exit(MoriEnterKind.FADE)
         AnimatedContent(
             targetState = total <= 0,
             transitionSpec = {
-                fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) togetherWith
-                    fadeOut(animationSpec = MoriMotion.calmFade())
+                fadeEnter togetherWith fadeExit
             },
             label = "importPhase",
         ) { scanning ->
@@ -874,9 +865,14 @@ private fun ImportingContent(
             // Spring-smoothed bar: file copies land in bursts, the indicator
             // glides instead of jumping.
             val rawProgress = done.toFloat() / total
+            val expressiveMotion = LocalExpressiveMotionEnabled.current
             val smoothProgress by animateFloatAsState(
                 targetValue = rawProgress,
-                animationSpec = MoriMotion.heroSpring(),
+                animationSpec = if (expressiveMotion) {
+                    MoriMotion.heroSpring()
+                } else {
+                    tween(durationMillis = 150, easing = MoriMotion.Emphasized)
+                },
                 label = "importProgress",
             )
             LinearProgressIndicator(

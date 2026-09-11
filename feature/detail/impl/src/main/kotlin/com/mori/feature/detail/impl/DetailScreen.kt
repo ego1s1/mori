@@ -1,9 +1,6 @@
 package com.mori.feature.detail.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,10 +62,13 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
@@ -164,8 +164,8 @@ internal fun DetailScreen(
 
                 DetailUiState.Missing -> AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()),
-                    exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                    enter = MoriMotion.enter(MoriEnterKind.FADE),
+                    exit = MoriMotion.exit(MoriEnterKind.FADE),
                 ) {
                     MoriEmptyState(
                         icon = MoriIcons.MenuBook,
@@ -180,12 +180,8 @@ internal fun DetailScreen(
                     // One-shot arrival fade; static visibility never replays it.
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                            scaleIn(
-                                animationSpec = MoriMotion.defaultSpatialSpec(),
-                                initialScale = 0.98f,
-                            ),
-                        exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                        enter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH),
+                        exit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH),
                     ) {
                     DetailContent(
                         comic = uiState.comic,

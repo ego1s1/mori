@@ -37,6 +37,16 @@ enum class MoriEnterKind {
 
     /** Full-screen welcome content rises gently. */
     RISE,
+
+    /**
+     * Tab/step switches: incoming fades through with a breath of scale while
+     * outgoing fades, so destination changes read as designed even when the
+     * entering page spends its first frames composing.
+     */
+    FADE_THROUGH,
+
+    /** Plain fade for content arrivals (grids, detail bodies, counters). */
+    FADE,
 }
 
 /** Entrance for [kind] under the current motion setting. */
@@ -60,6 +70,9 @@ fun MoriMotion.enter(kind: MoriEnterKind): EnterTransition {
                 scaleIn(animationSpec = heroSpring(), initialScale = 0.6f)
             MoriEnterKind.RISE -> fadeIn(animationSpec = defaultEffectsSpec()) +
                 slideInVertically(animationSpec = chromeSpring()) { it / 4 }
+            MoriEnterKind.FADE_THROUGH -> fadeIn(animationSpec = defaultEffectsSpec()) +
+                scaleIn(animationSpec = defaultSpatialSpec(), initialScale = 0.98f)
+            MoriEnterKind.FADE -> fadeIn(animationSpec = defaultEffectsSpec())
         }
     }
 }
@@ -85,6 +98,8 @@ fun MoriMotion.exit(kind: MoriEnterKind): ExitTransition {
                 scaleOut(animationSpec = calmFade())
             MoriEnterKind.RISE -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 slideOutVertically(animationSpec = chromeSpring()) { it / 4 }
+            MoriEnterKind.FADE_THROUGH -> fadeOut(animationSpec = defaultEffectsSpec())
+            MoriEnterKind.FADE -> fadeOut(animationSpec = defaultEffectsSpec())
         }
     }
 }

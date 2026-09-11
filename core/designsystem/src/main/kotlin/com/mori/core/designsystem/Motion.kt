@@ -18,6 +18,26 @@ import com.mori.core.model.MotionStyle
  * Speed table (per skill): fast = small components (switches, chips), default =
  * buttons/cards/chrome, slow = sheets/dialogs/navigation. Effects specs (color/alpha)
  * never bounce; spatial specs bounce lightly in expressive mode.
+ *
+ * Duration standards enforced across the app (M3 transition table):
+ *
+ * | Use                              | Duration | Easing / spec        | Token            |
+ * |----------------------------------|----------|----------------------|------------------|
+ * | Screen enter                     | 400ms    | EmphasizedDecelerate | EnterScreenMs    |
+ * | Screen exit                      | 200ms    | EmphasizedAccelerate | ExitScreenMs     |
+ * | Shared-element cover morph       | 500ms    | emphasized           | SharedTransition |
+ * | Tab / step fade-through          | spring   | spatial + effects    | FADE_THROUGH     |
+ * | Content arrival fades            | spring   | effects              | FADE             |
+ * | Page-turn glide                  | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
+ * | Double-tap zoom glide            | 350ms    | EmphasizedDecelerate | (reader)         |
+ * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | (reader)         |
+ * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
+ * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | (reader)         |
+ *
+ * Rules: no raw `tween`/`spring` durations outside this file — call sites use
+ * these tokens or named constants beside the usage. Screen-level transitions
+ * go through `MoriMotion.enter()`/`exit()` so the calm-motion setting (and
+ * system reduced motion) applies everywhere.
  */
 object MoriMotion {
     val Emphasized = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
@@ -74,7 +94,7 @@ object MoriMotion {
     )
 
     /** Calm fallback: short emphasized fades with no physics. */
-    fun <T> calmFade(): FiniteAnimationSpec<T> = tween(150, easing = Emphasized)
+    fun <T> calmFade(): FiniteAnimationSpec<T> = tween(200, easing = Emphasized)
 
     /**
      * Page-turn glide: a short fixed-time slide that retargets cleanly when a

@@ -4,7 +4,6 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -36,10 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.LocalNavAnimatedVisibilityScope
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.model.ResumeTarget
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
@@ -96,6 +97,7 @@ internal fun MainScreen(
     }
 
     var resume by remember { mutableStateOf<ResumeTarget?>(null) }
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
 
     // Single floating navigator for both tabs (destinations + resume); the
     // library's action toolbar floats above it. No bottom bar.
@@ -112,30 +114,13 @@ internal fun MainScreen(
             .padding(padding)) {
             // No entry animation here: the NavHost transition already carries
             // the arrival. A second scale-in stacked on top read as a glitch.
+            // Gated transitions hoisted out: transitionSpec is not a
+            // composable context, so the expressive-aware specs resolve here.
+            val tabEnter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH)
+            val tabExit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH)
             AnimatedContent(
                 targetState = selectedTab,
-                transitionSpec = {
-                    // Fade-through: incoming scales up faintly while outgoing
-                    // fades, so the switch reads as designed even when the
-                    // entering page spends its first frames composing.
-                    (fadeIn(
-                        animationSpec = tween(
-                            TAB_FADE_MS,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                    ) + scaleIn(
-                        animationSpec = tween(
-                            TAB_FADE_MS,
-                            easing = MoriMotion.EmphasizedDecelerate,
-                        ),
-                        initialScale = TAB_SCALE_FROM,
-                    )) togetherWith fadeOut(
-                        animationSpec = tween(
-                            TAB_FADE_MS,
-                            easing = MoriMotion.EmphasizedAccelerate,
-                        ),
-                    )
-                },
+                transitionSpec = { tabEnter togetherWith tabExit },
                 label = "mainTabs",
                 modifier = Modifier.fillMaxSize(),
             ) { tab ->
@@ -173,11 +158,15 @@ internal fun MainScreen(
                     )
                     AnimatedVisibility(
                         visible = resume != null,
-                        enter = fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                            scaleIn(
-                                animationSpec = MoriMotion.defaultSpatialSpec(),
-                                initialScale = 0.6f,
-                            ),
+                        enter = if (expressiveMotion) {
+                            fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                                scaleIn(
+                                    animationSpec = MoriMotion.defaultSpatialSpec(),
+                                    initialScale = 0.6f,
+                                )
+                        } else {
+                            fadeIn(animationSpec = MoriMotion.calmFade())
+                        },
                         exit = fadeOut(animationSpec = MoriMotion.calmFade()) +
                             scaleOut(animationSpec = MoriMotion.calmFade()),
                     ) {
@@ -196,9 +185,3 @@ internal fun MainScreen(
 
 private const val LIBRARY_TAB = 0
 private const val SETTINGS_TAB = 1
-
-/** Tab-switch fade: short enough to feel instant, long enough to read. */
-private const val TAB_FADE_MS = 240
-
-/** Fade-through entrance scale for the incoming tab. */
-private const val TAB_SCALE_FROM = 0.98f
