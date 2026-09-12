@@ -9,6 +9,7 @@ import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -63,6 +66,44 @@ internal class ReaderViewModel @Inject constructor(
     /** Last programmatic move style; drives pager glide-vs-jump in the UI. */
     private val turnAnimated = MutableStateFlow(true)
 
+    /**
+     * Wide-page scan results per comic, for the dual-page split. Empty means
+     * "not scanned yet" — indistinguishable from "no wide pages" on purpose,
+     * so a pending scan renders whole pages instead of blocking on loading.
+     */
+    private val wideCache = MutableStateFlow<Map<String, Set<Int>>>(emptyMap())
+
+    /**
+     * Declared before [init] on purpose: the init collectors can run eagerly
+     * (Unconfined dispatchers execute them mid-construction), and they read
+     * [uiState] — a later declaration would still hold null there.
+     */
+    val uiState: StateFlow<ReaderUiState> = combine(
+        combine(
+            repository.observeComic(args.comicId),
+            preferences.readerPreferences,
+            chrome,
+            navigation,
+            turnAnimated,
+        ) { comic, prefs, chromeState, nav, animated ->
+            ReaderInputs(comic, prefs, chromeState, nav, animated)
+        },
+        wideCache,
+    ) { inputs, wide ->
+        toUiState(
+            inputs.comic,
+            inputs.prefs,
+            inputs.chrome,
+            inputs.navigation,
+            inputs.turnAnimated,
+            wide,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = ReaderUiState.Loading,
+    )
+
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
 
@@ -87,20 +128,37 @@ internal class ReaderViewModel @Inject constructor(
                 preferences.setReaderOverviewSeen()
             }
         }
+        // Dual-page split scan: bounds-decodes the book once per session when
+        // the split is enabled. Failures yield empty (whole pages), never an
+        // error state — reading must not break over a display preference.
+        viewModelScope.launch {
+            combine(
+                repository.observeComic(args.comicId).map { it?.id },
+                preferences.readerPreferences.map { it.dualPageSplit }.distinctUntilChanged(),
+            ) { id, split -> id to split }
+                .distinctUntilChanged()
+                .collect { (id, split) ->
+                    if (id != null && split && !wideCache.value.containsKey(id)) {
+                        val wide = repository.widePageIndices(id)
+                        wideCache.value = wideCache.value + (id to wide)
+                        // The pager just gained positions; re-anchor on the
+                        // archive page being read instead of stranding it.
+                        val ready = uiState.value as? ReaderUiState.Ready
+                        if (ready != null && ready.comicId == id) {
+                            val prefs = preferences.readerPreferences.first()
+                            val pages = buildViewerPages(
+                                ready.archivePageCount, wide, prefs.direction, prefs.dualPageInvert,
+                            )
+                            val archive = ready.currentArchiveIndex
+                                .coerceIn(0, ready.archivePageCount - 1)
+                            setNavigation(
+                                archiveToExpandedPositions(pages, ready.archivePageCount)[archive],
+                            )
+                        }
+                    }
+                }
+        }
     }
-
-    val uiState: StateFlow<ReaderUiState> = combine(
-        repository.observeComic(args.comicId),
-        preferences.readerPreferences,
-        chrome,
-        navigation,
-        turnAnimated,
-        ::toUiState,
-    ).stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ReaderUiState.Loading,
-    )
 
     private fun toUiState(
         comic: Comic?,
@@ -108,6 +166,7 @@ internal class ReaderViewModel @Inject constructor(
         chrome: ChromeState,
         navigation: Int?,
         turnAnimated: Boolean,
+        wideByComic: Map<String, Set<Int>>,
     ): ReaderUiState {
         if (comic == null) {
             return ReaderUiState.Error(ReaderErrorCause.Removed)
@@ -116,8 +175,22 @@ internal class ReaderViewModel @Inject constructor(
         if (error != null) {
             return ReaderUiState.Error(ReaderErrorCause.Failed(error))
         }
-        val pageCount = comic.pageCount.coerceAtLeast(1)
-        val pageIndex = (navigation ?: args.pageIndex).coerceIn(0, pageCount - 1)
+        val archivePageCount = comic.pageCount.coerceAtLeast(1)
+        // Expanded pager positions (Mihon's InsertPage model): wide pages
+        // become two halves when the split is on, identity otherwise. The
+        // scan arrives asynchronously; until then whole pages render.
+        val wide = if (prefs.dualPageSplit) wideByComic[comic.id].orEmpty() else emptySet()
+        val viewerPages = buildViewerPages(archivePageCount, wide, prefs.direction, prefs.dualPageInvert)
+        val expandedForArchive = archiveToExpandedPositions(viewerPages, archivePageCount)
+        val pageCount = viewerPages.size.coerceAtLeast(1)
+        // Fresh opens seed from the route's archive index (the library speaks
+        // archive pages); restored navigation is already expanded. Either way
+        // the position survives list rebuilds via clamping + retargeting.
+        val pageIndex = if (navigation != null) {
+            navigation.coerceIn(0, pageCount - 1)
+        } else {
+            expandedForArchive[args.pageIndex.coerceIn(0, archivePageCount - 1)]
+        }
         return ReaderUiState.Ready(
             comicId = comic.id,
             title = comic.title,
@@ -137,6 +210,11 @@ internal class ReaderViewModel @Inject constructor(
             showPageCounter = prefs.showPageCounter,
             swipeToTurn = prefs.swipeToTurn,
             turnAnimated = turnAnimated,
+            viewerPages = viewerPages,
+            archivePageCount = archivePageCount,
+            expandedForArchive = expandedForArchive,
+            dualPageSplit = prefs.dualPageSplit,
+            dualPageInvert = prefs.dualPageInvert,
         )
     }
 
@@ -171,8 +249,45 @@ internal class ReaderViewModel @Inject constructor(
                 visible = true,
             )
             ReaderAction.CloseOverview -> chrome.value = chrome.value.copy(overviewOpen = false)
-            is ReaderAction.SetDirection -> updatePrefs { it.copy(direction = action.direction) }
+            is ReaderAction.SetDirection -> {
+                // Halves read in direction order, so a flip reorders split
+                // positions — stay on the same archive page, synchronously
+                // (the new direction is known, no prefs read needed).
+                val ready = uiState.value as? ReaderUiState.Ready
+                val archive = ready?.currentArchiveIndex
+                updatePrefs { it.copy(direction = action.direction) }
+                if (ready != null && archive != null && ready.dualPageSplit) {
+                    retarget(ready, archive, action.direction)
+                }
+            }
             is ReaderAction.SetPageFit -> updatePrefs { it.copy(pageFit = action.fit) }
+            ReaderAction.ToggleDualSplit -> {
+                val ready = uiState.value as? ReaderUiState.Ready
+                val archive = ready?.currentArchiveIndex
+                val split = !(ready?.dualPageSplit ?: false)
+                updatePrefs { it.copy(dualPageSplit = split) }
+                if (ready != null && archive != null) {
+                    // The scan may still be pending — anchor on the archive
+                    // page with whatever is known; the collector re-anchors
+                    // again when the scan lands.
+                    val wide = if (split) wideCache.value[ready.comicId].orEmpty() else emptySet()
+                    retarget(ready, archive, ready.direction, split, wide)
+                }
+            }
+            ReaderAction.ToggleDualInvert -> {
+                val ready = uiState.value as? ReaderUiState.Ready
+                val archive = ready?.currentArchiveIndex
+                val invert = !(ready?.dualPageInvert ?: false)
+                updatePrefs { it.copy(dualPageInvert = invert) }
+                if (ready != null && archive != null && ready.dualPageSplit) {
+                    retarget(
+                        ready, archive, ready.direction,
+                        split = true,
+                        wide = wideCache.value[ready.comicId].orEmpty(),
+                        invert = invert,
+                    )
+                }
+            }
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
             ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
@@ -219,6 +334,25 @@ internal class ReaderViewModel @Inject constructor(
         savedStateHandle[SAVED_PAGE_INDEX] = index
     }
 
+    /**
+     * Re-anchors [navigation] on [archiveIndex]'s first position after the
+     * pager list is rebuilt (split toggled, halves inverted, direction
+     * flipped). Synchronous: every input is passed explicitly so no prefs
+     * read can race the preference write that triggered the rebuild.
+     */
+    private fun retarget(
+        ready: ReaderUiState.Ready,
+        archiveIndex: Int,
+        direction: ReadingDirection,
+        split: Boolean = ready.dualPageSplit,
+        wide: Set<Int> = wideCache.value[ready.comicId].orEmpty(),
+        invert: Boolean = ready.dualPageInvert,
+    ) {
+        val pages = buildViewerPages(ready.archivePageCount, if (split) wide else emptySet(), direction, invert)
+        val clamped = archiveIndex.coerceIn(0, ready.archivePageCount - 1)
+        setNavigation(archiveToExpandedPositions(pages, ready.archivePageCount)[clamped])
+    }
+
     private fun scheduleProgressSave(index: Int) {
         pendingSave = index
         saveJob?.cancel()
@@ -239,6 +373,15 @@ internal class ReaderViewModel @Inject constructor(
         val visible: Boolean = true,
         val settingsOpen: Boolean = false,
         val overviewOpen: Boolean = false,
+    )
+
+    /** Five-flow combine carrier (coroutines caps fixed-arity combine at five). */
+    private data class ReaderInputs(
+        val comic: Comic?,
+        val prefs: ReaderPreferences,
+        val chrome: ChromeState,
+        val navigation: Int?,
+        val turnAnimated: Boolean,
     )
 
     companion object {

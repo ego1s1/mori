@@ -91,6 +91,8 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(true, defaults.keepScreenOn)
             assertEquals(true, defaults.swipeToTurn)
             assertEquals(false, defaults.showTapZones)
+            assertEquals(false, defaults.dualPageSplit)
+            assertEquals(false, defaults.dualPageInvert)
 
             dataSource.updateReaderPreferences {
                 it.copy(
@@ -101,6 +103,8 @@ class DataStorePreferencesDataSourceTest {
                     keepScreenOn = false,
                     swipeToTurn = false,
                     showTapZones = true,
+                    dualPageSplit = true,
+                    dualPageInvert = true,
                 )
             }
             val updated = awaitItem()
@@ -111,6 +115,8 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(false, updated.keepScreenOn)
             assertEquals(false, updated.swipeToTurn)
             assertEquals(true, updated.showTapZones)
+            assertEquals(true, updated.dualPageSplit)
+            assertEquals(true, updated.dualPageInvert)
         }
     }
 

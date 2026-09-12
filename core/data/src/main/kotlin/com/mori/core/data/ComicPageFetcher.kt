@@ -10,6 +10,7 @@ import coil3.fetch.ImageFetchResult
 import coil3.request.Options
 import com.mori.comic.decode.PageDecoder
 import com.mori.comic.model.DecodeOptions
+import com.mori.core.model.PageHalf
 import java.io.File
 import javax.inject.Inject
 
@@ -17,12 +18,16 @@ import javax.inject.Inject
  * Cacheable key for one decoded comic page. Data class equality gives Coil correct
  * memory/disk cache semantics for free; [maxDimension] is part of the key so different
  * resolutions never collide.
+ *
+ * [half] rides the key so split halves cache independently: toggling the
+ * dual-page split can never serve a full page where a half belongs.
  */
 data class ComicPageKey(
     val comicId: String,
     val pageIndex: Int,
     val maxDimension: Int,
     val cropMargins: Boolean = false,
+    val half: PageHalf = PageHalf.FULL,
 )
 
 /**
@@ -55,11 +60,22 @@ class ComicPageFetcher internal constructor(
         val bytes = backend.readPageBytes(file, page)
         // Crop rides the decode (and the key above), so toggling it can never
         // serve a stale cached bitmap.
-        val decoded = decoder.decode(
-            bytes,
-            page.mediaType,
-            DecodeOptions(maxDimension = data.maxDimension, cropMargins = data.cropMargins),
-        )
+        val options = DecodeOptions(maxDimension = data.maxDimension, cropMargins = data.cropMargins)
+        val decoded = if (data.half == PageHalf.FULL) {
+            decoder.decode(bytes, page.mediaType, options)
+        } else {
+            // Dual-page split (Mihon's splitInHalf): region-decode one side so
+            // the full wide bitmap is never materialized. Halves meet at the
+            // middle column with no overlap and no gap.
+            val dimensions = decoder.readDimensions(bytes, page.mediaType)
+            val mid = dimensions.width / 2
+            val region = when (data.half) {
+                PageHalf.LEFT -> android.graphics.Rect(0, 0, mid, dimensions.height)
+                PageHalf.RIGHT -> android.graphics.Rect(mid, 0, dimensions.width, dimensions.height)
+                PageHalf.FULL -> error("unreachable")
+            }
+            decoder.decodeRegion(bytes, page.mediaType, region, options)
+        }
         return ImageFetchResult(
             image = decoded.bitmap.asImage(),
             isSampled = data.maxDimension > 0,

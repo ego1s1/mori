@@ -78,6 +78,7 @@ import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
+import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import kotlinx.coroutines.delay
@@ -336,13 +337,18 @@ private fun ReaderContent(
                     val pageOffset = (
                         (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                         ).absoluteValue
+                    // Dual-page split: the pager walks expanded positions, each
+                    // resolving to an archive page plus the half to decode.
+                    val viewerPage = state.viewerPages.getOrNull(page)
+                        ?: ReaderViewerPage(page, PageHalf.FULL)
                     ZoomablePage(
                         comicId = state.comicId,
-                        pageIndex = page,
-                        pageNumber = page + 1,
+                        pageIndex = viewerPage.archiveIndex,
+                        pageNumber = viewerPage.archiveIndex + 1,
                         pageFit = state.pageFit,
                         direction = state.direction,
                         cropMargins = state.cropMargins,
+                        half = viewerPage.half,
                         modifier = Modifier.graphicsLayer {
                             val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
                             scaleX = scale
@@ -399,6 +405,8 @@ private fun ReaderContent(
                 showTapZones = state.showTapZones,
                 showPageCounter = state.showPageCounter,
                 swipeToTurn = state.swipeToTurn,
+                dualPageSplit = state.dualPageSplit,
+                dualPageInvert = state.dualPageInvert,
                 onAction = onAction,
             )
         }
@@ -406,8 +414,11 @@ private fun ReaderContent(
         if (state.overviewOpen) {
             ReaderOverviewSheet(
                 comicId = state.comicId,
-                pageIndex = state.pageIndex,
-                pageCount = state.pageCount,
+                currentPage = state.currentPage,
+                expandedCount = state.pageCount,
+                currentArchiveIndex = state.currentArchiveIndex,
+                archivePageCount = state.archivePageCount,
+                expandedForArchive = state.expandedForArchive,
                 cropMargins = state.cropMargins,
                 onAction = onAction,
             )

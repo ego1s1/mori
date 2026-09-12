@@ -21,6 +21,8 @@ internal class TestComicsRepository(
 
     private val comics = MutableStateFlow(initial)
     val progressSaves = mutableListOf<Pair<String, Int>>()
+    /** Wide archive indices served to the dual-page scan. */
+    var widePages: Set<Int> = emptySet()
 
     fun send(comic: Comic) {
         comics.value = comics.value + (comic.id to comic)
@@ -58,6 +60,8 @@ internal class TestComicsRepository(
             if (comic.id == id) comic.copy(bookmarked = !comic.bookmarked) else comic
         }
     }
+
+    override suspend fun widePageIndices(id: String): Set<Int> = widePages
 
     override suspend fun clearThumbnailCache() {
     }

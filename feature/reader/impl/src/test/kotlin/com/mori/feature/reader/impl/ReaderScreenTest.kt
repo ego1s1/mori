@@ -175,8 +175,11 @@ class ReaderScreenTest {
             MoriTheme {
                 ReaderOverviewSheetContent(
                     comicId = "batman",
-                    pageIndex = 1,
-                    pageCount = 4,
+                    currentPage = 2,
+                    expandedCount = 4,
+                    currentArchiveIndex = 1,
+                    archivePageCount = 4,
+                    expandedForArchive = listOf(0, 1, 2, 3),
                     cropMargins = false,
                     onAction = actions::add,
                 )
@@ -187,6 +190,32 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.thumbFor(2)).performClick()
 
         assert(actions.contains(ReaderAction.SeekPage(2)))
+        assert(actions.contains(ReaderAction.CloseOverview))
+    }
+
+    @Test
+    fun overviewSeekMapsArchiveToExpandedPosition() {
+        // Split book: archive page 1 (wide) occupies expanded 1..2, so its
+        // thumb seeks to 1, not to its archive index.
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderOverviewSheetContent(
+                    comicId = "batman",
+                    currentPage = 1,
+                    expandedCount = 5,
+                    currentArchiveIndex = 0,
+                    archivePageCount = 4,
+                    expandedForArchive = listOf(0, 1, 3, 4),
+                    cropMargins = false,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.thumbFor(1)).performClick()
+
+        assert(actions.contains(ReaderAction.SeekPage(1)))
         assert(actions.contains(ReaderAction.CloseOverview))
     }
 
@@ -203,6 +232,8 @@ class ReaderScreenTest {
                     showTapZones = false,
                     showPageCounter = true,
                     swipeToTurn = true,
+                    dualPageSplit = false,
+                    dualPageInvert = false,
                     onAction = {},
                 )
             }
@@ -219,6 +250,51 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithText("Volume keys turn pages").assertExists()
         composeTestRule.onNodeWithText("Keep screen on").assertExists()
         composeTestRule.onNodeWithText("Page counter").assertExists()
+        composeTestRule.onNodeWithText("Split wide pages").assertExists()
+    }
+
+    @Test
+    fun invertSwitchHiddenWhenSplitOff() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderSettingsSheetContent(
+                    direction = ReadingDirection.LEFT_TO_RIGHT,
+                    pageFit = PageFit.WIDTH,
+                    cropMargins = false,
+                    volumeKeys = false,
+                    keepScreenOn = true,
+                    showTapZones = false,
+                    showPageCounter = true,
+                    swipeToTurn = true,
+                    dualPageSplit = false,
+                    dualPageInvert = false,
+                    onAction = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithText("Invert split halves").assertDoesNotExist()
+    }
+
+    @Test
+    fun invertSwitchShownWhenSplitOn() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderSettingsSheetContent(
+                    direction = ReadingDirection.LEFT_TO_RIGHT,
+                    pageFit = PageFit.WIDTH,
+                    cropMargins = false,
+                    volumeKeys = false,
+                    keepScreenOn = true,
+                    showTapZones = false,
+                    showPageCounter = true,
+                    swipeToTurn = true,
+                    dualPageSplit = true,
+                    dualPageInvert = false,
+                    onAction = {},
+                )
+            }
+        }
+        composeTestRule.onNodeWithText("Invert split halves").assertExists()
     }
 
     @OptIn(ExperimentalTestApi::class)

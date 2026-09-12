@@ -128,5 +128,41 @@ class ComicPageFetcherTest {
         assertEquals(ComicPageKey("a", 0, 256), ComicPageKey("a", 0, 256))
         assertTrue(ComicPageKey("a", 0, 256) != ComicPageKey("a", 1, 256))
         assertTrue(ComicPageKey("a", 0, 256) != ComicPageKey("a", 0, 512))
+        assertTrue(
+            ComicPageKey("a", 0, 256) !=
+                ComicPageKey("a", 0, 256, half = com.mori.core.model.PageHalf.LEFT),
+        )
+    }
+
+    @Test
+    fun fetchHalfDecodesSideRegion() = runTest {
+        val file = writeCbz("c.cbz", mapOf("001.jpg" to resourceBytes("landscape.jpg")))
+        val backend = MoriComicBackendDataSource(com.mori.comic.decode.PageDecoder())
+        val decoder = com.mori.comic.decode.PageDecoder()
+        val repository = repositoryFor(file)
+        val linkedCache = LinkedArchiveCache(context)
+
+        suspend fun bitmapFor(half: com.mori.core.model.PageHalf): android.graphics.Bitmap {
+            val result = ComicPageFetcher(
+                data = ComicPageKey("c.cbz", 0, 0, half = half),
+                repository = repository,
+                backend = backend,
+                decoder = decoder,
+                linkedCache = linkedCache,
+            ).fetch()
+            assertTrue(result is ImageFetchResult)
+            return ((result as ImageFetchResult).image as coil3.BitmapImage).bitmap
+        }
+
+        val full = bitmapFor(com.mori.core.model.PageHalf.FULL)
+        val left = bitmapFor(com.mori.core.model.PageHalf.LEFT)
+        val right = bitmapFor(com.mori.core.model.PageHalf.RIGHT)
+
+        // Halves tile the full page with no overlap and no gap (sampling may
+        // round a pixel either way).
+        assertTrue(kotlin.math.abs(full.width - (left.width + right.width)) <= 1)
+        assertEquals(full.height, left.height)
+        assertEquals(full.height, right.height)
+        assertTrue(left.width > 0 && right.width > 0)
     }
 }

@@ -25,4 +25,12 @@ data class ReaderPreferences(
     val swipeToTurn: Boolean = true,
     /** Zone overlay preview; persisted like the other reader defaults. */
     val showTapZones: Boolean = false,
+    /**
+     * Dual-page split (Mihon's `dualPageSplitPaged`): wide pages are divided
+     * into halves that read as consecutive pager positions instead of one
+     * squeezed page. Off by default — it rescans page dimensions on enable.
+     */
+    val dualPageSplit: Boolean = false,
+    /** Read the second half before the first (Mihon's `dualPageInvertPaged`). */
+    val dualPageInvert: Boolean = false,
 )

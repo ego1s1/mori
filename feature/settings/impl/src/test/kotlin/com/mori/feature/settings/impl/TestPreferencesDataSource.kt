@@ -92,6 +92,8 @@ internal class TestComicsRepository(
 
     override suspend fun saveProgress(id: String, pageIndex: Int) = Unit
 
+    override suspend fun widePageIndices(id: String): Set<Int> = emptySet()
+
     override suspend fun toggleBookmark(id: String) = Unit
 
     override suspend fun clearThumbnailCache() {

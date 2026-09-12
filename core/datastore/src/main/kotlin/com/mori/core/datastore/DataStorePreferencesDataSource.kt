@@ -47,6 +47,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 showPageCounter = prefs[SHOW_PAGE_COUNTER] ?: true,
                 swipeToTurn = prefs[SWIPE_TO_TURN] ?: true,
                 showTapZones = prefs[SHOW_TAP_ZONES] ?: false,
+                dualPageSplit = prefs[DUAL_PAGE_SPLIT] ?: false,
+                dualPageInvert = prefs[DUAL_PAGE_INVERT] ?: false,
             )
         }
 
@@ -71,6 +73,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[SHOW_PAGE_COUNTER] = updated.showPageCounter
             it[SWIPE_TO_TURN] = updated.swipeToTurn
             it[SHOW_TAP_ZONES] = updated.showTapZones
+            it[DUAL_PAGE_SPLIT] = updated.dualPageSplit
+            it[DUAL_PAGE_INVERT] = updated.dualPageInvert
         }
     }
 
@@ -149,6 +153,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val SHOW_PAGE_COUNTER = booleanPreferencesKey("show_page_counter")
         val SWIPE_TO_TURN = booleanPreferencesKey("swipe_to_turn")
         val SHOW_TAP_ZONES = booleanPreferencesKey("show_tap_zones")
+        val DUAL_PAGE_SPLIT = booleanPreferencesKey("dual_page_split")
+        val DUAL_PAGE_INVERT = booleanPreferencesKey("dual_page_invert")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

@@ -6,6 +6,7 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
+import com.mori.core.model.PageHalf
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.testing.TestDispatcherRule
@@ -296,6 +297,67 @@ class ReaderViewModelTest {
             assertEquals(true, settled.overviewOpen)
             viewModel.onAction(ReaderAction.CloseOverview)
             assertEquals(false, awaitReadyWhere { !it.overviewOpen }.overviewOpen)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun splitExpandsWidePagesIntoHalves() = runTest {
+        val repository = TestComicsRepository(
+            mapOf("c" to TestComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            val settled = awaitReadyWhere { it.pageCount == 11 }
+            assertEquals(11, settled.pageCount)
+            assertEquals(10, settled.archivePageCount)
+            assertEquals(PageHalf.FULL, settled.viewerPages[0].half)
+            assertEquals(2, settled.viewerPages[2].archiveIndex)
+            assertEquals(PageHalf.LEFT, settled.viewerPages[2].half)
+            assertEquals(PageHalf.RIGHT, settled.viewerPages[3].half)
+            assertEquals(listOf(0, 1, 2, 4, 5, 6, 7, 8, 9, 10), settled.expandedForArchive)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun toggleSplitKeepsArchivePage() = runTest {
+        val repository = TestComicsRepository(
+            mapOf("c" to TestComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(pageIndex = 2, repository = repository)
+        viewModel.uiState.test {
+            assertEquals(10, awaitReady().pageCount)
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            val split = awaitReadyWhere { it.dualPageSplit && it.pageCount == 11 }
+            assertEquals(2, split.pageIndex)
+            assertEquals(2, split.currentArchiveIndex)
+            assertEquals(PageHalf.LEFT, split.viewerPages[2].half)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun invertSwapsSplitHalvesWithoutLeavingPage() = runTest {
+        val repository = TestComicsRepository(
+            mapOf("c" to TestComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            viewModel.onAction(ReaderAction.SeekPage(2))
+            awaitReadyWhere { it.pageIndex == 2 }
+            viewModel.onAction(ReaderAction.ToggleDualInvert)
+            val inverted = awaitReadyWhere { it.dualPageInvert }
+            assertEquals(2, inverted.currentArchiveIndex)
+            assertEquals(PageHalf.RIGHT, inverted.viewerPages[2].half)
+            assertEquals(PageHalf.LEFT, inverted.viewerPages[3].half)
             cancelAndIgnoreRemainingEvents()
         }
     }

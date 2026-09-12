@@ -42,6 +42,8 @@ internal fun ReaderSettingsSheet(
     showTapZones: Boolean,
     showPageCounter: Boolean,
     swipeToTurn: Boolean,
+    dualPageSplit: Boolean,
+    dualPageInvert: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -58,6 +60,8 @@ internal fun ReaderSettingsSheet(
             showTapZones = showTapZones,
             showPageCounter = showPageCounter,
             swipeToTurn = swipeToTurn,
+            dualPageSplit = dualPageSplit,
+            dualPageInvert = dualPageInvert,
             onAction = onAction,
         )
     }
@@ -74,6 +78,8 @@ internal fun ReaderSettingsSheetContent(
     showTapZones: Boolean,
     showPageCounter: Boolean,
     swipeToTurn: Boolean,
+    dualPageSplit: Boolean,
+    dualPageInvert: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -179,6 +185,26 @@ internal fun ReaderSettingsSheetContent(
             checked = swipeToTurn,
             onCheckedChange = { onAction(ReaderAction.ToggleSwipeToTurn) },
         )
+
+        Text(
+            text = stringResource(R.string.reader_sheet_dual),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        MoriSettingSwitch(
+            title = stringResource(R.string.reader_dual_title),
+            subtitle = stringResource(R.string.reader_dual_subtitle),
+            checked = dualPageSplit,
+            onCheckedChange = { onAction(ReaderAction.ToggleDualSplit) },
+        )
+        if (dualPageSplit) {
+            MoriSettingSwitch(
+                title = stringResource(R.string.reader_dual_invert_title),
+                subtitle = stringResource(R.string.reader_dual_invert_subtitle),
+                checked = dualPageInvert,
+                onCheckedChange = { onAction(ReaderAction.ToggleDualInvert) },
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
     }

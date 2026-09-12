@@ -46,6 +46,7 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
+import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -74,11 +75,13 @@ internal fun ZoomablePage(
     cropMargins: Boolean,
     onZoneTap: (ReaderZone) -> Unit,
     modifier: Modifier = Modifier,
+    half: PageHalf = PageHalf.FULL,
 ) {
     // Zoom/pan state is keyed to the page identity: the pager reuses compositions
     // for neighboring pages, and stale zoom must never leak into a recycled page.
-    var scale by remember(comicId, pageIndex, pageFit, direction) { mutableFloatStateOf(1f) }
-    var offset by remember(comicId, pageIndex, pageFit, direction) { mutableStateOf(Offset.Zero) }
+    // Split halves are distinct identities — each half zooms on its own.
+    var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
+    var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
     val scope = rememberCoroutineScope()
     val expressiveMotion = LocalExpressiveMotionEnabled.current
     // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
@@ -207,6 +210,7 @@ internal fun ZoomablePage(
                 pageIndex = pageIndex,
                 pageNumber = pageNumber,
                 cropMargins = cropMargins,
+                half = half,
             )
         }
     }
@@ -223,12 +227,13 @@ private fun PageArt(
     pageIndex: Int,
     pageNumber: Int,
     cropMargins: Boolean,
+    half: PageHalf,
     modifier: Modifier = Modifier,
 ) {
-    var attempt by remember(comicId, pageIndex) { mutableIntStateOf(0) }
+    var attempt by remember(comicId, pageIndex, half) { mutableIntStateOf(0) }
     key(attempt) {
         val painter = rememberAsyncImagePainter(
-            model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION, cropMargins),
+            model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION, cropMargins, half),
             contentScale = ContentScale.Fit,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()

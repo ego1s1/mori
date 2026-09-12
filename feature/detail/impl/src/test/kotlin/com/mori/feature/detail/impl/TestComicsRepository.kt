@@ -51,6 +51,8 @@ internal class TestComicsRepository(
         progressSaves += id to pageIndex
     }
 
+    override suspend fun widePageIndices(id: String): Set<Int> = emptySet()
+
     override suspend fun toggleBookmark(id: String) {
         comics.value = comics.value.mapValues { (_, comic) ->
             if (comic.id == id) comic.copy(bookmarked = !comic.bookmarked) else comic

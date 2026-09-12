@@ -41,6 +41,16 @@ interface ComicsRepository {
     suspend fun toggleBookmark(id: String)
 
     /**
+     * Archive indices of wide (landscape) pages, for the dual-page split.
+     *
+     * Bounds-decodes every page, so callers only invoke it when the split is
+     * enabled — and treat an empty set as "no info" (scan failures also yield
+     * empty, falling back to whole pages). Results are deterministic per file,
+     * so callers memoize per comic.
+     */
+    suspend fun widePageIndices(id: String): Set<Int>
+
+    /**
      * Deletes generated covers and their index references (regenerated on
      * rescan) plus the transient link-read cache.
      */

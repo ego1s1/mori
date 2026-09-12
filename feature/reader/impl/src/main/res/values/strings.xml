@@ -36,6 +36,11 @@
     <string name="reader_counter_subtitle">Show the current page number when controls hide</string>
     <string name="reader_swipe_title">Swipe to turn pages</string>
     <string name="reader_swipe_subtitle">Drag sideways to move between pages, alongside taps</string>
+    <string name="reader_sheet_dual">Dual page</string>
+    <string name="reader_dual_title">Split wide pages</string>
+    <string name="reader_dual_subtitle">Show each half of a landscape page on its own screen</string>
+    <string name="reader_dual_invert_title">Invert split halves</string>
+    <string name="reader_dual_invert_subtitle">Read the right half before the left half</string>
     <string name="reader_zone_previous">Previous</string>
     <string name="reader_zone_menu">Menu</string>
     <string name="reader_zone_next">Next</string>

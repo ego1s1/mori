@@ -56,6 +56,8 @@ internal class FakeComicsRepository(
         }
     }
 
+    override suspend fun widePageIndices(id: String): Set<Int> = emptySet()
+
     override suspend fun toggleBookmark(id: String) {
         comics.value = comics.value.map {
             if (it.id == id) it.copy(bookmarked = !it.bookmarked) else it

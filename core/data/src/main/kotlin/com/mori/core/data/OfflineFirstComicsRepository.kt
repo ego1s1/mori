@@ -172,6 +172,32 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         dao.updateBookmark(id, !row.bookmarked, System.currentTimeMillis())
     }
 
+    /**
+     * Wide-page scan for the dual-page split (Mihon's `isWideImage` gate).
+     *
+     * One inspect plus one bounds decode per page, all on IO. Encrypted or
+     * unreadable archives yield empty — the reader then shows whole pages,
+     * the same fallback as split-off.
+     */
+    override suspend fun widePageIndices(id: String): Set<Int> = withContext(Dispatchers.IO) {
+        runCatching {
+            val comic = dao.getById(id)?.toModel() ?: return@runCatching emptySet()
+            val file = if (isLinkedSourcePath(comic.sourcePath)) {
+                linkedCache.materialize(Uri.parse(comic.sourcePath), comic.sourceDisplayName)
+            } else {
+                File(comic.sourcePath)
+            }
+            val inspected = backend.inspect(file)
+            buildSet {
+                inspected.pages.forEachIndexed { index, page ->
+                    val bytes = backend.readPageBytes(file, page)
+                    val dimensions = backend.readDimensions(bytes, page.mediaType)
+                    if (dimensions.width > dimensions.height) add(index)
+                }
+            }
+        }.getOrDefault(emptySet())
+    }
+
     override suspend fun clearThumbnailCache() = withContext(Dispatchers.IO) {
         val coversDir = File(context.filesDir, CoverGenerator.COVERS_DIR)
         runCatching {

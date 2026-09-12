@@ -52,8 +52,11 @@ import com.mori.core.designsystem.MoriIcons
 @Composable
 internal fun ReaderOverviewSheet(
     comicId: String,
-    pageIndex: Int,
-    pageCount: Int,
+    currentPage: Int,
+    expandedCount: Int,
+    currentArchiveIndex: Int,
+    archivePageCount: Int,
+    expandedForArchive: List<Int>,
     cropMargins: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -64,8 +67,11 @@ internal fun ReaderOverviewSheet(
     ) {
         ReaderOverviewSheetContent(
             comicId = comicId,
-            pageIndex = pageIndex,
-            pageCount = pageCount,
+            currentPage = currentPage,
+            expandedCount = expandedCount,
+            currentArchiveIndex = currentArchiveIndex,
+            archivePageCount = archivePageCount,
+            expandedForArchive = expandedForArchive,
             cropMargins = cropMargins,
             onAction = onAction,
         )
@@ -76,14 +82,17 @@ internal fun ReaderOverviewSheet(
 @Composable
 internal fun ReaderOverviewSheetContent(
     comicId: String,
-    pageIndex: Int,
-    pageCount: Int,
+    currentPage: Int,
+    expandedCount: Int,
+    currentArchiveIndex: Int,
+    archivePageCount: Int,
+    expandedForArchive: List<Int>,
     cropMargins: Boolean,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = stringResource(R.string.reader_overview_title, pageIndex + 1, pageCount),
+        text = stringResource(R.string.reader_overview_title, currentPage, expandedCount),
         style = MoriEmphasized.titleLarge,
         modifier = modifier
             .fillMaxWidth()
@@ -98,15 +107,18 @@ internal fun ReaderOverviewSheetContent(
             .fillMaxWidth()
             .testTag(ReaderTestTags.OverviewGrid),
     ) {
-        items(pageCount, key = { it }) { index ->
+        // The grid walks archive pages (stable identities with full-page
+        // thumbs); tapping one seeks to its first expanded position, so a
+        // split wide page opens on its first half.
+        items(archivePageCount, key = { it }) { archive ->
             OverviewThumb(
                 comicId = comicId,
-                pageIndex = index,
-                pageNumber = index + 1,
+                pageIndex = archive,
+                pageNumber = archive + 1,
                 cropMargins = cropMargins,
-                selected = index == pageIndex,
+                selected = archive == currentArchiveIndex,
                 onClick = {
-                    onAction(ReaderAction.SeekPage(index))
+                    onAction(ReaderAction.SeekPage(expandedForArchive.getOrElse(archive) { archive }))
                     onAction(ReaderAction.CloseOverview)
                 },
             )
