@@ -234,7 +234,7 @@ internal class ReaderViewModel @Inject constructor(
                 if (!chrome.value.settingsOpen && !chrome.value.overviewOpen) {
                     chrome.value = chrome.value.copy(visible = false)
                 }
-                scheduleProgressSave(action.index)
+                scheduleProgressSave(archiveIndexFor(action.index))
             }
             ReaderAction.ToggleBookmark -> {
                 viewModelScope.launch { repository.toggleBookmark(args.comicId) }
@@ -326,12 +326,25 @@ internal class ReaderViewModel @Inject constructor(
         // Buttons and zone taps dismiss chrome like a page turn; the slider keeps
         // chrome up so scrubbing stays visible (auto-hide resumes afterwards).
         chrome.value = chrome.value.copy(visible = !hideChrome)
-        scheduleProgressSave(clamped)
+        scheduleProgressSave(archiveIndexFor(clamped))
     }
 
     private fun setNavigation(index: Int) {
         navigation.value = index
         savedStateHandle[SAVED_PAGE_INDEX] = index
+    }
+
+    /**
+     * Translates an expanded pager position into its archive page.
+     *
+     * Progress is persisted in the archive domain — the library resumes by
+     * archive page and knows nothing of splits — so every save path maps
+     * through here. Without the split this is the identity.
+     */
+    private fun archiveIndexFor(expanded: Int): Int {
+        val ready = uiState.value as? ReaderUiState.Ready ?: return expanded
+        return ready.viewerPages.getOrNull(expanded)?.archiveIndex
+            ?: expanded.coerceIn(0, ready.archivePageCount - 1)
     }
 
     /**

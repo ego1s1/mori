@@ -363,6 +363,26 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun progressSavesArchiveIndexWhenSplit() = runTest {
+        val repository = TestComicsRepository(
+            mapOf("c" to TestComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            // Expanded 3 is the RIGHT half of archive 2; the library resumes
+            // by archive page, so it must record 2, not 3.
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(600)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("c" to 2), repository.progressSaves)
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(
