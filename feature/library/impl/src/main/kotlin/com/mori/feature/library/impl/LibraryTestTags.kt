@@ -13,7 +13,6 @@ object LibraryTestTags {
     const val EmptyChooseFolder = "libraryEmptyChooseFolder"
     const val Shelf = "libraryContinueShelf"
     const val Snackbar = "librarySnackbar"
-    const val SettingsSheet = "librarySettingsSheet"
 
     fun cardFor(id: String): String = "libraryCard:$id"
 

@@ -5,9 +5,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.unit.IntOffset
 import com.mori.core.model.MotionStyle
 
 /**
@@ -25,7 +23,7 @@ import com.mori.core.model.MotionStyle
  * |----------------------------------|----------|----------------------|------------------|
  * | Screen enter                     | 400ms    | EmphasizedDecelerate | EnterScreenMs    |
  * | Screen exit                      | 200ms    | EmphasizedAccelerate | ExitScreenMs     |
- * | Shared-element cover morph       | 500ms    | emphasized           | SharedTransition |
+ * | Shared-element cover morph       | 500ms    | emphasized           | screen specs     |
  * | Tab / step fade-through          | spring   | spatial + effects    | FADE_THROUGH     |
  * | Content arrival fades            | spring   | effects              | FADE             |
  * | Page-turn glide                  | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
@@ -46,13 +44,6 @@ object MoriMotion {
 
     const val EnterScreenMs = 400
     const val ExitScreenMs = 200
-    const val SharedTransitionMs = 500
-
-    /** Spatial: small components (switches, chips, icon buttons). */
-    fun <T> fastSpatialSpec(): FiniteAnimationSpec<T> = spring(
-        stiffness = Spring.StiffnessHigh,
-        dampingRatio = Spring.DampingRatioNoBouncy,
-    )
 
     /** Spatial: buttons, cards, chrome, pager transforms. Light expressive bounce. */
     fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = spring(
@@ -60,27 +51,9 @@ object MoriMotion {
         dampingRatio = 0.6f,
     )
 
-    /** Spatial: sheets, dialogs, screen transitions. */
-    fun <T> slowSpatialSpec(): FiniteAnimationSpec<T> = spring(
-        stiffness = Spring.StiffnessLow,
-        dampingRatio = 0.7f,
-    )
-
-    /** Effects: instant feedback (press states, focus). */
-    fun <T> fastEffectsSpec(): FiniteAnimationSpec<T> = spring(
-        stiffness = Spring.StiffnessHigh,
-        dampingRatio = Spring.DampingRatioNoBouncy,
-    )
-
     /** Effects: selection, enabled states, scrims. */
     fun <T> defaultEffectsSpec(): FiniteAnimationSpec<T> = spring(
         stiffness = Spring.StiffnessMedium,
-        dampingRatio = Spring.DampingRatioNoBouncy,
-    )
-
-    /** Effects: theme and background washes. */
-    fun <T> slowEffectsSpec(): FiniteAnimationSpec<T> = spring(
-        stiffness = Spring.StiffnessLow,
         dampingRatio = Spring.DampingRatioNoBouncy,
     )
 
@@ -105,12 +78,6 @@ object MoriMotion {
         tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
 
     private const val PAGE_TURN_MS = 180
-
-    @Composable
-    fun enterTween() = tween<IntOffset>(EnterScreenMs, easing = EmphasizedDecelerate)
-
-    @Composable
-    fun exitTween() = tween<IntOffset>(ExitScreenMs, easing = EmphasizedAccelerate)
 }
 
 /**

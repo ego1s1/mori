@@ -2,10 +2,8 @@
 <resources>
     <string name="library_title">Library</string>
     <string name="library_search_label">Search title, series, number</string>
-    <string name="library_resume">Resume %1$s</string>
     <string name="library_action_search">Search library</string>
     <string name="library_action_sort_filter">Sort and filter</string>
-    <string name="library_action_settings">Library settings</string>
     <string name="library_empty_title">Your library is empty</string>
     <string name="library_empty_body">Import comics to see them here.</string>
     <string name="library_empty_search_title">No comics match your search</string>
