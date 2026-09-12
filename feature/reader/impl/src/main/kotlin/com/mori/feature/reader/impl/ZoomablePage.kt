@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -31,11 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
@@ -82,6 +85,15 @@ internal fun ZoomablePage(
     // Split halves are distinct identities — each half zooms on its own.
     var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
     var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
+    // Aspect of the DECODED art (post-crop, post-split). Fit is computed from
+    // these bounds — Mihon's model, where SubsamplingScaleImageView derives
+    // its minimum scale from the image, never from a fixed slot. Reset per
+    // page identity; the 2:3 placeholder holds layout until decode lands.
+    // Without this, decode-side crop would be invisible: Fit normalizes any
+    // same-aspect art to the same size inside a fixed box.
+    var artAspect by remember(comicId, pageIndex, cropMargins, half) {
+        mutableFloatStateOf(PAGE_ASPECT)
+    }
     val scope = rememberCoroutineScope()
     val expressiveMotion = LocalExpressiveMotionEnabled.current
     // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
@@ -139,7 +151,7 @@ internal fun ZoomablePage(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .pageFit(pageFit)
+                .pageFit(pageFit, artAspect, maxWidth, maxHeight)
                 .graphicsLayer(
                     scaleX = scale,
                     scaleY = scale,
@@ -211,6 +223,7 @@ internal fun ZoomablePage(
                 pageNumber = pageNumber,
                 cropMargins = cropMargins,
                 half = half,
+                onArtSize = { artWidth, artHeight -> artAspect = artAspectFor(artWidth, artHeight) },
             )
         }
     }
@@ -228,6 +241,7 @@ private fun PageArt(
     pageNumber: Int,
     cropMargins: Boolean,
     half: PageHalf,
+    onArtSize: (widthPx: Float, heightPx: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var attempt by remember(comicId, pageIndex, half) { mutableIntStateOf(0) }
@@ -237,6 +251,15 @@ private fun PageArt(
             contentScale = ContentScale.Fit,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
+        // Intrinsic size follows the decoded (possibly cropped) art; the fit
+        // box wraps it so crop refits instead of sitting at the old scale.
+        // A state write must not happen during composition, hence the effect.
+        val artSize = painter.intrinsicSize
+        LaunchedEffect(artSize) {
+            if (artSize.isSpecified && artSize.width > 0f && artSize.height > 0f) {
+                onArtSize(artSize.width, artSize.height)
+            }
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = modifier.fillMaxSize(),
@@ -277,17 +300,44 @@ private fun PageArt(
     }
 }
 
-private fun Modifier.pageFit(fit: PageFit): Modifier = when (fit) {
-    // Full-bleed width; height follows the loaded art. The placeholder keeps a stable
-    // slot so layout does not jump when the bitmap arrives — including ORIGINAL,
-    // whose native aspect is unknown until decode.
-    PageFit.WIDTH -> fillMaxWidth().aspectRatio(PAGE_ASPECT)
+/**
+ * Fit container for one page.
+ *
+ * WIDTH and ORIGINAL fill the viewport width and wrap the DECODED art
+ * aspect — so a cropped page refits larger instead of sitting at its old
+ * scale inside a fixed slot. Art taller than the viewport is capped at the
+ * viewport height (whole art stays reachable: scale-1 never pans, so true
+ * overflow would strand content, unlike Mihon's pannable view). HEIGHT
+ * keeps the viewport box: Fit already maximizes there either way.
+ */
+private fun Modifier.pageFit(
+    fit: PageFit,
+    artAspect: Float,
+    maxWidth: Dp,
+    maxHeight: Dp,
+): Modifier = when (fit) {
+    PageFit.WIDTH, PageFit.ORIGINAL ->
+        fillMaxWidth().height((maxWidth / artAspect).coerceAtMost(maxHeight))
     PageFit.HEIGHT -> fillMaxSize()
-    PageFit.ORIGINAL -> fillMaxWidth().aspectRatio(PAGE_ASPECT)
 }
+
+/**
+ * Decoded-art aspect for the fit box, falling back to the placeholder slot
+ * for degenerate sizes. Pure for testability.
+ */
+internal fun artAspectFor(artWidthPx: Float, artHeightPx: Float): Float =
+    if (artWidthPx > 0f && artHeightPx > 0f) {
+        (artWidthPx / artHeightPx).coerceIn(MIN_ART_ASPECT, MAX_ART_ASPECT)
+    } else {
+        PAGE_ASPECT
+    }
 
 private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val PAGE_ASPECT = 2f / 3f
+
+/** Sanity bounds for decoded-art aspects (guards degenerate intrinsic sizes). */
+private const val MIN_ART_ASPECT = 0.2f
+private const val MAX_ART_ASPECT = 5f
 private const val DOUBLE_TAP_ZOOM_MS = 350
 private const val EDGE_PAN_MS = 180
 
