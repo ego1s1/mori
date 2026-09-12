@@ -441,7 +441,7 @@ private fun ReaderContent(
             ) {
                 Text(
                     text = stringResource(R.string.reader_counter, state.currentPage, state.pageCount),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelSmall,
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )

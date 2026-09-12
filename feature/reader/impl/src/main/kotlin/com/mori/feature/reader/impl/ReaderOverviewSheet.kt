@@ -39,7 +39,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.mori.core.data.ComicPageKey
-import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 
 /**
@@ -93,7 +92,7 @@ internal fun ReaderOverviewSheetContent(
 ) {
     Text(
         text = stringResource(R.string.reader_overview_title, currentPage, expandedCount),
-        style = MoriEmphasized.titleLarge,
+        style = MaterialTheme.typography.titleMedium,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),

@@ -214,7 +214,7 @@ internal fun ZoomablePage(
         ) {
             Text(
                 text = pageNumber.toString(),
-                style = MoriEmphasized.displaySmall,
+                style = MoriEmphasized.headlineSmall,
                 color = Color.White.copy(alpha = 0.6f),
             )
             PageArt(

@@ -380,8 +380,7 @@ private fun OptionLabel(
 ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.titleMedium,
         modifier = modifier,
     )
 }

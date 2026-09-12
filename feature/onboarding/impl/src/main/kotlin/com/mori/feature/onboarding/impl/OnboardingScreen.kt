@@ -62,6 +62,7 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
@@ -70,18 +71,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -535,8 +531,7 @@ private fun AppearanceOptions(
     ) {
         Text(
             text = stringResource(R.string.onboarding_theme),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
@@ -560,34 +555,19 @@ private fun AppearanceOptions(
         }
         Text(
             text = stringResource(R.string.onboarding_colors),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         SchemePickerRow(
             theme = theme,
             onDynamic = { onAction(OnboardingAction.SetDynamicColor(true)) },
             onScheme = { onAction(OnboardingAction.SetColorScheme(it)) },
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = theme.amoled,
-                    onValueChange = { onAction(OnboardingAction.SetAmoled(it)) },
-                    role = Role.Switch,
-                ),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.onboarding_amoled_title), style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = stringResource(R.string.onboarding_amoled_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = theme.amoled, onCheckedChange = null)
-        }
+        MoriSettingSwitch(
+            title = stringResource(R.string.onboarding_amoled_title),
+            subtitle = stringResource(R.string.onboarding_amoled_subtitle),
+            checked = theme.amoled,
+            onCheckedChange = { onAction(OnboardingAction.SetAmoled(it)) },
+        )
     }
 }
 

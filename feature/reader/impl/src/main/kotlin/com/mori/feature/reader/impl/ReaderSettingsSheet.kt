@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -90,15 +89,14 @@ internal fun ReaderSettingsSheetContent(
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
     ) {
-        Text(
-            text = stringResource(R.string.reader_sheet_title),
-            style = MoriEmphasized.titleLarge,
+    Text(
+        text = stringResource(R.string.reader_sheet_title),
+        style = MaterialTheme.typography.titleMedium,
         )
 
         Text(
             text = stringResource(R.string.reader_sheet_direction),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
@@ -117,8 +115,7 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_fit),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
@@ -150,8 +147,7 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_zones),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         TapZoneLegend(direction = direction)
         MoriSettingSwitch(
@@ -188,8 +184,7 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_dual),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_dual_title),
