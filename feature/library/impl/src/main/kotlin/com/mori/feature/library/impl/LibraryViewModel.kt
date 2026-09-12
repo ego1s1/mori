@@ -138,22 +138,13 @@ class LibraryViewModel @Inject constructor(
     )
 
     init {
-        // Lazy first index: onboarding navigates straight through with no
-        // progress screens, so an empty shelf with a linked tree indexes
-        // itself once here and fills live. Manual rescans cover the rest. A
-        // fresh subscription (not the shared flow's replay) decides
-        // emptiness, so a populated shelf never re-indexes on cold start.
+        // Rescan on every launch: the library reads user folders in place,
+        // so a launch pass picks up files added, moved or removed outside
+        // the app. With no tree linked there is nothing to rescan; manual
+        // rescans stay on pull-to-refresh (plus the empty-state button).
         viewModelScope.launch {
-            val treeUri = preferences.sourceTreeUri.first() ?: return@launch
-            if (repository.observeLibrary(LibraryQuery()).first().isNotEmpty()) return@launch
-            refreshing.value = true
-            try {
-                runCatching {
-                    repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }
-                }
-            } finally {
-                refreshing.value = false
-            }
+            if (preferences.sourceTreeUri.first() == null) return@launch
+            refresh()
         }
     }
 

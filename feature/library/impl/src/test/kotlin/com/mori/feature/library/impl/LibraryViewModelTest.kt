@@ -107,9 +107,11 @@ class LibraryViewModelTest {
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
+            // Launch rescan and manual refresh each report once.
+            assertEquals(LibraryMessage.IndexFailed(2), awaitItem())
             assertEquals(LibraryMessage.IndexFailed(2), awaitItem())
         }
-        // Init gate plus manual refresh, both idempotent.
+        // Launch rescan plus manual refresh, both idempotent.
         assertEquals(2, repository.linkedTrees.size)
     }
 
@@ -122,6 +124,8 @@ class LibraryViewModelTest {
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
+            // Launch rescan and manual refresh each report once.
+            assertEquals(LibraryMessage.RescanFailed, awaitItem())
             assertEquals(LibraryMessage.RescanFailed, awaitItem())
         }
     }
@@ -157,8 +161,8 @@ class LibraryViewModelTest {
             assertEquals(false, (settled as LibraryUiState.Success).refreshing)
             cancelAndIgnoreRemainingEvents()
         }
-        // Linked trees index in place: no copies, no app rescan. (The init
-        // gate read prefs before the tree was set here, so only the manual
+        // Linked trees index in place: no copies, no app rescan. (The launch
+        // rescan read prefs before the tree was set here, so only the manual
         // refresh fires — see emptyShelfAutoIndexesLinkedTree for the gate.)
         val tree = android.net.Uri.parse("content://tree/linked")
         assertEquals(
@@ -203,7 +207,26 @@ class LibraryViewModelTest {
             repository = repository,
             preferences = preferences,
         )
-        // The init gate fires on an empty shelf with a linked tree.
+        // The launch rescan fires on an empty shelf with a linked tree.
+        assertEquals(
+            listOf(android.net.Uri.parse("content://tree/linked")),
+            repository.linkedTrees,
+        )
+    }
+
+    @Test
+    fun populatedShelfRescansOnLaunch() = runTest {
+        val repository = TestComicsRepository(
+            listOf(TestComicsRepository.comic("a", title = "Apple")),
+        )
+        val preferences = TestPreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/linked")
+        viewModel(
+            repository = repository,
+            preferences = preferences,
+        )
+        // Every launch rescans: files added outside the app get picked up
+        // even when the shelf is already populated.
         assertEquals(
             listOf(android.net.Uri.parse("content://tree/linked")),
             repository.linkedTrees,

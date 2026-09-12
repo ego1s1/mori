@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -34,11 +32,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -58,7 +53,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +66,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -201,12 +194,9 @@ internal fun LibraryScreen(
     Scaffold(
         topBar = {
             if (uiState is LibraryUiState.Success) {
-                var menuOpen by rememberSaveable { mutableStateOf(false) }
                 LibraryTopBar(
                     comicCount = uiState.comics.size,
                     searchOpen = uiState.searchOpen,
-                    menuOpen = menuOpen,
-                    onMenuOpenChange = { menuOpen = it },
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
                 )
@@ -325,16 +315,14 @@ private fun LibraryContent(
 /**
  * Static compact app bar: the title and collection subtitle never move and the
  * background never shifts while scrolling (reference-reader style). One bar,
- * one color, always. Search stays visible; everything else lives in the
- * top-end overflow menu (M3 convention).
+ * one color, always. Search and filter ride as direct icon actions — no
+ * overflow menu; rescans happen on launch and on pull-to-refresh.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
     comicCount: Int,
     searchOpen: Boolean,
-    menuOpen: Boolean,
-    onMenuOpenChange: (Boolean) -> Unit,
     onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -375,64 +363,14 @@ private fun LibraryTopBar(
                     contentDescription = stringResource(R.string.library_action_search),
                 )
             }
-            Box {
-                IconButton(
-                    onClick = { onMenuOpenChange(true) },
-                    modifier = Modifier.testTag(LibraryTestTags.MenuButton),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.More,
-                        contentDescription = stringResource(R.string.library_menu),
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuOpen,
-                    onDismissRequest = { onMenuOpenChange(false) },
-                    offset = DpOffset(0.dp, 4.dp),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 3.dp,
-                    modifier = Modifier
-                        .widthIn(min = 112.dp, max = 280.dp)
-                        .testTag(LibraryTestTags.MenuPopup),
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_action_sort_filter)) },
-                        onClick = {
-                            onMenuOpenChange(false)
-                            onAction(LibraryAction.OpenFilter)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = MoriIcons.Tune,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                        modifier = Modifier.testTag(LibraryTestTags.FilterButton),
-                    )
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_action_rescan)) },
-                        onClick = {
-                            onMenuOpenChange(false)
-                            onAction(LibraryAction.Refresh)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = MoriIcons.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                        modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
-                    )
-                }
+            IconButton(
+                onClick = { onAction(LibraryAction.OpenFilter) },
+                modifier = Modifier.testTag(LibraryTestTags.FilterButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Tune,
+                    contentDescription = stringResource(R.string.library_action_sort_filter),
+                )
             }
         },
         modifier = modifier,
