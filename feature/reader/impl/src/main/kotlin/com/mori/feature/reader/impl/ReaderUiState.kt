@@ -19,6 +19,7 @@ sealed interface ReaderUiState {
         val pageFit: PageFit,
         val cropMargins: Boolean,
         val settingsOpen: Boolean,
+        val overviewOpen: Boolean,
         val volumeKeys: Boolean,
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,

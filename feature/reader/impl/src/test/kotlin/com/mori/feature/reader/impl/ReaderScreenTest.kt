@@ -47,6 +47,7 @@ class ReaderScreenTest {
         pageFit = PageFit.WIDTH,
         cropMargins = false,
         settingsOpen = settingsOpen,
+        overviewOpen = false,
         volumeKeys = false,
         keepScreenOn = true,
         showTapZones = false,
@@ -147,6 +148,46 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.SettingsButton).performClick()
 
         assert(actions.contains(ReaderAction.OpenSettings))
+    }
+
+    @Test
+    fun overviewButtonDispatchesOpenOverview() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.OverviewButton).performClick()
+
+        assert(actions.contains(ReaderAction.OpenOverview))
+    }
+
+    @Test
+    fun overviewSheetContentSeeksAndCloses() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderOverviewSheetContent(
+                    comicId = "batman",
+                    pageIndex = 1,
+                    pageCount = 4,
+                    cropMargins = false,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.OverviewGrid).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ReaderTestTags.thumbFor(2)).performClick()
+
+        assert(actions.contains(ReaderAction.SeekPage(2)))
+        assert(actions.contains(ReaderAction.CloseOverview))
     }
 
     @Test

@@ -212,7 +212,7 @@ private fun ReaderContent(
     // the settings sheet dismisses itself first via its own back handling.
 
     // Auto-hide chrome after a moment of stillness, but never mid-scrub.
-    if (state.chromeVisible && !state.settingsOpen && !scrubbing) {
+    if (state.chromeVisible && !state.settingsOpen && !state.overviewOpen && !scrubbing) {
         LaunchedEffect(state.chromeVisible, state.pageIndex) {
             delay(CHROME_AUTO_HIDE_MS)
             onAction(ReaderAction.HideChrome)
@@ -403,10 +403,20 @@ private fun ReaderContent(
             )
         }
 
+        if (state.overviewOpen) {
+            ReaderOverviewSheet(
+                comicId = state.comicId,
+                pageIndex = state.pageIndex,
+                pageCount = state.pageCount,
+                cropMargins = state.cropMargins,
+                onAction = onAction,
+            )
+        }
+
         // Mini page counter while the chrome is away (Mihon's show-page-number):
         // the one orientation cue readers keep when controls hide.
         AnimatedVisibility(
-            visible = !state.chromeVisible && !state.settingsOpen && state.showPageCounter,
+            visible = !state.chromeVisible && !state.settingsOpen && !state.overviewOpen && state.showPageCounter,
             enter = MoriMotion.enter(MoriEnterKind.FADE),
             exit = MoriMotion.exit(MoriEnterKind.FADE),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -691,6 +701,16 @@ private fun ReaderBottomChrome(
                 )
             }
             IconButton(
+                onClick = { onAction(ReaderAction.OpenOverview) },
+                modifier = Modifier.testTag(ReaderTestTags.OverviewButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.GridView,
+                    contentDescription = stringResource(R.string.reader_overview_button),
+                    tint = Color.White,
+                )
+            }
+            IconButton(
                 onClick = { onAction(ReaderAction.OpenSettings) },
                 modifier = Modifier.testTag(ReaderTestTags.SettingsButton),
             ) {
@@ -721,6 +741,7 @@ private fun ReaderScreenPreview() {
                 pageFit = PageFit.WIDTH,
                 cropMargins = false,
                 settingsOpen = false,
+                overviewOpen = false,
                 volumeKeys = false,
                 keepScreenOn = true,
                 showTapZones = false,

@@ -26,6 +26,10 @@ sealed interface ReaderAction {
 
     data object CloseSettings : ReaderAction
 
+    data object OpenOverview : ReaderAction
+
+    data object CloseOverview : ReaderAction
+
     data class SetDirection(val direction: ReadingDirection) : ReaderAction
 
     data class SetPageFit(val fit: PageFit) : ReaderAction

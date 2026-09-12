@@ -24,6 +24,7 @@ class ReaderKeyHandlerTest {
         pageFit = PageFit.WIDTH,
         cropMargins = false,
         settingsOpen = settingsOpen,
+        overviewOpen = false,
         volumeKeys = volumeKeys,
         keepScreenOn = true,
         showTapZones = false,

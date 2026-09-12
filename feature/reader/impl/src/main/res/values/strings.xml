@@ -12,6 +12,9 @@
     <string name="reader_page_fit">Page fit</string>
     <string name="reader_crop_margins">Crop margins</string>
     <string name="reader_settings">Reader settings</string>
+    <string name="reader_overview_button">Page overview</string>
+    <string name="reader_overview_title">Pages • %1$d of %2$d</string>
+    <string name="reader_overview_open">Open page %1$d</string>
     <string name="reader_sheet_title">Reading settings</string>
     <string name="reader_sheet_direction">Reading direction</string>
     <string name="reader_direction_ltr">Left to right</string>

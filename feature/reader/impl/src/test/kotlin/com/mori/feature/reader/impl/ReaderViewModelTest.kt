@@ -282,6 +282,25 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun overviewOpensClosesAndKeepsChrome() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(false, awaitReady().overviewOpen)
+            viewModel.onAction(ReaderAction.OpenOverview)
+            val open = awaitReadyWhere { it.overviewOpen }
+            assertEquals(true, open.overviewOpen)
+            assertEquals(true, open.chromeVisible)
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            val settled = awaitReadyWhere { it.pageIndex == 3 }
+            assertEquals(true, settled.chromeVisible)
+            assertEquals(true, settled.overviewOpen)
+            viewModel.onAction(ReaderAction.CloseOverview)
+            assertEquals(false, awaitReadyWhere { !it.overviewOpen }.overviewOpen)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(

@@ -80,8 +80,8 @@ internal class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             if (!preferences.readerOverviewSeen.first()) {
                 delay(READER_OVERVIEW_MS)
-                // Never yank chrome out from under the open settings sheet.
-                if (!chrome.value.settingsOpen) {
+                // Never yank chrome out from under open sheets.
+                if (!chrome.value.settingsOpen && !chrome.value.overviewOpen) {
                     chrome.value = chrome.value.copy(visible = false)
                 }
                 preferences.setReaderOverviewSeen()
@@ -130,6 +130,7 @@ internal class ReaderViewModel @Inject constructor(
             pageFit = prefs.pageFit,
             cropMargins = prefs.cropMargins,
             settingsOpen = chrome.settingsOpen,
+            overviewOpen = chrome.overviewOpen,
             volumeKeys = prefs.volumeKeys,
             keepScreenOn = prefs.keepScreenOn,
             showTapZones = prefs.showTapZones,
@@ -151,8 +152,8 @@ internal class ReaderViewModel @Inject constructor(
             is ReaderAction.PageChanged -> {
                 setNavigation(action.index)
                 // Swiping to a new page dismisses chrome, like a page turn —
-                // but never from under the open settings sheet.
-                if (!chrome.value.settingsOpen) {
+                // but never from under an open sheet.
+                if (!chrome.value.settingsOpen && !chrome.value.overviewOpen) {
                     chrome.value = chrome.value.copy(visible = false)
                 }
                 scheduleProgressSave(action.index)
@@ -165,6 +166,11 @@ internal class ReaderViewModel @Inject constructor(
                 visible = true,
             )
             ReaderAction.CloseSettings -> chrome.value = chrome.value.copy(settingsOpen = false)
+            ReaderAction.OpenOverview -> chrome.value = chrome.value.copy(
+                overviewOpen = true,
+                visible = true,
+            )
+            ReaderAction.CloseOverview -> chrome.value = chrome.value.copy(overviewOpen = false)
             is ReaderAction.SetDirection -> updatePrefs { it.copy(direction = action.direction) }
             is ReaderAction.SetPageFit -> updatePrefs { it.copy(pageFit = action.fit) }
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
@@ -232,6 +238,7 @@ internal class ReaderViewModel @Inject constructor(
     private data class ChromeState(
         val visible: Boolean = true,
         val settingsOpen: Boolean = false,
+        val overviewOpen: Boolean = false,
     )
 
     companion object {
