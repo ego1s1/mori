@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.mori.core.designsystem.MoriLoadingIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -173,7 +173,7 @@ private fun OverviewThumb(
                     modifier = Modifier.fillMaxSize(),
                 )
                 when (painterState) {
-                    is AsyncImagePainter.State.Loading -> CircularProgressIndicator(
+                    is AsyncImagePainter.State.Loading -> MoriLoadingIndicator(
                         modifier = Modifier.size(24.dp),
                     )
                     is AsyncImagePainter.State.Error -> Icon(

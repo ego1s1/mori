@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,7 +45,7 @@ fun MoriErrorCard(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    MoriLoadingIndicator(modifier = Modifier.size(24.dp))
                 } else {
                     if (primaryLabel != null && onPrimary != null) {
                         TextButton(onClick = onPrimary) {

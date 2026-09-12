@@ -9,6 +9,7 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -89,8 +90,9 @@ class LibraryScreenTest {
     fun inProgressCardShowsPagesLeftBadge() {
         setScreen(success())
 
-        // Banana: lastPageIndex 2 of 10 -> 7 pages left; Apple is untouched.
-        composeTestRule.onNodeWithText("7 left").assertIsDisplayed()
+        // Banana: lastPageIndex 2 of 10 -> 7 pages left. The unified card
+        // badges both copies: grid cell and continue-shelf card.
+        composeTestRule.onAllNodesWithText("7 left").assertCountEquals(2)
     }
 
     @Test
