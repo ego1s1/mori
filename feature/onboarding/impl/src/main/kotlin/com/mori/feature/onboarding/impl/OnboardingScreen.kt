@@ -255,6 +255,7 @@ private fun WelcomeContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
         ) {
             AnimatedVisibility(
@@ -293,20 +294,64 @@ private fun WelcomeContent(
                 enter = MoriMotion.enter(MoriEnterKind.RISE),
                 exit = fadeOut(animationSpec = MoriMotion.calmFade()),
             ) {
-                Button(
-                    onClick = onGetStarted,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(OnboardingTestTags.GetStarted),
-                ) {
-                    Text(stringResource(R.string.onboarding_get_started))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = stringResource(R.string.onboarding_eyebrow),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 4.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                    // Breathing room before the display headline: tight tracking
+                    // above huge type otherwise reads as a collision.
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = buildAnnotatedString {
+                            append(stringResource(R.string.onboarding_hero_prefix))
+                            withStyle(
+                                SpanStyle(
+                                    fontStyle = FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.primary,
+                                ),
+                            ) {
+                                append(stringResource(R.string.onboarding_hero_accent))
+                            }
+                            append(stringResource(R.string.onboarding_hero_suffix))
+                        },
+                        style = MoriEmphasized.displaySmall,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+            AnimatedVisibility(
+                visible = visibleAt(2),
+                enter = MoriMotion.enter(MoriEnterKind.RISE),
+                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(
+                        onClick = onGetStarted,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(OnboardingTestTags.GetStarted),
+                    ) {
+                        Text(stringResource(R.string.onboarding_get_started))
+                    }
+                    Text(
+                        text = stringResource(R.string.onboarding_get_started_caption),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
                 }
             }
         }
     }
 }
 
-private const val WELCOME_STEPS = 2
+private const val WELCOME_STEPS = 3
 
 /** Folder step: the single question. The picker button launches SAF; the
  * surrounding card explains nothing is copied. */
@@ -393,12 +438,10 @@ private fun WizardStep(
                 key(index) {
                     // M3 expressive segments keep their stop-indicator dots;
                     // equal weights, one height, one gap, centered row keeps
-                    // every dot and cap on the same baseline.
-                    val target = when {
-                        index < stepIndex -> 1f
-                        index == stepIndex -> 0.6f
-                        else -> 0f
-                    }
+                    // every dot and cap on the same baseline. Done and current
+                    // steps read full — a partial fill parks mid-segment and
+                    // looks stalled; the sweep between steps is the motion.
+                    val target = if (index <= stepIndex) 1f else 0f
                     val fill by animateFloatAsState(
                         targetValue = target,
                         animationSpec = MoriMotion.defaultEffectsSpec(),

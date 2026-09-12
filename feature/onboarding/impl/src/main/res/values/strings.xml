@@ -3,6 +3,11 @@
     <string name="onboarding_brand">Mori</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_eyebrow">WELCOME</string>
+    <string name="onboarding_hero_prefix">Your comics,\n</string>
+    <string name="onboarding_hero_accent">beautifully</string>
+    <string name="onboarding_hero_suffix"> shelved.</string>
+    <string name="onboarding_get_started_caption">Takes about a minute · No account needed</string>
     <string name="onboarding_back">Back</string>
     <string name="onboarding_step">STEP %1$d OF %2$d</string>
     <string name="onboarding_continue">Continue</string>

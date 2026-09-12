@@ -63,6 +63,24 @@ class OnboardingScreenTest {
     }
 
     @Test
+    fun welcomeShowsHeroTitleWithoutIntroBody() {
+        setScreen(OnboardingUiState.Welcome)
+
+        // Welcome staggers in; let the cascade finish.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithText("WELCOME").assertIsDisplayed()
+        composeTestRule.onNodeWithText("beautifully", substring = true).assertIsDisplayed()
+        // The caption rides below the CTA and can sit under short-viewport
+        // folds, so scroll it into view like the folder CTA.
+        composeTestRule.onNodeWithText("Takes about a minute · No account needed").performScrollTo()
+        composeTestRule.onNodeWithText("Takes about a minute · No account needed").assertIsDisplayed()
+        composeTestRule.onNodeWithText("beautifully", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Takes about a minute · No account needed").assertIsDisplayed()
+        // Only the intro body subtext stays removed.
+        composeTestRule.onNodeWithText("Three quick steps", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun folderStepPicksFolderAndGoesBack() {
         val actions = mutableListOf<OnboardingAction>()
         var folderPicks = 0
