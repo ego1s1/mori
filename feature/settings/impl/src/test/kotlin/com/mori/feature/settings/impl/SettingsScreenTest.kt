@@ -54,16 +54,16 @@ class SettingsScreenTest {
         setContent()
 
         composeTestRule.onNodeWithText("Motion").assertExists()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Expressive")).assertIsSelected()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).assertIsNotSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Expressive")).assertIsSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Calm")).assertIsNotSelected()
     }
 
     @Test
     fun motionSelectionFollowsState() {
         setContent(motion = MotionStyle.CALM)
 
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).assertIsSelected()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Expressive")).assertIsNotSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Calm")).assertIsSelected()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Expressive")).assertIsNotSelected()
     }
 
     @Test
@@ -71,14 +71,14 @@ class SettingsScreenTest {
         val actions = mutableListOf<SettingsAction>()
         setContent(actions = actions)
 
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Dark")).performScrollTo()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Dark")).performClick()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Dark")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Dark")).performClick()
         assert(actions.contains(SettingsAction.SetThemeMode(ThemeMode.DARK)))
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).performScrollTo()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Calm")).performClick()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Calm")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Calm")).performClick()
         assert(actions.contains(SettingsAction.SetMotionStyle(MotionStyle.CALM)))
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Height")).performScrollTo()
-        composeTestRule.onNodeWithTag(SettingsTestTags.pillFor("Height")).performClick()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Height")).performScrollTo()
+        composeTestRule.onNodeWithTag(SettingsTestTags.segmentFor("Height")).performClick()
         assert(actions.contains(SettingsAction.SetPageFit(PageFit.HEIGHT)))
     }
 

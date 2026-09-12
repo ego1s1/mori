@@ -2,7 +2,6 @@ package com.mori.feature.settings.impl
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +16,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,16 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
@@ -129,9 +129,9 @@ internal fun SettingsContent(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
 
-        SettingsCard(title = stringResource(R.string.settings_card_appearance)) {
+        MoriSectionCard(title = stringResource(R.string.settings_card_appearance)) {
             OptionLabel(stringResource(R.string.settings_theme))
-            PillToggleRow(
+            SegmentedChoiceRow(
                 options = listOf(
                     stringResource(R.string.settings_theme_system),
                     stringResource(R.string.settings_theme_light),
@@ -167,7 +167,7 @@ internal fun SettingsContent(
                 onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
             )
             OptionLabel(stringResource(R.string.settings_motion))
-            PillToggleRow(
+            SegmentedChoiceRow(
                 options = listOf(
                     stringResource(R.string.settings_motion_expressive),
                     stringResource(R.string.settings_motion_calm),
@@ -194,9 +194,9 @@ internal fun SettingsContent(
             )
         }
 
-        SettingsCard(title = stringResource(R.string.settings_card_reader)) {
+        MoriSectionCard(title = stringResource(R.string.settings_card_reader)) {
             OptionLabel(stringResource(R.string.settings_direction))
-            PillToggleRow(
+            SegmentedChoiceRow(
                 options = listOf(
                     stringResource(R.string.settings_direction_ltr),
                     stringResource(R.string.settings_direction_rtl),
@@ -215,7 +215,7 @@ internal fun SettingsContent(
                 },
             )
             OptionLabel(stringResource(R.string.settings_fit))
-            PillToggleRow(
+            SegmentedChoiceRow(
                 options = listOf(
                     stringResource(R.string.settings_fit_width),
                     stringResource(R.string.settings_fit_height),
@@ -270,7 +270,7 @@ internal fun SettingsContent(
             )
         }
 
-        SettingsCard(title = stringResource(R.string.settings_card_storage)) {
+        MoriSectionCard(title = stringResource(R.string.settings_card_storage)) {
             if (storage != null) {
                 Text(
                     text = stringResource(
@@ -297,7 +297,7 @@ internal fun SettingsContent(
             )
         }
 
-        SettingsCard(title = stringResource(R.string.settings_card_soon)) {
+        MoriSectionCard(title = stringResource(R.string.settings_card_soon)) {
             PlaceholderRow(
                 title = stringResource(R.string.settings_soon_cb),
                 subtitle = stringResource(R.string.settings_soon_cb_subtitle),
@@ -308,7 +308,7 @@ internal fun SettingsContent(
             )
         }
 
-        SettingsCard(title = stringResource(R.string.settings_card_about)) {
+        MoriSectionCard(title = stringResource(R.string.settings_card_about)) {
             PlaceholderRow(
                 title = stringResource(R.string.settings_about_app),
                 subtitle = stringResource(R.string.settings_about_app_subtitle),
@@ -345,34 +345,6 @@ internal fun SettingsContent(
     }
 }
 
-/**
- * Section card (reference style): large rounded tonal container with an
- * emphasized title and evenly spaced rows.
- */
-@Composable
-private fun SettingsCard(
-    title: String,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(20.dp),
-        ) {
-            Text(
-                text = title,
-                style = MoriEmphasized.headlineSmall,
-            )
-            content()
-        }
-    }
-}
-
 @Composable
 private fun OptionLabel(
     text: String,
@@ -386,54 +358,26 @@ private fun OptionLabel(
 }
 
 /**
- * Pill toggle pair/row (reference style): the selected pill fills with the
- * primary container, the rest stay tonal. Replaces segmented buttons for
- * option choices.
+ * Single-choice segmented row: the M3 control for option choices, shared
+ * with the onboarding and reader sheets. Selection semantics keep the
+ * tests on tags, not pixels.
  */
 @Composable
-private fun PillToggleRow(
+private fun SegmentedChoiceRow(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         options.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
-            Surface(
-                shape = CircleShape,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-                    .testTag(SettingsTestTags.pillFor(label))
-                    .semantics { this.selected = selected }
-                    .clickable(
-                        onClick = { onSelect(index) },
-                        role = Role.RadioButton,
-                    ),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+            SegmentedButton(
+                selected = index == selectedIndex,
+                onClick = { onSelect(index) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                label = { Text(label) },
+                modifier = Modifier.testTag(SettingsTestTags.segmentFor(label)),
+            )
         }
     }
 }
@@ -459,7 +403,7 @@ private fun PlaceholderRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Surface(

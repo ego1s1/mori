@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +61,7 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.enter
@@ -469,14 +469,8 @@ private fun WizardStep(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    content()
-                }
+            MoriSectionCard {
+                content()
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -486,7 +480,6 @@ private fun WizardStep(
             Surface(
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
@@ -589,7 +582,7 @@ private fun MorphingHero(
         animationSpec = if (expressiveMotion) {
             MoriMotion.heroSpring()
         } else {
-            tween(durationMillis = 300, easing = MoriMotion.Emphasized)
+            MoriMotion.calmFade()
         },
         label = "heroMorph",
     )

@@ -6,9 +6,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -472,7 +469,6 @@ private fun LibraryBody(
  * recency. Same information as the grid cards, denser; tapping continues at
  * the saved page.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ContinueShelf(
     comics: List<Comic>,
@@ -492,70 +488,18 @@ private fun ContinueShelf(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(comics, key = { it.id }) { comic ->
-                ContinueCard(
+                ComicCard(
                     comic = comic,
-                    onReadClick = onReadClick,
+                    onRead = { onReadClick(it.id, it.lastPageIndex) },
+                    onDetails = null,
+                    compact = true,
+                    cardTag = LibraryTestTags.shelfCardFor(comic.id),
                 )
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
     }
 }
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ContinueCard(
-    comic: Comic,
-    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val click = remember(comic) { { onReadClick(comic.id, comic.lastPageIndex) } }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-            .width(120.dp)
-            .testTag(LibraryTestTags.shelfCardFor(comic.id))
-            .combinedClickable(
-                onClick = click,
-                onClickLabel = stringResource(R.string.library_card_read, comic.title),
-            ),
-    ) {
-        Column {
-            Box(
-                modifier = Modifier.aspectRatio(COVER_ASPECT),
-            ) {
-                MoriCoverArt(
-                    coverPath = comic.coverPath,
-                    contentDescription = comic.title,
-                )
-            }
-            Column(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = comic.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    minLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                LinearProgressIndicator(
-                    progress = { comic.progress },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp)
-                        .height(3.dp),
-                )
-            }
-        }
-    }
-}
-
-private const val COVER_ASPECT = 2f / 3f
 
 @Composable
 private fun LibraryEmptyState(

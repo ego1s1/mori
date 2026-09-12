@@ -27,10 +27,10 @@ import com.mori.core.model.MotionStyle
  * | Tab / step fade-through          | spring   | spatial + effects    | FADE_THROUGH     |
  * | Content arrival fades            | spring   | effects              | FADE             |
  * | Page-turn glide                  | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
- * | Double-tap zoom glide            | 350ms    | EmphasizedDecelerate | (reader)         |
- * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | (reader)         |
+ * | Double-tap zoom glide            | 350ms    | EmphasizedDecelerate | zoomSpec         |
+ * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
  * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
- * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | (reader)         |
+ * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | readerEnter/Exit |
  *
  * Rules: no raw `tween`/`spring` durations outside this file — call sites use
  * these tokens or named constants beside the usage. Screen-level transitions
@@ -77,7 +77,22 @@ object MoriMotion {
     fun pageTurnSpec(): FiniteAnimationSpec<Float> =
         tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
 
+    /** Double-tap zoom glide: fixed-time so a second double-tap retargets cleanly. */
+    fun zoomSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EmphasizedDecelerate)
+
+    /** Reader route fades: the fullscreen bed makes slides read as lag. */
+    fun readerEnterSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = READER_FADE_IN_MS, easing = EmphasizedDecelerate)
+
+    /** Reader route fades: the fullscreen bed makes slides read as lag. */
+    fun readerExitSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = READER_FADE_OUT_MS, easing = EmphasizedAccelerate)
+
     private const val PAGE_TURN_MS = 180
+    private const val DOUBLE_TAP_ZOOM_MS = 350
+    private const val READER_FADE_IN_MS = 180
+    private const val READER_FADE_OUT_MS = 150
 }
 
 /**

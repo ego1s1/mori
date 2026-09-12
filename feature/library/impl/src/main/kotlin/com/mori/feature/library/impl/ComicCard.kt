@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriScrimPill
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
 
@@ -37,32 +39,37 @@ import com.mori.core.model.Comic
  * for failed rows.
  *
  * Tapping the card continues at the saved page, so there is no separate
- * continue button; the pages-left badge marks in-progress books.
+ * continue button; the pages-left badge marks in-progress books. The
+ * continue shelf reuses the same card in [compact] form: fixed width, shelf
+ * identity for tests, no long-press (the grid owns details).
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun ComicCard(
     comic: Comic,
     onRead: (Comic) -> Unit,
-    onDetails: (Comic) -> Unit,
+    onDetails: ((Comic) -> Unit)?,
     modifier: Modifier = Modifier,
     sharedCover: Boolean = false,
+    compact: Boolean = false,
+    cardTag: String = LibraryTestTags.cardFor(comic.id),
 ) {
     // Wrappers remembered on the full comic: grid items skip recomposition
     // when handlers and content are unchanged, and progress updates refresh
     // the captured comic (keyed by equality, not id).
     val click = remember(comic, onRead) { { onRead(comic) } }
-    val longClick = remember(comic, onDetails) { { onDetails(comic) } }
+    val longClick = remember(comic, onDetails) { onDetails?.let { action -> { action(comic) } } }
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
-            .testTag(LibraryTestTags.cardFor(comic.id))
+            .then(if (compact) Modifier.width(120.dp) else Modifier)
+            .testTag(cardTag)
             .combinedClickable(
                 onClick = click,
                 onClickLabel = stringResource(R.string.library_card_read, comic.title),
                 onLongClick = longClick,
-                onLongClickLabel = stringResource(R.string.library_card_details),
+                onLongClickLabel = longClick?.let { stringResource(R.string.library_card_details) },
             ),
     ) {
         Column {
@@ -101,20 +108,12 @@ internal fun ComicCard(
                 // Otherwise a bookmark badge marks favorites in the same slot.
                 if (comic.isInProgress) {
                     val left = comic.pageCount - comic.lastPageIndex - 1
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = Color.Black.copy(alpha = 0.6f),
+                    MoriScrimPill(
+                        text = stringResource(R.string.library_card_pages_left, left),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.library_card_pages_left, left),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
+                    )
                 } else if (comic.bookmarked) {
                     Surface(
                         shape = CircleShape,

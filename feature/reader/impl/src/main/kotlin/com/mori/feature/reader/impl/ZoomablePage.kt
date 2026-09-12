@@ -1,9 +1,8 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -113,10 +112,7 @@ internal fun ZoomablePage(
         val startScale = scale
         val startOffset = offset
         val spec = if (expressiveMotion) {
-            tween<Float>(
-                durationMillis = DOUBLE_TAP_ZOOM_MS,
-                easing = MoriMotion.EmphasizedDecelerate,
-            )
+            MoriMotion.zoomSpec()
         } else {
             MoriMotion.calmFade()
         }
@@ -182,10 +178,7 @@ internal fun ZoomablePage(
                                         animate(
                                             initialValue = startX,
                                             targetValue = targetX,
-                                            animationSpec = tween(
-                                                durationMillis = EDGE_PAN_MS,
-                                                easing = MoriMotion.EmphasizedDecelerate,
-                                            ),
+                                            animationSpec = MoriMotion.pageTurnSpec(),
                                         ) { value, _ ->
                                             offset = offset.copy(x = value)
                                         }
@@ -338,8 +331,6 @@ private const val PAGE_ASPECT = 2f / 3f
 /** Sanity bounds for decoded-art aspects (guards degenerate intrinsic sizes). */
 private const val MIN_ART_ASPECT = 0.2f
 private const val MAX_ART_ASPECT = 5f
-private const val DOUBLE_TAP_ZOOM_MS = 350
-private const val EDGE_PAN_MS = 180
 
 /**
  * Double-tap zoom target: zoomed pages reset to fit, unzoomed pages jump to the

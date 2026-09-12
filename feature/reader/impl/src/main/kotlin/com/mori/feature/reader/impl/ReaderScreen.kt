@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -71,6 +72,7 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriScrimPill
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
@@ -432,20 +434,14 @@ private fun ReaderContent(
             exit = MoriMotion.exit(MoriEnterKind.FADE),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            Surface(
+            MoriScrimPill(
+                text = stringResource(R.string.reader_counter, state.currentPage, state.pageCount),
                 shape = MaterialTheme.shapes.extraLarge,
-                color = Color.Black.copy(alpha = 0.6f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 modifier = Modifier
                     .padding(bottom = 24.dp)
                     .testTag(ReaderTestTags.PageCounter),
-            ) {
-                Text(
-                    text = stringResource(R.string.reader_counter, state.currentPage, state.pageCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
+            )
         }
     }
 }
