@@ -61,7 +61,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -195,7 +194,6 @@ internal fun LibraryScreen(
         topBar = {
             if (uiState is LibraryUiState.Success) {
                 LibraryTopBar(
-                    comicCount = uiState.comics.size,
                     searchOpen = uiState.searchOpen,
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
@@ -313,15 +311,14 @@ private fun LibraryContent(
 }
 
 /**
- * Static compact app bar: the title and collection subtitle never move and the
- * background never shifts while scrolling (reference-reader style). One bar,
- * one color, always. Search and filter ride as direct icon actions — no
- * overflow menu; rescans happen on launch and on pull-to-refresh.
+ * Static compact app bar: the bold brand title never moves and the background
+ * never shifts while scrolling (reference-reader style). One bar, one color,
+ * always. Search and filter ride as direct icon actions — no overflow menu;
+ * rescans happen on launch and on pull-to-refresh.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
-    comicCount: Int,
     searchOpen: Boolean,
     onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
@@ -329,25 +326,12 @@ private fun LibraryTopBar(
 ) {
     TopAppBar(
         title = {
-            Column {
-                Text(
-                    text = stringResource(R.string.library_title),
-                    style = MoriEmphasized.displaySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = if (comicCount == 0) {
-                        stringResource(R.string.library_empty_hint)
-                    } else {
-                        pluralStringResource(R.plurals.library_shelf_subtitle, comicCount, comicCount)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = stringResource(R.string.library_title),
+                style = MoriEmphasized.displaySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         },
         actions = {
             IconButton(

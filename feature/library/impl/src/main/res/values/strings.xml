@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="library_title">Library</string>
-    <string name="library_empty_hint">Import comics to start your shelf</string>
-    <plurals name="library_shelf_subtitle">
-        <item quantity="one">%1$d comic on the shelf</item>
-        <item quantity="other">%1$d comics on the shelf</item>
-    </plurals>
     <string name="library_search_label">Search title, series, number</string>
     <string name="library_resume">Resume %1$s</string>
     <string name="library_action_search">Search library</string>

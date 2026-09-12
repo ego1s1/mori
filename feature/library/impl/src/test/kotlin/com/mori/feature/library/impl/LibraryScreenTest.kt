@@ -82,7 +82,7 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).assertIsDisplayed()
-        composeTestRule.onNodeWithText("2 comics on the shelf").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Library").assertIsDisplayed()
     }
 
     @Test
