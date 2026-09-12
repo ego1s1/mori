@@ -56,52 +56,17 @@ class PageDecoder {
      * Trims uniform border margins: edge rows/columns within tolerance of the
      * top-left corner color are removed, capped per side so light content
      * (skies, paper texture) survives. Never returns an empty bitmap.
+     *
+     * The scan itself lives in [MarginScan]: trimming four sides in one
+     * function trips complexity budgets, so each side gets its own pass.
      */
     internal fun trimUniformMargins(bitmap: Bitmap): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        if (width <= 2 || height <= 2) return bitmap
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        val background = pixels[0]
-        fun rowIsMargin(y: Int, left: Int, right: Int): Boolean {
-            val row = y * width
-            for (x in left..right) {
-                if (!nearColor(pixels[row + x], background)) return false
-            }
-            return true
+        val frame = MarginScan(bitmap).frame()
+        return if (frame.isWhole(bitmap.width, bitmap.height)) {
+            bitmap
+        } else {
+            Bitmap.createBitmap(bitmap, frame.left, frame.top, frame.width, frame.height)
         }
-        fun columnIsMargin(x: Int, top: Int, bottom: Int): Boolean {
-            for (y in top..bottom) {
-                if (!nearColor(pixels[y * width + x], background)) return false
-            }
-            return true
-        }
-        // Per-side trim cap (10%): light content must survive aggressive
-        // gutters. Local literal (not const) to stay out of the ABI dump.
-        val maxTrimX = (width * 0.10f).toInt().coerceAtLeast(1)
-        val maxTrimY = (height * 0.10f).toInt().coerceAtLeast(1)
-        // Trim each side independently against the background within caps,
-        // keeping at least one pixel.
-        var l = 0
-        while (l < maxTrimX && l + 1 < width && columnIsMargin(l, 0, height - 1)) l++
-        var r = width - 1
-        while (r > l && width - 1 - r < maxTrimX && columnIsMargin(r, 0, height - 1)) r--
-        var t = 0
-        while (t < maxTrimY && t + 1 < height && rowIsMargin(t, l, r)) t++
-        var b = height - 1
-        while (b > t && height - 1 - b < maxTrimY && rowIsMargin(b, l, r)) b--
-        if (l == 0 && t == 0 && r == width - 1 && b == height - 1) return bitmap
-        return Bitmap.createBitmap(bitmap, l, t, r - l + 1, b - t + 1)
-    }
-
-    private fun nearColor(pixel: Int, background: Int): Boolean {
-        val dr = (pixel shr 16 and 0xFF) - (background shr 16 and 0xFF)
-        val dg = (pixel shr 8 and 0xFF) - (background shr 8 and 0xFF)
-        val db = (pixel and 0xFF) - (background and 0xFF)
-        // Squared RGB tolerance (~14 levels per channel). Local literals (not
-        // consts) so they stay out of the module's public ABI dump.
-        return dr * dr + dg * dg + db * db <= 600
     }
 
     /**
@@ -110,8 +75,7 @@ class PageDecoder {
      * @return the decoded region with [DecodedPage.sampleRect] set to the clamped,
      *   sample-size-aligned region that was actually decoded.
      */
-    fun decodeRegion(
-        bytes: ByteArray,
+    fun decodeRegion(        bytes: ByteArray,
         mediaType: MediaType,
         region: Rect,
         options: DecodeOptions,
@@ -266,4 +230,102 @@ class PageDecoder {
         right.coerceIn(0, width),
         bottom.coerceIn(0, height),
     )
+}
+
+/**
+ * Pixel scan behind [PageDecoder.trimUniformMargins].
+ *
+ * Columns scan the full height first; rows then scan within the surviving
+ * left/right edges — the same order as the original single-pass version,
+ * just one side per function so complexity budgets hold. Trims keep at
+ * least one pixel per side.
+ */
+private class MarginScan(bitmap: Bitmap) {
+    private val width = bitmap.width
+    private val height = bitmap.height
+    private val pixels = IntArray(width * height).also {
+        bitmap.getPixels(it, 0, width, 0, 0, width, height)
+    }
+    private val background = pixels[0]
+
+    fun frame(): MarginFrame {
+        if (width <= 2 || height <= 2) {
+            return MarginFrame(0, 0, width - 1, height - 1)
+        }
+        // Per-side trim cap (10%): light content must survive aggressive
+        // gutters. Local literal (not const) to stay out of the ABI dump.
+        val maxX = (width * 0.10f).toInt().coerceAtLeast(1)
+        val maxY = (height * 0.10f).toInt().coerceAtLeast(1)
+        val left = trimLeft(maxX)
+        val right = trimRight(left, maxX)
+        val top = trimTop(left, right, maxY)
+        val bottom = trimBottom(left, right, top, maxY)
+        return MarginFrame(left, top, right, bottom)
+    }
+
+    private fun trimLeft(max: Int): Int {
+        var edge = 0
+        while (edge < max && edge + 1 < width && isMarginColumn(edge)) edge++
+        return edge
+    }
+
+    private fun trimRight(left: Int, max: Int): Int {
+        var edge = width - 1
+        while (edge > left && width - 1 - edge < max && isMarginColumn(edge)) edge--
+        return edge
+    }
+
+    private fun trimTop(left: Int, right: Int, max: Int): Int {
+        var edge = 0
+        while (edge < max && edge + 1 < height && isMarginRow(edge, left, right)) edge++
+        return edge
+    }
+
+    private fun trimBottom(left: Int, right: Int, top: Int, max: Int): Int {
+        var edge = height - 1
+        while (edge > top && height - 1 - edge < max && isMarginRow(edge, left, right)) edge--
+        return edge
+    }
+
+    private fun isMarginColumn(x: Int): Boolean {
+        for (y in 0 until height) {
+            if (!nearColor(pixels[y * width + x])) return false
+        }
+        return true
+    }
+
+    private fun isMarginRow(y: Int, left: Int, right: Int): Boolean {
+        val row = y * width
+        for (x in left..right) {
+            if (!nearColor(pixels[row + x])) return false
+        }
+        return true
+    }
+
+    private fun nearColor(pixel: Int): Boolean {
+        val dr = (pixel shr 16 and 0xFF) - (background shr 16 and 0xFF)
+        val dg = (pixel shr 8 and 0xFF) - (background shr 8 and 0xFF)
+        val db = (pixel and 0xFF) - (background and 0xFF)
+        // Squared RGB tolerance (~14 levels per channel). Local literals (not
+        // consts) so they stay out of the module's public ABI dump.
+        return dr * dr + dg * dg + db * db <= 600
+    }
+}
+
+/** Surviving rect after margin trimming. Plain class: identity is positional. */
+private class MarginFrame(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+) {
+    val width: Int get() = right - left + 1
+    val height: Int get() = bottom - top + 1
+
+    /**
+     * Whole-image check via dimensions only: with edges pinned inside the
+     * image, unchanged dimensions imply untouched edges.
+     */
+    fun isWhole(imageWidth: Int, imageHeight: Int): Boolean =
+        width == imageWidth && height == imageHeight
 }
