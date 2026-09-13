@@ -7,6 +7,8 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
+import com.mori.core.testing.FakeComicsRepository
+import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -26,7 +28,7 @@ class SettingsViewModelTest {
 
     @Test
     fun emitsCurrentPreferences() = runTest {
-        val viewModel = SettingsViewModel(TestPreferencesDataSource(), TestComicsRepository())
+        val viewModel = SettingsViewModel(FakePreferencesDataSource(), FakeComicsRepository())
         viewModel.uiState.test {
             val state = awaitItem()
             assertTrue(state is SettingsUiState.Ready)
@@ -35,8 +37,8 @@ class SettingsViewModelTest {
 
     @Test
     fun themeActionsPersist() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
             awaitItem() // initial (Loading or first Ready)
             viewModel.onAction(SettingsAction.SetThemeMode(ThemeMode.DARK))
@@ -50,8 +52,8 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun readerActionsPersist() = runTest {        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+    fun readerActionsPersist() = runTest {        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
             awaitReady()
             viewModel.onAction(SettingsAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT))
@@ -69,8 +71,8 @@ class SettingsViewModelTest {
 
     @Test
     fun readerDisplayTogglesPersist() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
             awaitReady()
             viewModel.onAction(SettingsAction.ToggleCropMargins)
@@ -86,8 +88,8 @@ class SettingsViewModelTest {
 
     @Test
     fun motionActionPersists() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
             assertEquals(MotionStyle.EXPRESSIVE, awaitReady().motion)
             viewModel.onAction(SettingsAction.SetMotionStyle(MotionStyle.CALM))
@@ -98,8 +100,8 @@ class SettingsViewModelTest {
 
     @Test
     fun colorSchemeActionPersistsAndDisablesDynamic() = runTest {
-        val preferences = TestPreferencesDataSource()
-        val viewModel = SettingsViewModel(preferences, TestComicsRepository())
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
             val initial = awaitReady()
             assertEquals(true, initial.theme.dynamicColor)
@@ -114,10 +116,9 @@ class SettingsViewModelTest {
 
     @Test
     fun storageUsageLoadsOnStart() = runTest {
-        val repository = TestComicsRepository(
-            StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L),
-        )
-        val viewModel = SettingsViewModel(TestPreferencesDataSource(), repository)
+        val repository = FakeComicsRepository()
+        repository.usage = StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L)
+        val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
         viewModel.uiState.test {
             val settled = awaitReadyWhere { it.storage != null }
             assertEquals(3, settled.storage?.comicCount)
@@ -126,10 +127,9 @@ class SettingsViewModelTest {
 
     @Test
     fun clearThumbnailCacheRefreshesUsage() = runTest {
-        val repository = TestComicsRepository(
-            StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L),
-        )
-        val viewModel = SettingsViewModel(TestPreferencesDataSource(), repository)
+        val repository = FakeComicsRepository()
+        repository.usage = StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L)
+        val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
         viewModel.uiState.test {
             awaitReadyWhere { it.storage != null }
             viewModel.onAction(SettingsAction.ClearThumbnailCache)
