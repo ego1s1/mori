@@ -9,6 +9,8 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.testing.FakeComicsRepository
+import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -29,10 +31,10 @@ class ReaderViewModelTest {
     private fun viewModel(
         comicId: String = "c",
         pageIndex: Int = 0,
-        repository: TestComicsRepository = TestComicsRepository(
-            mapOf("c" to TestComicsRepository.comic("c")),
+        repository: FakeComicsRepository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c", series = "Series", number = "1")),
         ),
-        preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
+        preferences: FakePreferencesDataSource = FakePreferencesDataSource(),
     ) = ReaderViewModel(
         savedStateHandle = SavedStateHandle(mapOf("comicId" to comicId, "pageIndex" to pageIndex)),
         repository = repository,
@@ -56,7 +58,7 @@ class ReaderViewModelTest {
     fun missingComicBecomesError() = runTest {
         val viewModel = viewModel(
             comicId = "ghost",
-            repository = TestComicsRepository(emptyMap()),
+            repository = FakeComicsRepository(emptyMap()),
         )
         viewModel.uiState.test {
             val state = awaitItem()
@@ -67,8 +69,8 @@ class ReaderViewModelTest {
     @Test
     fun errorComicBecomesErrorState() = runTest {
         val viewModel = viewModel(
-            repository = TestComicsRepository(
-                mapOf("c" to TestComicsRepository.comic("c", error = ComicError.CORRUPT)),
+            repository = FakeComicsRepository(
+                mapOf("c" to FakeComicsRepository.comic("c", error = ComicError.CORRUPT)),
             ),
         )
         viewModel.uiState.test {
@@ -128,14 +130,14 @@ class ReaderViewModelTest {
 
     @Test
     fun navigationClampsAndSurvivesRepoEmissions() = runTest {
-        val repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c")))
+        val repository = FakeComicsRepository(mapOf("c" to FakeComicsRepository.comic("c")))
         val viewModel = viewModel(repository = repository)
         viewModel.uiState.test {
             awaitReady()
             viewModel.onAction(ReaderAction.NextPage)
             assertEquals(1, (awaitItem() as ReaderUiState.Ready).pageIndex)
             // External repo emission (e.g. our own progress save) must not reset position.
-            repository.send(TestComicsRepository.comic("c", lastPageIndex = 0))
+            repository.send(FakeComicsRepository.comic("c", lastPageIndex = 0))
             viewModel.onAction(ReaderAction.SeekPage(50))
             val clamped = awaitReadyWhere { it.pageIndex == 9 }
             assertEquals(9, clamped.pageIndex)
@@ -145,7 +147,7 @@ class ReaderViewModelTest {
 
     @Test
     fun pageChangedSavesProgressDebounced() = runTest {
-        val repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c")))
+        val repository = FakeComicsRepository(mapOf("c" to FakeComicsRepository.comic("c")))
         val viewModel = viewModel(repository = repository)
         viewModel.uiState.test {
             awaitReady()
@@ -159,7 +161,7 @@ class ReaderViewModelTest {
 
     @Test
     fun bookmarkTogglePersistsThroughRepository() = runTest {
-        val repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c")))
+        val repository = FakeComicsRepository(mapOf("c" to FakeComicsRepository.comic("c")))
         val viewModel = viewModel(repository = repository)
         viewModel.uiState.test {
             assertEquals(false, awaitReady().bookmarked)
@@ -170,7 +172,7 @@ class ReaderViewModelTest {
 
     @Test
     fun settingsChangesPersistToPreferences() = runTest {
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             val initial = awaitReady()
@@ -219,7 +221,7 @@ class ReaderViewModelTest {
 
     @Test
     fun pageCounterTogglePersistsToPreferences() = runTest {
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             assertEquals(true, awaitReady().showPageCounter)
@@ -231,7 +233,7 @@ class ReaderViewModelTest {
 
     @Test
     fun swipeToTurnDefaultsOnAndToggles() = runTest {
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             assertEquals(true, awaitReady().swipeToTurn)
@@ -243,7 +245,7 @@ class ReaderViewModelTest {
 
     @Test
     fun tapZonePreviewPersistsToPreferences() = runTest {
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             assertEquals(false, awaitReady().showTapZones)
@@ -303,12 +305,12 @@ class ReaderViewModelTest {
 
     @Test
     fun splitExpandsWidePagesIntoHalves() = runTest {
-        val repository = TestComicsRepository(
-            mapOf("c" to TestComicsRepository.comic("c")),
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
         ).apply { widePages = setOf(2) }
         val viewModel = viewModel(
             repository = repository,
-            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
         )
         viewModel.uiState.test {
             val settled = awaitReadyWhere { it.pageCount == 11 }
@@ -325,8 +327,8 @@ class ReaderViewModelTest {
 
     @Test
     fun toggleSplitKeepsArchivePage() = runTest {
-        val repository = TestComicsRepository(
-            mapOf("c" to TestComicsRepository.comic("c")),
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
         ).apply { widePages = setOf(2) }
         val viewModel = viewModel(pageIndex = 2, repository = repository)
         viewModel.uiState.test {
@@ -342,12 +344,12 @@ class ReaderViewModelTest {
 
     @Test
     fun invertSwapsSplitHalvesWithoutLeavingPage() = runTest {
-        val repository = TestComicsRepository(
-            mapOf("c" to TestComicsRepository.comic("c")),
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
         ).apply { widePages = setOf(2) }
         val viewModel = viewModel(
             repository = repository,
-            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
         )
         viewModel.uiState.test {
             awaitReadyWhere { it.pageCount == 11 }
@@ -364,12 +366,12 @@ class ReaderViewModelTest {
 
     @Test
     fun progressSavesArchiveIndexWhenSplit() = runTest {
-        val repository = TestComicsRepository(
-            mapOf("c" to TestComicsRepository.comic("c")),
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
         ).apply { widePages = setOf(2) }
         val viewModel = viewModel(
             repository = repository,
-            preferences = TestPreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
         )
         viewModel.uiState.test {
             awaitReadyWhere { it.pageCount == 11 }
@@ -388,8 +390,8 @@ class ReaderViewModelTest {
             savedStateHandle = SavedStateHandle(
                 mapOf("comicId" to "c", "pageIndex" to 0, "mori_saved_page_index" to 7),
             ),
-            repository = TestComicsRepository(mapOf("c" to TestComicsRepository.comic("c"))),
-            preferences = TestPreferencesDataSource(),
+            repository = FakeComicsRepository(mapOf("c" to FakeComicsRepository.comic("c"))),
+            preferences = FakePreferencesDataSource(),
         )
         viewModel.uiState.test {
             assertEquals(7, awaitReady().pageIndex)
@@ -427,7 +429,7 @@ class ReaderViewModelTest {
 
     @Test
     fun persistedPreferencesDriveInitialState() = runTest {
-        val preferences = TestPreferencesDataSource(
+        val preferences = FakePreferencesDataSource(
             ReaderPreferences(direction = ReadingDirection.RIGHT_TO_LEFT),
         )
         val viewModel = viewModel(preferences = preferences)
@@ -440,7 +442,7 @@ class ReaderViewModelTest {
     fun firstLaunchShowsOverviewThenFades() = runTest {
         // The overview beat itself is pinned: chrome stays up 2s, then fades.
         assertEquals(2_000L, ReaderViewModel.READER_OVERVIEW_MS)
-        val preferences = TestPreferencesDataSource(overviewSeen = false)
+        val preferences = FakePreferencesDataSource(overviewSeen = false)
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             assertEquals(true, awaitReady().chromeVisible)
@@ -453,7 +455,7 @@ class ReaderViewModelTest {
 
     @Test
     fun laterLaunchesKeepChromeUp() = runTest {
-        val preferences = TestPreferencesDataSource(overviewSeen = true)
+        val preferences = FakePreferencesDataSource(overviewSeen = true)
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             assertEquals(true, awaitReady().chromeVisible)
@@ -466,7 +468,7 @@ class ReaderViewModelTest {
 
     @Test
     fun overviewDoesNotHideChromeOverOpenSettings() = runTest {
-        val preferences = TestPreferencesDataSource(overviewSeen = false)
+        val preferences = FakePreferencesDataSource(overviewSeen = false)
         val viewModel = viewModel(preferences = preferences)
         viewModel.uiState.test {
             awaitReady()
