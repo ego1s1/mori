@@ -6,6 +6,8 @@ import app.cash.turbine.test
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.testing.FakeComicsRepository
+import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,17 +26,17 @@ class LibraryViewModelTest {
     val dispatcherRule = TestDispatcherRule()
 
     private fun viewModel(
-        repository: TestComicsRepository = TestComicsRepository(),
+        repository: FakeComicsRepository = FakeComicsRepository(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
-        preferences: TestPreferencesDataSource = TestPreferencesDataSource(),
+        preferences: FakePreferencesDataSource = FakePreferencesDataSource(),
     ) = LibraryViewModel(savedStateHandle, repository, preferences)
 
     @Test
     fun emitsComicsFromRepository() = runTest {
-        val repository = TestComicsRepository(
+        val repository = FakeComicsRepository(
             listOf(
-                TestComicsRepository.comic("b", title = "Banana"),
-                TestComicsRepository.comic("a", title = "Apple"),
+                FakeComicsRepository.comic("b", title = "Banana"),
+                FakeComicsRepository.comic("a", title = "Apple"),
             ),
         )
         viewModel(repository).uiState.test {
@@ -45,8 +47,8 @@ class LibraryViewModelTest {
 
     @Test
     fun chromeTogglesNeverRescanResume() = runTest {
-        val repository = TestComicsRepository(
-            listOf(TestComicsRepository.comic("a", title = "Apple")),
+        val repository = FakeComicsRepository(
+            listOf(FakeComicsRepository.comic("a", title = "Apple")),
         )
         val viewModel = viewModel(repository)
         viewModel.resumeTarget.test {
@@ -64,10 +66,10 @@ class LibraryViewModelTest {
 
     @Test
     fun searchNarrowsResults() = runTest {
-        val repository = TestComicsRepository(
+        val repository = FakeComicsRepository(
             listOf(
-                TestComicsRepository.comic("b", title = "Banana"),
-                TestComicsRepository.comic("a", title = "Apple"),
+                FakeComicsRepository.comic("b", title = "Banana"),
+                FakeComicsRepository.comic("a", title = "Apple"),
             ),
         )
         val viewModel = viewModel(repository)
@@ -100,9 +102,9 @@ class LibraryViewModelTest {
 
     @Test
     fun refreshFailureMessageIsOneShot() = runTest {
-        val repository = TestComicsRepository()
+        val repository = FakeComicsRepository()
         repository.linkReport = com.mori.core.model.ImportReport(2, 0, 2, emptyList())
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         preferences.setSourceTreeUri("content://tree/linked")
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
@@ -117,9 +119,9 @@ class LibraryViewModelTest {
 
     @Test
     fun refreshExceptionMessageIsOneShot() = runTest {
-        val repository = TestComicsRepository()
+        val repository = FakeComicsRepository()
         repository.failLinkWith = IllegalStateException("disk gone")
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         preferences.setSourceTreeUri("content://tree/linked")
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
@@ -132,7 +134,7 @@ class LibraryViewModelTest {
 
     @Test
     fun refreshWithoutTreeIsSilentNoOp() = runTest {
-        val repository = TestComicsRepository()
+        val repository = FakeComicsRepository()
         val viewModel = viewModel(repository)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
@@ -144,8 +146,8 @@ class LibraryViewModelTest {
 
     @Test
     fun refreshReindexesLinkedTree() = runTest {
-        val repository = TestComicsRepository()
-        val preferences = TestPreferencesDataSource()
+        val repository = FakeComicsRepository()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(
             repository = repository,
             preferences = preferences,
@@ -173,8 +175,8 @@ class LibraryViewModelTest {
 
     @Test
     fun folderSelectedLinksAndIndexes() = runTest {
-        val repository = TestComicsRepository()
-        val preferences = TestPreferencesDataSource()
+        val repository = FakeComicsRepository()
+        val preferences = FakePreferencesDataSource()
         val viewModel = viewModel(
             repository = repository,
             preferences = preferences,
@@ -200,8 +202,8 @@ class LibraryViewModelTest {
 
     @Test
     fun emptyShelfAutoIndexesLinkedTree() = runTest {
-        val repository = TestComicsRepository()
-        val preferences = TestPreferencesDataSource()
+        val repository = FakeComicsRepository()
+        val preferences = FakePreferencesDataSource()
         preferences.setSourceTreeUri("content://tree/linked")
         viewModel(
             repository = repository,
@@ -216,10 +218,10 @@ class LibraryViewModelTest {
 
     @Test
     fun populatedShelfRescansOnLaunch() = runTest {
-        val repository = TestComicsRepository(
-            listOf(TestComicsRepository.comic("a", title = "Apple")),
+        val repository = FakeComicsRepository(
+            listOf(FakeComicsRepository.comic("a", title = "Apple")),
         )
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         preferences.setSourceTreeUri("content://tree/linked")
         viewModel(
             repository = repository,
@@ -235,12 +237,12 @@ class LibraryViewModelTest {
 
     @Test
     fun continueShelfOrdersInProgressByRecency() = runTest {
-        val repository = TestComicsRepository(
+        val repository = FakeComicsRepository(
             listOf(
-                TestComicsRepository.comic("old", title = "Old", pageCount = 10, lastPageIndex = 3, updatedAt = 10L),
-                TestComicsRepository.comic("new", title = "New", pageCount = 10, lastPageIndex = 3, updatedAt = 30L),
-                TestComicsRepository.comic("fresh", title = "Fresh"),
-                TestComicsRepository.comic("done", title = "Done", pageCount = 10, lastPageIndex = 9, updatedAt = 50L),
+                FakeComicsRepository.comic("old", title = "Old", pageCount = 10, lastPageIndex = 3, updatedAt = 10L),
+                FakeComicsRepository.comic("new", title = "New", pageCount = 10, lastPageIndex = 3, updatedAt = 30L),
+                FakeComicsRepository.comic("fresh", title = "Fresh"),
+                FakeComicsRepository.comic("done", title = "Done", pageCount = 10, lastPageIndex = 9, updatedAt = 50L),
             ),
         )
         viewModel(repository).uiState.test {
@@ -257,8 +259,8 @@ class LibraryViewModelTest {
                 "mori_query_text" to "app",
             ),
         )
-        val preferences = TestPreferencesDataSource(
-            initialDisplay = LibraryDisplay(
+        val preferences = FakePreferencesDataSource(
+            initialLibrary = LibraryDisplay(
                 sortOrder = LibrarySortOrder.TITLE,
                 filter = LibraryFilter.FINISHED,
                 hideErrors = true,
@@ -276,7 +278,7 @@ class LibraryViewModelTest {
 
     @Test
     fun displayActionsPersistAcrossViewModels() = runTest {
-        val preferences = TestPreferencesDataSource()
+        val preferences = FakePreferencesDataSource()
         val first = viewModel(preferences = preferences)
         first.uiState.test {
             awaitSuccess()

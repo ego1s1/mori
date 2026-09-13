@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.testing.FakeComicsRepository
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,8 +39,8 @@ class LibraryScreenTest {
         linked: Boolean = true,
     ): LibraryUiState.Success {
         val comics = listOf(
-            TestComicsRepository.comic("a", title = "Apple"),
-            TestComicsRepository.comic("b", title = "Banana", lastPageIndex = 2, pageCount = 10),
+            FakeComicsRepository.comic("a", title = "Apple"),
+            FakeComicsRepository.comic("b", title = "Banana", lastPageIndex = 2, pageCount = 10),
         )
         return LibraryUiState.Success(
             comics = comics,
@@ -101,7 +102,7 @@ class LibraryScreenTest {
         setScreen(
             success().copy(
                 comics = listOf(
-                    TestComicsRepository.comic("a", title = "Apple").copy(bookmarked = true),
+                    FakeComicsRepository.comic("a", title = "Apple").copy(bookmarked = true),
                 ),
             ),
             actions = actions,
