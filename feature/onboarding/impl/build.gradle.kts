@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.mori.android.feature)
+    alias(libs.plugins.detekt)
 }
 
 // Unique group: leaf names ("api"/"impl") repeat across features, and Gradle

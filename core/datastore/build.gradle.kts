@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.mori.hilt)
+    alias(libs.plugins.detekt)
 }
 
 android {

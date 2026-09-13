@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.mori.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.mori.android.compose)
+    alias(libs.plugins.detekt)
 }
 
 android {

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.mori.android.library)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
 }
 
 // Unique group: leaf names ("api"/"impl") repeat across features, and Gradle

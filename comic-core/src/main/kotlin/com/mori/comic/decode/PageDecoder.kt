@@ -201,6 +201,13 @@ class PageDecoder {
         return rotated
     }
 
+    /**
+     * Stream-based region decoder. Deliberately kept on the deprecated
+     * `newInstance(InputStream, …)` overload: it is the only region path
+     * that works back to minSdk 24 (ImageDecoder needs 28+ and offers no
+     * region primitive). Failure here is non-fatal — [decodeRegionByCrop]
+     * covers it with full-decode+crop.
+     */
     @Suppress("DEPRECATION")
     private fun regionDecoder(bytes: ByteArray): android.graphics.BitmapRegionDecoder? {
         return runCatching {

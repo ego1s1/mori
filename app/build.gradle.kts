@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.mori.hilt)
     alias(libs.plugins.aboutlibraries)
+    alias(libs.plugins.detekt)
 }
 
 android {

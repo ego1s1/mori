@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.mori.android.library)
+    alias(libs.plugins.detekt)
 }
 
 android {
