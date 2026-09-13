@@ -2,7 +2,7 @@ package com.mori.comic.metadata
 
 import com.mori.comic.model.ComicMetadata
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,14 +46,14 @@ class ComicInfoParserTest {
 
     @Test
     fun emptyDocumentYieldsEmptyMetadata() {
-        assertTrue(parse("<ComicInfo></ComicInfo>").isEmpty)
-        assertTrue(parse("<ComicInfo/>").isEmpty)
+        assertEquals(ComicMetadata(), parse("<ComicInfo></ComicInfo>"))
+        assertEquals(ComicMetadata(), parse("<ComicInfo/>"))
     }
 
     @Test
     fun malformedXmlFallsBackToEmpty() {
-        assertTrue(parse("this is not xml at all").isEmpty)
-        assertTrue(parse("<ComicInfo><Title>unclosed</ComicInfo>").isEmpty)
+        assertEquals(ComicMetadata(), parse("this is not xml at all"))
+        assertEquals(ComicMetadata(), parse("<ComicInfo><Title>unclosed</ComicInfo>"))
     }
 
     @Test
@@ -88,7 +88,7 @@ class ComicInfoParserTest {
         val meta = parse("<ComicInfo><Custom>value</Custom><Title>T</Title></ComicInfo>")
         assertEquals("value", meta.raw["Custom"])
         assertEquals("T", meta.title)
-        assertFalse(meta.isEmpty)
+        assertNotEquals(ComicMetadata(), meta)
     }
 
     @Test

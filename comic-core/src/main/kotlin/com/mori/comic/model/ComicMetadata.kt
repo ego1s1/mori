@@ -20,19 +20,4 @@ data class ComicMetadata(
     val summary: String? = null,
     val manga: Boolean? = null,
     val raw: Map<String, String> = emptyMap(),
-) {
-    /** True when no field carries a non-null value and [raw] is empty. */
-    val isEmpty: Boolean
-        get() = title == null &&
-            series == null &&
-            number == null &&
-            volume == null &&
-            publisher == null &&
-            writer == null &&
-            year == null &&
-            pageCount == null &&
-            language == null &&
-            summary == null &&
-            manga == null &&
-            raw.isEmpty()
-}
+)

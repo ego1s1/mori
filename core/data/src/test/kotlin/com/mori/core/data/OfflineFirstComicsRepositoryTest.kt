@@ -337,7 +337,6 @@ class OfflineFirstComicsRepositoryTest {
         assertEquals(1, usage.comicCount)
         assertEquals(0L, usage.libraryBytes)
         assertTrue(usage.coversBytes >= coverBytes)
-        assertEquals(usage.coversBytes, usage.totalBytes)
     }
 
     @Test

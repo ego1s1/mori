@@ -4,7 +4,6 @@ package com.mori.core.model
 enum class ComicFormat {
     CBZ,
     CBR,
-    FOLDER,
     ;
 
     companion object {

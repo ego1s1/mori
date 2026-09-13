@@ -158,7 +158,6 @@ public final class com/mori/comic/model/ComicMetadata {
 	public final fun getWriter ()Ljava/lang/String;
 	public final fun getYear ()Ljava/lang/Integer;
 	public fun hashCode ()I
-	public final fun isEmpty ()Z
 	public fun toString ()Ljava/lang/String;
 }
 

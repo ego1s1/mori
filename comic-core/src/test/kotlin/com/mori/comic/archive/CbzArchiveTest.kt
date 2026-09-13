@@ -128,7 +128,7 @@ class CbzArchiveTest {
     @Test
     fun metadataEmptyWhenNoComicInfo() {
         openCbz(mapOf("1.jpg" to Archives.PNG_1X1)).use { archive ->
-            assertTrue(archive.metadata.isEmpty)
+            assertEquals(com.mori.comic.model.ComicMetadata(), archive.metadata)
         }
     }
 
