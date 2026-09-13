@@ -2,6 +2,7 @@ package com.mori.feature.detail.impl
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,8 +22,8 @@ class DetailViewModelTest {
 
     private fun viewModel(
         comicId: String = "a",
-        repository: TestComicsRepository = TestComicsRepository(
-            mapOf("a" to TestComicsRepository.comic("a")),
+        repository: FakeComicsRepository = FakeComicsRepository(
+            mapOf("a" to FakeComicsRepository.comic("a")),
         ),
     ) = DetailHost(
         DetailViewModel(
@@ -34,7 +35,7 @@ class DetailViewModelTest {
 
     private data class DetailHost(
         val viewModel: DetailViewModel,
-        val repository: TestComicsRepository,
+        val repository: FakeComicsRepository,
     )
 
     @Test
@@ -50,7 +51,7 @@ class DetailViewModelTest {
     fun missingComicBecomesMissing() = runTest {
         val (viewModel, _) = viewModel(
             comicId = "ghost",
-            repository = TestComicsRepository(emptyMap()),
+            repository = FakeComicsRepository(emptyMap()),
         )
         viewModel.uiState.test {
             assertTrue(awaitItem() is DetailUiState.Missing)
@@ -103,7 +104,7 @@ class DetailViewModelTest {
 
     @Test
     fun refreshFailureMessageIsOneShot() = runTest {
-        val repository = TestComicsRepository(mapOf("a" to TestComicsRepository.comic("a")))
+        val repository = FakeComicsRepository(mapOf("a" to FakeComicsRepository.comic("a")))
         repository.failRefreshWith = IllegalStateException("boom")
         val (viewModel, _) = viewModel(repository = repository)
         viewModel.messages.test {

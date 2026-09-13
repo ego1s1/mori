@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.ComicError
+import com.mori.core.testing.FakeComicsRepository
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -33,7 +34,7 @@ class DetailScreenTest {
         error: ComicError? = null,
         confirmRemove: Boolean = false,
     ) = DetailUiState.Ready(
-        comic = TestComicsRepository.comic(
+        comic = FakeComicsRepository.comic(
             "a",
             title = "Apple",
             pageCount = pageCount,
