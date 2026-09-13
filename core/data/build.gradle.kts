@@ -14,8 +14,6 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":comic-core"))
     implementation(libs.androidx.documentfile)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)

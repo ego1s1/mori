@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.mori.android.library)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.mori.hilt)
 }
 
 android {

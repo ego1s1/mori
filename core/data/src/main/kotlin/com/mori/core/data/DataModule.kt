@@ -1,15 +1,10 @@
 package com.mori.core.data
 
-import android.content.Context
-import androidx.room.Room
 import com.mori.comic.decode.PageDecoder
-import com.mori.core.database.ComicDao
-import com.mori.core.database.MoriDatabase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -36,15 +31,6 @@ internal abstract class DataModule {
 @Module
 @InstallIn(SingletonComponent::class)
 internal object DataProviders {
-
-    @Provides
-    @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): MoriDatabase =
-        Room.databaseBuilder(context, MoriDatabase::class.java, "mori.db").build()
-
-    @Provides
-    @Singleton
-    fun provideComicDao(database: MoriDatabase): ComicDao = database.comicDao()
 
     @Provides
     @Singleton
