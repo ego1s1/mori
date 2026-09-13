@@ -33,4 +33,15 @@ data class Comic(
     /** 0f..1f reading progress used by library progress indicators. */
     val progress: Float
         get() = if (pageCount <= 0) 0f else ((lastPageIndex + 1).toFloat() / pageCount).coerceIn(0f, 1f)
+
+    /** Pages remaining after the current one; the card badge reads this. */
+    val pagesLeft: Int
+        get() = (pageCount - lastPageIndex - 1).coerceAtLeast(0)
 }
+
+/** In-progress books by recency, backing the continue shelf. */
+fun List<Comic>.continueShelf(max: Int = 10): List<Comic> =
+    filter { it.isInProgress }.sortedByDescending { it.updatedAt }.take(max)
+
+/** Most recently touched comic; the resume button opens it at its saved page. */
+fun List<Comic>.resumeTarget(): Comic? = maxByOrNull { it.updatedAt }

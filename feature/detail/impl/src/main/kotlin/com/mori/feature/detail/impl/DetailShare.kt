@@ -3,6 +3,7 @@ package com.mori.feature.detail.impl
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.mori.core.model.ComicFormat
 
 /**
  * Shares a comic file through the Android Sharesheet. Link-only libraries
@@ -11,11 +12,7 @@ import android.net.Uri
  * testability; the route launches it.
  */
 internal fun shareMimeType(displayName: String): String =
-    when (displayName.substringAfterLast('.', "").lowercase()) {
-        "cbz", "zip" -> "application/zip"
-        "cbr", "rar" -> "application/vnd.rar"
-        else -> "*/*"
-    }
+    ComicFormat.fromFileName(displayName)?.mimeType() ?: "*/*"
 
 internal fun shareComicIntent(
     uri: String,

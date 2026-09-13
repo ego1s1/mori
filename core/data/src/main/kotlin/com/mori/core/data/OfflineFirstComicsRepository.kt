@@ -182,11 +182,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     override suspend fun widePageIndices(id: String): Set<Int> = withContext(Dispatchers.IO) {
         runCatching {
             val comic = dao.getById(id)?.toModel() ?: return@runCatching emptySet()
-            val file = if (isLinkedSourcePath(comic.sourcePath)) {
-                linkedCache.materialize(Uri.parse(comic.sourcePath), comic.sourceDisplayName)
-            } else {
-                File(comic.sourcePath)
-            }
+            val file = linkedCache.fileFor(comic)
             val inspected = backend.inspect(file)
             buildSet {
                 inspected.pages.forEachIndexed { index, page ->

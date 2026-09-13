@@ -16,11 +16,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +37,7 @@ import androidx.navigation.compose.composable
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -144,9 +143,9 @@ private fun LicensesRouteContent(
     }
     val current = selected
     if (current != null && data != null) {
-        ModalBottomSheet(
+        MoriSheet(
             onDismissRequest = { selected = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            skipPartiallyExpanded = true,
         ) {
             Column(
                 modifier = Modifier

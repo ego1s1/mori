@@ -16,4 +16,10 @@ enum class ComicFormat {
             }
         }
     }
+
+    /** MIME type for sharing the container file. */
+    fun mimeType(): String = when (this) {
+        CBZ -> "application/zip"
+        CBR -> "application/vnd.rar"
+    }
 }

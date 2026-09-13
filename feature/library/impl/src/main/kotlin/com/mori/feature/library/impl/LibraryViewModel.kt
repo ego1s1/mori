@@ -10,6 +10,8 @@ import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.continueShelf
+import com.mori.core.model.resumeTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -109,7 +111,7 @@ class LibraryViewModel @Inject constructor(
      * rescan the list or bounce the shell.
      */
     val resumeTarget: StateFlow<Comic?> = comics
-        .map { list -> list.maxByOrNull { it.updatedAt } }
+        .map { list -> list.resumeTarget() }
         .distinctUntilChanged { a, b ->
             a?.id == b?.id && a?.lastPageIndex == b?.lastPageIndex
         }
@@ -131,10 +133,7 @@ class LibraryViewModel @Inject constructor(
         filterOpen = chrome.filterOpen,
         searchOpen = chrome.searchOpen,
         linked = linked,
-        continueReading = comics
-            .filter { it.isInProgress }
-            .sortedByDescending { it.updatedAt }
-            .take(CONTINUE_SHELF_MAX),
+        continueReading = comics.continueShelf(),
     )
 
     init {
@@ -144,7 +143,7 @@ class LibraryViewModel @Inject constructor(
         // rescans stay on pull-to-refresh (plus the empty-state button).
         viewModelScope.launch {
             if (preferences.sourceTreeUri.first() == null) return@launch
-            refresh()
+            reindex()
         }
     }
 
@@ -160,8 +159,8 @@ class LibraryViewModel @Inject constructor(
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
             LibraryAction.ToggleSearch -> searchOpen.update { !it }
-            LibraryAction.Refresh -> refresh()
-            is LibraryAction.FolderSelected -> linkFolder(action.uri.toString())
+            LibraryAction.Refresh -> reindex()
+            is LibraryAction.FolderSelected -> reindex(linkUri = action.uri.toString())
         }
     }
 
@@ -178,34 +177,19 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    private fun refresh() {
+    /**
+     * Link-only rescan: re-indexes a tree in place — nothing is ever copied.
+     * With no tree linked there is nothing to rescan. [linkUri] persists a
+     * freshly picked folder first (post-onboarding rescue from the empty
+     * shelf); rescans reuse the persisted tree.
+     */
+    private fun reindex(linkUri: String? = null) {
         if (refreshing.value) return
         viewModelScope.launch {
             refreshing.value = true
             try {
-                // Link-only rescan: re-index the persisted tree in place.
-                // Nothing is ever copied; with no tree linked there is
-                // nothing to rescan.
+                if (linkUri != null) preferences.setSourceTreeUri(linkUri)
                 val treeUri = preferences.sourceTreeUri.first() ?: return@launch
-                val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
-                if (failed > 0) {
-                    messageChannel.send(LibraryMessage.IndexFailed(failed))
-                }
-            } catch (e: Exception) {
-                messageChannel.send(LibraryMessage.RescanFailed)
-            } finally {
-                refreshing.value = false
-            }
-        }
-    }
-
-    /** Post-onboarding rescue: link a folder straight from the empty shelf. */
-    private fun linkFolder(treeUri: String) {
-        if (refreshing.value) return
-        viewModelScope.launch {
-            refreshing.value = true
-            try {
-                preferences.setSourceTreeUri(treeUri)
                 val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
                 if (failed > 0) {
                     messageChannel.send(LibraryMessage.IndexFailed(failed))
@@ -221,8 +205,5 @@ class LibraryViewModel @Inject constructor(
     private companion object {
         const val KEY_QUERY_TEXT = "mori_query_text"
         const val SEARCH_DEBOUNCE_MS = 250L
-
-        /** Continue shelf length: glanceable, not a second library. */
-        const val CONTINUE_SHELF_MAX = 10
     }
 }

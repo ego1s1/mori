@@ -27,10 +27,6 @@
     <string name="detail_remove_cancel">Cancel</string>
     <string name="detail_snack_rescan_failed">Rescan failed. Try again.</string>
     <string name="detail_snack_remove_failed">Couldn\'t remove this comic. Try again.</string>
-    <string name="detail_error_corrupt">Can\'t open this file. It may be damaged — re-import it or remove it.</string>
-    <string name="detail_error_password">This archive needs a password, which Mori can\'t enter yet.</string>
-    <string name="detail_error_empty">This archive has no readable pages.</string>
-    <string name="detail_error_unsupported">This format isn\'t supported yet.</string>
     <string name="detail_page_chip">Open page %1$d</string>
     <string name="detail_page_chip_current">Open page %1$d, current</string>
 </resources>

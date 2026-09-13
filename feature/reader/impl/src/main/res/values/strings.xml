@@ -48,8 +48,4 @@
     <string name="reader_page_load_failed">Couldn\'t load this page</string>
     <string name="reader_page_retry">Retry</string>
     <string name="reader_error_removed">This comic was removed from your library.</string>
-    <string name="reader_error_corrupt">Can\'t open this file. It may be damaged — re-import it or remove it.</string>
-    <string name="reader_error_password">This archive needs a password, which Mori can\'t enter yet.</string>
-    <string name="reader_error_empty">This archive has no readable pages.</string>
-    <string name="reader_error_unsupported">This format isn\'t supported yet.</string>
 </resources>

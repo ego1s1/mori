@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -21,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriSettingSwitch
+import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -30,7 +29,6 @@ import com.mori.core.model.ReadingDirection
  * Sheet-body content is split out so unit tests can render it directly (the modal
  * presentation does not settle under Robolectric legacy graphics).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReaderSettingsSheet(
     direction: ReadingDirection,
@@ -46,7 +44,7 @@ internal fun ReaderSettingsSheet(
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
+    MoriSheet(
         onDismissRequest = { onAction(ReaderAction.CloseSettings) },
         modifier = modifier.testTag(ReaderTestTags.SettingsSheet),
     ) {

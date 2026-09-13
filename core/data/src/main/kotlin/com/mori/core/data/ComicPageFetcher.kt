@@ -1,6 +1,6 @@
 package com.mori.core.data
 
-import android.net.Uri
+import android.graphics.Rect
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DataSource
@@ -11,7 +11,6 @@ import coil3.request.Options
 import com.mori.comic.decode.PageDecoder
 import com.mori.comic.model.DecodeOptions
 import com.mori.core.model.PageHalf
-import java.io.File
 import javax.inject.Inject
 
 /**
@@ -49,11 +48,7 @@ class ComicPageFetcher internal constructor(
             ?: throw IllegalArgumentException("Unknown comic: ${data.comicId}")
         // Linked rows materialize through the bounded read cache; the user
         // original is never copied into the library.
-        val file = if (isLinkedSourcePath(comic.sourcePath)) {
-            linkedCache.materialize(Uri.parse(comic.sourcePath), comic.sourceDisplayName)
-        } else {
-            File(comic.sourcePath)
-        }
+        val file = linkedCache.fileFor(comic)
         val inspected = backend.inspect(file)
         val page = inspected.pages.getOrNull(data.pageIndex)
             ?: throw IndexOutOfBoundsException("Page ${data.pageIndex} of ${data.comicId}")
@@ -70,8 +65,8 @@ class ComicPageFetcher internal constructor(
             val dimensions = decoder.readDimensions(bytes, page.mediaType)
             val mid = dimensions.width / 2
             val region = when (data.half) {
-                PageHalf.LEFT -> android.graphics.Rect(0, 0, mid, dimensions.height)
-                PageHalf.RIGHT -> android.graphics.Rect(mid, 0, dimensions.width, dimensions.height)
+                PageHalf.LEFT -> Rect(0, 0, mid, dimensions.height)
+                PageHalf.RIGHT -> Rect(mid, 0, dimensions.width, dimensions.height)
                 PageHalf.FULL -> error("unreachable")
             }
             decoder.decodeRegion(bytes, page.mediaType, region, options)

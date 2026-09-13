@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriSettingSwitch
+import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
@@ -27,14 +26,13 @@ import com.mori.core.model.LibrarySortOrder
  * Tab-less Filter/Sort/Display sheet in the Mihon settings-dialog spirit, restyled as a
  * single scrolling M3 sheet: filter chips, sort chips, and display switches.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LibrarySortFilterSheet(
     query: LibraryQuery,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
+    MoriSheet(
         onDismissRequest = { onAction(LibraryAction.CloseFilter) },
         modifier = modifier.testTag(LibraryTestTags.SortFilterSheet),
     ) {

@@ -55,10 +55,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
-import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
@@ -428,15 +428,8 @@ private fun ErrorCard(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MoriErrorCard(
-        body = stringResource(
-            when (error) {
-                ComicError.CORRUPT -> R.string.detail_error_corrupt
-                ComicError.PASSWORD_REQUIRED -> R.string.detail_error_password
-                ComicError.EMPTY -> R.string.detail_error_empty
-                ComicError.UNSUPPORTED -> R.string.detail_error_unsupported
-            },
-        ),
+    MoriComicErrorCard(
+        error = error,
         primaryLabel = stringResource(R.string.detail_error_retry),
         onPrimary = onRetry,
         secondaryLabel = stringResource(R.string.detail_error_remove),

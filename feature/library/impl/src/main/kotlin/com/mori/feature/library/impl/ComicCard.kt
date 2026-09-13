@@ -107,9 +107,8 @@ internal fun ComicCard(
                 // style): glanceable remaining count next to the progress bar.
                 // Otherwise a bookmark badge marks favorites in the same slot.
                 if (comic.isInProgress) {
-                    val left = comic.pageCount - comic.lastPageIndex - 1
                     MoriScrimPill(
-                        text = stringResource(R.string.library_card_pages_left, left),
+                        text = stringResource(R.string.library_card_pages_left, comic.pagesLeft),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp),

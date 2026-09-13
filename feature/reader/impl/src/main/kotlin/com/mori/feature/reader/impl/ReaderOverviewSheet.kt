@@ -14,11 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import com.mori.core.designsystem.MoriLoadingIndicator
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +38,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.mori.core.data.ComicPageKey
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriSheet
 
 /**
  * Modal sheet hosting [ReaderOverviewSheetContent].
@@ -47,7 +46,6 @@ import com.mori.core.designsystem.MoriIcons
  * Sheet-body content is split out so unit tests can render it directly (the modal
  * presentation does not settle under Robolectric legacy graphics).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReaderOverviewSheet(
     comicId: String,
@@ -60,7 +58,7 @@ internal fun ReaderOverviewSheet(
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
+    MoriSheet(
         onDismissRequest = { onAction(ReaderAction.CloseOverview) },
         modifier = modifier.testTag(ReaderTestTags.OverviewSheet),
     ) {

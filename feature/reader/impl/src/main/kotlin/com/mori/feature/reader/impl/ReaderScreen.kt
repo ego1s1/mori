@@ -70,6 +70,7 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriScrimPill
@@ -139,21 +140,17 @@ internal fun ReaderScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(24.dp),
             ) {
-                MoriErrorCard(
-                    body = when (val cause = uiState.cause) {
-                        ReaderErrorCause.Removed -> stringResource(R.string.reader_error_removed)
-                        is ReaderErrorCause.Failed -> stringResource(
-                            when (cause.error) {
-                                ComicError.CORRUPT -> R.string.reader_error_corrupt
-                                ComicError.PASSWORD_REQUIRED -> R.string.reader_error_password
-                                ComicError.EMPTY -> R.string.reader_error_empty
-                                ComicError.UNSUPPORTED -> R.string.reader_error_unsupported
-                            },
-                        )
-                    },
-                    primaryLabel = null,
-                    onPrimary = null,
-                )
+                when (val cause = uiState.cause) {
+                    ReaderErrorCause.Removed -> MoriErrorCard(
+                        body = stringResource(R.string.reader_error_removed),
+                        primaryLabel = null,
+                        onPrimary = null,
+                    )
+
+                    is ReaderErrorCause.Failed -> MoriComicErrorCard(
+                        error = cause.error,
+                    )
+                }
             }
 
             is ReaderUiState.Ready -> ReaderContent(
