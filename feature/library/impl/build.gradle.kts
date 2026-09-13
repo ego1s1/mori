@@ -15,7 +15,6 @@ android {
 }
 
 dependencies {
-    api(project(":feature:library:api"))
     implementation(project(":core:model"))
     implementation(project(":core:data"))
     implementation(project(":core:datastore"))

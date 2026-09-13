@@ -15,5 +15,5 @@ android {
 dependencies {
     api(project(":core:model"))
     api(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.navigation.compose)
+    api(libs.androidx.navigation.compose)
 }

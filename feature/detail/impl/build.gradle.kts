@@ -15,7 +15,7 @@ android {
 }
 
 dependencies {
-    api(project(":feature:detail:api"))
+    implementation(project(":feature:detail:api"))
     implementation(project(":core:model"))
     implementation(project(":core:data"))
 }
