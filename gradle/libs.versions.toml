@@ -82,6 +82,9 @@ kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-pl
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 javapoet = { group = "com.squareup", name = "javapoet", version.ref = "javapoet" }
 
+[bundles]
+test-common = ["junit", "kotlinx-coroutines-test", "robolectric", "androidx-test-core"]
+
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }

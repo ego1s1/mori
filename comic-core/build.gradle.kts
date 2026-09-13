@@ -28,10 +28,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.junrar)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.bundles.test.common)
 }
 
 detekt {

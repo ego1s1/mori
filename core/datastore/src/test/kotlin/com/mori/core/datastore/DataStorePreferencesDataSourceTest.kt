@@ -7,6 +7,7 @@ import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.ThemeMode
+import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -17,6 +18,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class DataStorePreferencesDataSourceTest {
+
+    @get:Rule
+    val dispatcherRule = TestDispatcherRule()
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()

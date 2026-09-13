@@ -9,6 +9,7 @@ import com.mori.core.model.LibrarySortOrder
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
+import com.mori.core.testing.awaitWhere
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -306,13 +307,8 @@ class LibraryViewModelTest {
 }
 
 /** Consumes until the first Success (tolerating an optional leading Loading). */
-private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccess(): LibraryUiState.Success {
-    var next = awaitItem()
-    while (next is LibraryUiState.Loading) {
-        next = awaitItem()
-    }
-    return next as LibraryUiState.Success
-}
+private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccess(): LibraryUiState.Success =
+    awaitWhere { it is LibraryUiState.Success } as LibraryUiState.Success
 
 /**
  * Consumes until a Success satisfying [predicate]. Necessary because `combine` can emit
@@ -321,9 +317,5 @@ private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccess(): LibraryUiStat
  */
 private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccessWhere(
     predicate: (LibraryUiState.Success) -> Boolean,
-): LibraryUiState.Success {
-    while (true) {
-        val next = awaitItem()
-        if (next is LibraryUiState.Success && predicate(next)) return next
-    }
-}
+): LibraryUiState.Success =
+    awaitWhere { it is LibraryUiState.Success && predicate(it) } as LibraryUiState.Success

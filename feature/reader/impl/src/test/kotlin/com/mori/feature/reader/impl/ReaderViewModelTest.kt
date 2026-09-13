@@ -12,6 +12,7 @@ import com.mori.core.model.ReadingDirection
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
+import com.mori.core.testing.awaitWhere
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -489,22 +490,11 @@ class ReaderViewModelTest {
         assertEquals(y, this.y, 0.001f)
     }
 
-    private suspend fun ReceiveTurbine<ReaderUiState>.awaitReady(): ReaderUiState.Ready {        while (true) {
-            when (val next = awaitItem()) {
-                is ReaderUiState.Ready -> return next
-                else -> Unit
-            }
-        }
-    }
+    private suspend fun ReceiveTurbine<ReaderUiState>.awaitReady(): ReaderUiState.Ready =
+        awaitWhere { it is ReaderUiState.Ready } as ReaderUiState.Ready
 
     private suspend fun ReceiveTurbine<ReaderUiState>.awaitReadyWhere(
         predicate: (ReaderUiState.Ready) -> Boolean,
-    ): ReaderUiState.Ready {
-        while (true) {
-            when (val next = awaitItem()) {
-                is ReaderUiState.Ready -> if (predicate(next)) return next
-                else -> Unit
-            }
-        }
-    }
+    ): ReaderUiState.Ready =
+        awaitWhere { it is ReaderUiState.Ready && predicate(it) } as ReaderUiState.Ready
 }

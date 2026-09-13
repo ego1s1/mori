@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.TestDispatcherRule
+import com.mori.core.testing.awaitWhere
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -132,12 +133,10 @@ class DetailViewModelTest {
     }
 
     private suspend fun app.cash.turbine.ReceiveTurbine<DetailUiState>.awaitReady(): DetailUiState.Ready {
-        while (true) {
-            when (val next = awaitItem()) {
-                is DetailUiState.Ready -> return next
-                DetailUiState.Loading -> Unit // keep waiting
-                is DetailUiState.Missing -> throw AssertionError("Expected Ready, got Missing")
-            }
+        return when (val next = awaitWhere { it !is DetailUiState.Loading }) {
+            is DetailUiState.Ready -> next
+            is DetailUiState.Missing -> throw AssertionError("Expected Ready, got Missing")
+            DetailUiState.Loading -> error("unreachable")
         }
     }
 }

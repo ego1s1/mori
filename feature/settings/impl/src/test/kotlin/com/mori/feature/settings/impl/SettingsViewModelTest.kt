@@ -10,6 +10,7 @@ import com.mori.core.model.ThemeMode
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
+import com.mori.core.testing.awaitWhere
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -139,23 +140,11 @@ class SettingsViewModelTest {
         assertEquals(1, repository.clearCacheCalls)
     }
 
-    private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready {
-        while (true) {
-            when (val next = awaitItem()) {
-                is SettingsUiState.Ready -> return next
-                else -> Unit
-            }
-        }
-    }
+    private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready =
+        awaitWhere { it is SettingsUiState.Ready } as SettingsUiState.Ready
 
     private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReadyWhere(
         predicate: (SettingsUiState.Ready) -> Boolean,
-    ): SettingsUiState.Ready {
-        while (true) {
-            when (val next = awaitItem()) {
-                is SettingsUiState.Ready -> if (predicate(next)) return next
-                else -> Unit
-            }
-        }
-    }
+    ): SettingsUiState.Ready =
+        awaitWhere { it is SettingsUiState.Ready && predicate(it) } as SettingsUiState.Ready
 }

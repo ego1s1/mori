@@ -18,10 +18,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.bundles.test.common)
     testImplementation(libs.turbine)
+    testImplementation(libs.androidx.room.runtime)
+    testImplementation(libs.androidx.room.ktx)
     testImplementation(project(":core:testing"))
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.core)
 }
