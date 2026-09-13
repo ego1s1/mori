@@ -31,6 +31,7 @@ class MoriAndroidFeaturePlugin : Plugin<Project> {
                 add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())
                 add("testImplementation", libs.findLibrary("turbine").get())
                 add("testImplementation", project(":core:testing"))
+                add("testImplementation", project(":core:test-fakes"))
                 add("testImplementation", libs.findLibrary("robolectric").get())
                 add("testImplementation", libs.findLibrary("androidx-test-core").get())
                 add("testImplementation", libs.findLibrary("androidx-compose-ui-test-junit4").get())

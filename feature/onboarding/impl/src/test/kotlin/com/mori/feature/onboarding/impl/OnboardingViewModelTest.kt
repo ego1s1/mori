@@ -4,6 +4,7 @@ import android.net.Uri
 import app.cash.turbine.test
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.ThemeMode
+import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

@@ -2,19 +2,13 @@ package com.mori.app
 
 import androidx.test.core.app.ApplicationProvider
 import com.mori.core.data.ComicPageFetcher
-import com.mori.core.data.ComicsRepository
+import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.data.LinkedArchiveCache
 import com.mori.comic.model.ComicPage
 import com.mori.comic.model.MediaType
 import com.mori.comic.model.PageDimensions
 import com.mori.core.data.ComicBackendDataSource
 import com.mori.core.data.InspectedComic
-import com.mori.core.model.Comic
-import com.mori.core.model.LibraryQuery
-import com.mori.core.model.StorageUsage
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,7 +30,7 @@ class MoriImageLoaderFactoryTest {
         val factory = MoriImageLoaderFactory(
             context,
             ComicPageFetcher.Factory(
-                FakeRepository(),
+                FakeComicsRepository(),
                 FakeBackend(),
                 com.mori.comic.decode.PageDecoder(),
                 LinkedArchiveCache(context),
@@ -46,36 +40,6 @@ class MoriImageLoaderFactoryTest {
         val loader = factory.newImageLoader(context)
 
         assertNotNull(loader)
-    }
-
-    private class FakeRepository : ComicsRepository {
-        override fun observeLibrary(query: LibraryQuery): Flow<List<Comic>> =
-            MutableStateFlow(emptyList<Comic>()).asStateFlow()
-
-        override fun observeComic(id: String): Flow<Comic?> =
-            MutableStateFlow<Comic?>(null).asStateFlow()
-
-        override suspend fun getComic(id: String): Comic? = null
-
-            override suspend fun indexLinkedTree(
-            treeUri: android.net.Uri,
-            onProgress: (done: Int, total: Int) -> Unit,
-        ): com.mori.core.model.ImportReport =
-            com.mori.core.model.ImportReport(0, 0, 0, emptyList())
-
-        override suspend fun refreshComic(id: String): Comic? = null
-
-        override suspend fun removeComic(id: String) = Unit
-
-        override suspend fun saveProgress(id: String, pageIndex: Int) = Unit
-
-        override suspend fun widePageIndices(id: String): Set<Int> = emptySet()
-
-    override suspend fun toggleBookmark(id: String) = Unit
-
-        override suspend fun clearThumbnailCache() = Unit
-
-        override suspend fun storageUsage(): StorageUsage = StorageUsage(0, 0L, 0L)
     }
 
     private class FakeBackend : ComicBackendDataSource {
