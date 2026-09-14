@@ -46,6 +46,7 @@ class SettingsScreenTest {
                     motion = motion,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     onAction = actions::add,
+                    appVersion = "9.9.9",
                 )
             }
         }
@@ -94,6 +95,15 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Colors").assertExists()
         composeTestRule.onNodeWithText("Forest").assertExists()
         composeTestRule.onNodeWithText("Dynamic").assertExists()
+    }
+
+    @Test
+    fun aboutShowsAppVersion() {
+        setContent()
+
+        // "Mori" also names a color-scheme swatch; the version line is unique.
+        composeTestRule.onNodeWithText("Version 9.9.9").performScrollTo()
+        composeTestRule.onNodeWithText("Version 9.9.9").assertIsDisplayed()
     }
 
     @Test

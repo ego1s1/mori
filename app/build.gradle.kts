@@ -12,6 +12,12 @@ plugins {
 
 android {
     namespace = "com.mori.app"
+
+    // The About card reads the version name; AGP no longer generates
+    // BuildConfig for any module unless asked.
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId = "com.mori.reader"
         // Version precedence: explicit -PappVersionName/-PappVersionCode (used by the

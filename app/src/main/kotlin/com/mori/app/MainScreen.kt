@@ -4,10 +4,13 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -45,6 +49,7 @@ import com.mori.core.model.ResumeTarget
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 
 /** Top-level main viewport: Library and Settings as bottom-nav tabs. */
@@ -94,9 +99,20 @@ internal fun MainScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabStateHolder = rememberSaveableStateHolder()
 
+    // Predictive-back preview for Settings → Library: the content leans with
+    // the gesture (subtle pull + settle) instead of snapping on release.
+    // Commit swaps tabs (the directional transition carries the arrival);
+    // cancel glides back to rest.
+    val backPreview = remember { Animatable(0f) }
     PredictiveBackHandler(enabled = selectedTab == SETTINGS_TAB) { progress ->
-        progress.collect { }
-        selectedTab = LIBRARY_TAB
+        try {
+            progress.collect { backPreview.snapTo(it.progress) }
+            selectedTab = LIBRARY_TAB
+            backPreview.snapTo(0f)
+        } catch (e: CancellationException) {
+            backPreview.animateTo(0f)
+            throw e
+        }
     }
 
     var resume by remember { mutableStateOf<ResumeTarget?>(null) }
@@ -117,15 +133,31 @@ internal fun MainScreen(
             .padding(padding)) {
             // No entry animation here: the NavHost transition already carries
             // the arrival. A second scale-in stacked on top read as a glitch.
-            // Gated transitions hoisted out: transitionSpec is not a
-            // composable context, so the expressive-aware specs resolve here.
-            val tabEnter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH)
-            val tabExit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH)
+            // Tab travel is directional (specs are plain springs, so no
+            // composable-gated resolution is needed inside transitionSpec).
             AnimatedContent(
                 targetState = selectedTab,
-                transitionSpec = { tabEnter togetherWith tabExit },
+                transitionSpec = {
+                    // Directional nudge: entering content drifts in from the
+                    // travel side while the old one recedes — subtler than a
+                    // full slide, calmer than a hard crossfade.
+                    val forward = targetState > initialState
+                    val sign = if (forward) 1 else -1
+                    (fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                        slideInHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()) { sign * it / 5 }) togetherWith
+                        (fadeOut(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                            slideOutHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()) { -sign * it / 5 })
+                },
                 label = "mainTabs",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val pull = backPreview.value
+                        translationX = pull * size.width * 0.08f
+                        val settle = 1f - 0.02f * pull
+                        scaleX = settle
+                        scaleY = settle
+                    },
             ) { tab ->
                 tabStateHolder.SaveableStateProvider(tab) {
                     when (tab) {
@@ -134,7 +166,10 @@ internal fun MainScreen(
                             onComicLongClick = onComicLongClick,
                             onResumeAvailable = { resume = it },
                         )
-                        else -> SettingsTabContent(onLicensesClick = onLicensesClick)
+                        else -> SettingsTabContent(
+                            onLicensesClick = onLicensesClick,
+                            appVersion = BuildConfig.VERSION_NAME,
+                        )
                     }
                 }
             }

@@ -44,7 +44,7 @@
     <string name="settings_soon_sync_subtitle">Progress across devices</string>
     <string name="settings_card_about">About</string>
     <string name="settings_about_app">Mori</string>
-    <string name="settings_about_app_subtitle">Work in progress</string>
+    <string name="settings_about_version">Version %1$s</string>
     <string name="settings_about_licenses">Open-source licenses</string>
     <string name="settings_about_licenses_subtitle">Libraries this app is built with</string>
     <string name="settings_soon_badge">Soon</string>

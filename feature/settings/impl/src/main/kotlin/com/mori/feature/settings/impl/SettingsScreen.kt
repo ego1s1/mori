@@ -1,5 +1,6 @@
 package com.mori.feature.settings.impl
 
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,10 +54,12 @@ import com.mori.core.model.ThemePreferences
 fun SettingsTabContent(
     onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    appVersion: String,
 ) {
     SettingsRouteContent(
         onLicensesClick = onLicensesClick,
         modifier = modifier,
+        appVersion = appVersion,
         viewModel = hiltViewModel(),
     )
 }
@@ -65,6 +68,7 @@ fun SettingsTabContent(
 private fun SettingsRouteContent(
     onLicensesClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    appVersion: String,
     viewModel: SettingsViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -72,6 +76,7 @@ private fun SettingsRouteContent(
         uiState = uiState,
         onAction = viewModel::onAction,
         onLicensesClick = onLicensesClick,
+        appVersion = appVersion,
         modifier = modifier,
     )
 }
@@ -81,6 +86,7 @@ internal fun SettingsScreen(
     uiState: SettingsUiState,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
+    appVersion: String = "",
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -99,6 +105,7 @@ internal fun SettingsScreen(
                     storage = uiState.storage,
                     onAction = onAction,
                     onLicensesClick = onLicensesClick,
+                    appVersion = appVersion,
                 )
             }
         }
@@ -113,6 +120,7 @@ internal fun SettingsContent(
     storage: StorageUsage?,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
+    appVersion: String = "",
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -311,7 +319,7 @@ internal fun SettingsContent(
         MoriSectionCard(title = stringResource(R.string.settings_card_about)) {
             PlaceholderRow(
                 title = stringResource(R.string.settings_about_app),
-                subtitle = stringResource(R.string.settings_about_app_subtitle),
+                subtitle = stringResource(R.string.settings_about_version, appVersion),
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -432,6 +440,7 @@ private fun SettingsScreenPreview() {
                 storage = StorageUsage(comicCount = 12, libraryBytes = 480_000_000L, coversBytes = 6_000_000L),
             ),
             onAction = {},
+            appVersion = "1.1.0",
         )
     }
 }
