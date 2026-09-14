@@ -8,6 +8,8 @@ Mori is an Android comic reader built around a simple deal: point it at the fold
 
 Grab the latest APK from [GitHub Releases](https://github.com/ego1s1/mori/releases) and install it on your phone or tablet (Android 7.0+). No account, no ads, no tracking.
 
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](obtainium://app/%7B%22id%22%3A%20%22com.mori.reader%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fgithub.com%2Fego1s1%2Fmori%22%2C%20%22author%22%3A%20%22ego1s1%22%2C%20%22name%22%3A%20%22Mori%22%7D)
+
 ## Library
 
 - **Link, don't copy.** Pick a folder once during setup — Mori reads your CBZ and CBR files where they are and rescans the same folder later. Your originals stay put. Never moved, never duplicated. Removing a book from Mori unlinks it; your files survive.
