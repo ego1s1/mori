@@ -1,0 +1,12 @@
+Mori is an offline comic reader for CBZ and CBR archives.
+
+Your library links to the folders your files already live in — nothing is
+ever copied or moved, and rescans pick up new files in place.
+
+- Continue-reading shelf ordered by recency
+- Favorites, in-progress / unread / finished filters
+- Dual-page split for landscape spreads, with half-order invert
+- Crop-margins reading mode and page-overview grid
+- Fullscreen immersive reader with tap zones, pinch zoom, volume-key paging
+- Material 3 Expressive interface with dynamic color and AMOLED black
+- No accounts, no analytics, no network access: your files never leave the device

@@ -90,7 +90,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Assemble release APK (unsigned)
-        run: ./gradlew :app:assembleRelease -PappVersionName="${{ steps.resolve.outputs.tag }}" -PappVersionCode="${{ github.run_number }}"
+        run: ./gradlew :app:assembleRelease :app:bundleRelease -PappVersionName="${{ steps.resolve.outputs.tag }}" -PappVersionCode="${{ github.run_number }}"
 
       - name: Sign APK
         id: sign
@@ -124,11 +124,46 @@ jobs:
           rm -f release.keystore "$ALIGNED" .store.pass .key.pass
           echo "apk=$SIGNED" >> "$GITHUB_OUTPUT"
 
+      - name: Sign App Bundle
+        id: bundle
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Same secret hygiene as the APK step: masked, file-based passwords.
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          printf '%s' "$STORE_PASSWORD" > .store.pass
+          printf '%s' "$KEY_PASSWORD" > .key.pass
+          chmod 600 release.keystore .store.pass .key.pass
+          UNSIGNED_BUNDLE=$(ls app/build/outputs/bundle/release/app-release.aab)
+          SIGNED_BUNDLE="mori-${{ steps.resolve.outputs.tag }}.aab"
+          # AABs take JAR signing (apksigner is APK-only).
+          jarsigner \
+            -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore release.keystore \
+            -storepass:file .store.pass \
+            -keypass:file .key.pass \
+            -signedjar "$SIGNED_BUNDLE" "$UNSIGNED_BUNDLE" "$KEY_ALIAS"
+          jarsigner -verify "$SIGNED_BUNDLE"
+          rm -f release.keystore .store.pass .key.pass
+          echo "aab=$SIGNED_BUNDLE" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: ${{ steps.sign.outputs.apk }}
+          if-no-files-found: error
+
+      - name: Upload App Bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aab
+          path: ${{ steps.bundle.outputs.aab }}
           if-no-files-found: error
 
   release:
@@ -141,6 +176,12 @@ jobs:
           name: apk
           path: ./dist
 
+      - name: Download App Bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aab
+          path: ./dist
+
       - name: List staged files
         run: ls -la ./dist/
 
@@ -151,5 +192,7 @@ jobs:
           name: Mori ${{ needs.build.outputs.tag }}
           generate_release_notes: true
           prerelease: ${{ contains(needs.build.outputs.tag, 'beta') || contains(needs.build.outputs.tag, 'rc') || contains(needs.build.outputs.tag, 'alpha') }}
-          files: ./dist/*.apk
+          files: |
+            ./dist/*.apk
+            ./dist/*.aab
           fail_on_unmatched_files: true

@@ -1,0 +1,1 @@
+Offline comic reader with an in-place linked library.
