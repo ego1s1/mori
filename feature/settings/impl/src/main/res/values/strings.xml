@@ -38,8 +38,6 @@
     <string name="settings_clear_cache">Clear thumbnail cache</string>
     <string name="settings_clear_caption">Covers regenerate the next time each comic is indexed.</string>
     <string name="settings_card_soon">Coming soon</string>
-    <string name="settings_soon_cb">CB7 and CBT support</string>
-    <string name="settings_soon_cb_subtitle">More archive formats</string>
     <string name="settings_soon_sync">Cloud sync</string>
     <string name="settings_soon_sync_subtitle">Progress across devices</string>
     <string name="settings_card_about">About</string>

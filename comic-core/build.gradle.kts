@@ -27,6 +27,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.junrar)
+    implementation(libs.commons.compress)
+    implementation(libs.commons.codec)
+    implementation(libs.commons.io)
+    // 7-Zip LZMA/LZMA2 codecs live here, not in commons-compress: real-world
+    // .cb7 reads (and test writes) fail without it.
+    implementation(libs.xz)
 
     testImplementation(libs.bundles.test.common)
 }

@@ -4,6 +4,8 @@ package com.mori.core.model
 enum class ComicFormat {
     CBZ,
     CBR,
+    CB7,
+    CBT,
     ;
 
     companion object {
@@ -12,6 +14,8 @@ enum class ComicFormat {
             return when (extension) {
                 "cbz", "zip" -> CBZ
                 "cbr", "rar" -> CBR
+                "cb7", "7z" -> CB7
+                "cbt", "tar" -> CBT
                 else -> null
             }
         }
@@ -21,5 +25,7 @@ enum class ComicFormat {
     fun mimeType(): String = when (this) {
         CBZ -> "application/zip"
         CBR -> "application/vnd.rar"
+        CB7 -> "application/x-7z-compressed"
+        CBT -> "application/x-tar"
     }
 }

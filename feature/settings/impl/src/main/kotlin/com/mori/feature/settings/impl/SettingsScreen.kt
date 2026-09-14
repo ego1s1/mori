@@ -307,10 +307,6 @@ internal fun SettingsContent(
 
         MoriSectionCard(title = stringResource(R.string.settings_card_soon)) {
             PlaceholderRow(
-                title = stringResource(R.string.settings_soon_cb),
-                subtitle = stringResource(R.string.settings_soon_cb_subtitle),
-            )
-            PlaceholderRow(
                 title = stringResource(R.string.settings_soon_sync),
                 subtitle = stringResource(R.string.settings_soon_sync_subtitle),
             )

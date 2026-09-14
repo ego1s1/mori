@@ -81,5 +81,7 @@ internal class DocumentLinkedTreeLister @Inject constructor(
 internal fun isSupportedArchive(name: String): Boolean {
     val extension = name.substringAfterLast('.', "").lowercase()
     return extension == "cbz" || extension == "zip" ||
-        extension == "cbr" || extension == "rar"
+        extension == "cbr" || extension == "rar" ||
+        extension == "cb7" || extension == "7z" ||
+        extension == "cbt" || extension == "tar"
 }

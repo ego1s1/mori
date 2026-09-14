@@ -23,7 +23,7 @@ Grab the latest APK or App Bundle from [GitHub Releases](https://github.com/ego1
 
 ## Features
 
-* **Link, don't copy.** Pick a folder once — Mori reads CBZ and CBR files where they are, rescans on every launch, and never moves or duplicates your originals.
+* **Link, don't copy.** Pick a folder once — Mori reads CBZ, CBR, CB7, and CBT files where they are, rescans on every launch, and never moves or duplicates your originals.
 * **A shelf that fills itself.** Covers load in the background, pull-to-refresh prunes deleted books, and a continue-reading shelf tracks recency.
 * **Find anything fast.** Search across titles, series, and numbers, with sorts, in-progress/unread/finished filters, favorites, and per-book progress.
 * **A reader that gets out of the way.** Forgiving tap zones, anchored double-tap zoom, springy page swipes, volume-key paging, dual-page spreads, margin cropping, and a slider pill.
@@ -34,6 +34,7 @@ Grab the latest APK or App Bundle from [GitHub Releases](https://github.com/ego1
 
 * **CBZ** fully supported, including `ComicInfo.xml` metadata and natural page order.
 * **CBR** works for RAR4 archives; RAR5 doesn't work with open-source libraries yet.
+* **CB7** (7-Zip, including LZMA/LZMA2) and **CBT** (TAR) supported, with password prompts for encrypted 7-Zip files.
 * A corrupt, locked, or empty file gives you a retry/remove prompt instead of a crash. Password entry is not supported yet.
 
 ## Build it yourself

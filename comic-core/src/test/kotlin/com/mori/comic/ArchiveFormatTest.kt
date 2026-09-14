@@ -21,6 +21,34 @@ class ArchiveFormatTest {
     }
 
     @Test
+    fun detectsCb7ByExtension() {
+        val file = Archives.writeFile(Archives.newTempDir(), "comic.cb7", byteArrayOf(0, 1, 2, 3))
+        assertEquals(ArchiveFormat.CB7, ArchiveFormat.detect(file))
+    }
+
+    @Test
+    fun detectsCbtByExtension() {
+        val file = Archives.writeFile(Archives.newTempDir(), "comic.cbt", byteArrayOf(0, 1, 2, 3))
+        assertEquals(ArchiveFormat.CBT, ArchiveFormat.detect(file))
+    }
+
+    @Test
+    fun detectsSevenZipByMagicWhenExtensionUnknown() {
+        val sevenZip = byteArrayOf(0x37, 0x7A, 0xBC.toByte(), 0xAF.toByte(), 0x27, 0x1C, 0x00, 0x01)
+        val file = Archives.writeFile(Archives.newTempDir(), "comic.bin", sevenZip)
+        assertEquals(ArchiveFormat.CB7, ArchiveFormat.detect(file))
+    }
+
+    @Test
+    fun detectsTarByMagicWhenExtensionUnknown() {
+        // POSIX ustar magic sits at offset 257 of the first 512-byte block.
+        val block = ByteArray(512)
+        "ustar".toByteArray().copyInto(block, destinationOffset = 257)
+        val file = Archives.writeFile(Archives.newTempDir(), "comic.bin", block)
+        assertEquals(ArchiveFormat.CBT, ArchiveFormat.detect(file))
+    }
+
+    @Test
     fun detectsZipByMagicWhenExtensionUnknown() {
         val file = Archives.writeFile(Archives.newTempDir(), "comic.unknown", byteArrayOf(0x50, 0x4B, 0x03, 0x04))
         assertEquals(ArchiveFormat.CBZ, ArchiveFormat.detect(file))

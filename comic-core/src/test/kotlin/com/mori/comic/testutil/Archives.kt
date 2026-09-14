@@ -5,6 +5,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import org.apache.commons.compress.archivers.sevenz.SevenZOutputFile
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 
 /**
  * Test utilities for building CBZ archives, image files, and folder trees in a temporary
@@ -35,6 +38,46 @@ object Archives {
         val file = File(dir, fileName)
         file.parentFile?.mkdirs()
         file.writeBytes(content)
+        return file
+    }
+
+    /**
+     * Writes [entries] as a `.cb7` file under [dir]. Entries stage through
+     * temp files because 7-Zip entry creation is file-backed.
+     */
+    fun writeCb7(
+        dir: File,
+        name: String,
+        entries: Map<String, ByteArray>,
+        password: CharArray? = null,
+    ): File {
+        val file = File(dir, name)
+        val out = if (password != null) SevenZOutputFile(file, password) else SevenZOutputFile(file)
+        out.use {
+            entries.forEach { (entryName, content) ->
+                val staged = writeFile(File(dir, "stage-${entryName.hashCode()}"), "page.bin", content)
+                it.putArchiveEntry(it.createArchiveEntry(staged, entryName))
+                it.write(content)
+                it.closeArchiveEntry()
+            }
+            it.finish()
+        }
+        return file
+    }
+
+    /** Writes [entries] as a `.cbt` (TAR) file under [dir]. */
+    fun writeCbt(dir: File, name: String, entries: Map<String, ByteArray>): File {
+        val file = File(dir, name)
+        TarArchiveOutputStream(BufferedOutputStream(FileOutputStream(file))).use { tar ->
+            entries.forEach { (entryName, content) ->
+                val staged = writeFile(File(dir, "stage-${entryName.hashCode()}"), "page.bin", content)
+                val entry = TarArchiveEntry(staged, entryName)
+                tar.putArchiveEntry(entry)
+                tar.write(content)
+                tar.closeArchiveEntry()
+            }
+            tar.finish()
+        }
         return file
     }
 

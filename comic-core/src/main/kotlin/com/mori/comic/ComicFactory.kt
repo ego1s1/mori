@@ -2,6 +2,8 @@ package com.mori.comic
 
 import com.mori.comic.archive.CbzArchive
 import com.mori.comic.archive.CbrArchive
+import com.mori.comic.archive.Cb7Archive
+import com.mori.comic.archive.CbtArchive
 import com.mori.comic.archive.FolderArchive
 import java.io.File
 
@@ -19,7 +21,7 @@ object ComicFactory {
      * @throws UnsupportedFormatException when the source's format is not recognized.
      * @throws CorruptArchiveException when the source cannot be read.
      * @throws EmptyArchiveException when the source contains no pages.
-     * @throws PasswordRequiredException when a CBR is encrypted.
+     * @throws PasswordRequiredException when a CBR or CB7 is encrypted.
      */
     fun open(source: ComicSource): ComicArchive {
         return when (source) {
@@ -48,6 +50,8 @@ object ComicFactory {
         return when (ArchiveFormat.detect(file)) {
             ArchiveFormat.CBZ -> CbzArchive(file)
             ArchiveFormat.CBR -> CbrArchive(file)
+            ArchiveFormat.CB7 -> Cb7Archive(file)
+            ArchiveFormat.CBT -> CbtArchive(file)
         }
     }
 }

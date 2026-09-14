@@ -57,4 +57,32 @@ class ComicTest {
         val comic = comic(pageCount = 10, lastPageIndex = 50)
         assertEquals(1f, comic.progress, 0.0001f)
     }
+
+    @Test
+    fun pagesLeftCountsRemainingAfterCurrent() {
+        assertEquals(7, comic(pageCount = 10, lastPageIndex = 2).pagesLeft)
+        assertEquals(0, comic(pageCount = 10, lastPageIndex = 9).pagesLeft)
+        assertEquals(0, comic(pageCount = 10, lastPageIndex = 50).pagesLeft)
+    }
+
+    @Test
+    fun continueShelfOrdersInProgressByRecency() {
+        val shelf = listOf(
+            comic(pageCount = 10, lastPageIndex = 0).copy(id = "fresh"),
+            comic(pageCount = 10, lastPageIndex = 3).copy(id = "old", updatedAt = 10L),
+            comic(pageCount = 10, lastPageIndex = 3).copy(id = "new", updatedAt = 30L),
+            comic(pageCount = 10, lastPageIndex = 9).copy(id = "done"),
+        ).continueShelf()
+        assertEquals(listOf("new", "old"), shelf.map { it.id })
+    }
+
+    @Test
+    fun resumeTargetIsMostRecentlyTouched() {
+        val list = listOf(
+            comic(pageCount = 10, lastPageIndex = 1).copy(id = "a", updatedAt = 5L),
+            comic(pageCount = 10, lastPageIndex = 2).copy(id = "b", updatedAt = 9L),
+        )
+        assertEquals("b", list.resumeTarget()?.id)
+        assertEquals(null, emptyList<Comic>().resumeTarget())
+    }
 }

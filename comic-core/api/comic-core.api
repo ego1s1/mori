@@ -3,7 +3,9 @@ public final class com/mori/comic/ArchiveClosedException : com/mori/comic/ComicE
 }
 
 public final class com/mori/comic/ArchiveFormat : java/lang/Enum {
+	public static final field CB7 Lcom/mori/comic/ArchiveFormat;
 	public static final field CBR Lcom/mori/comic/ArchiveFormat;
+	public static final field CBT Lcom/mori/comic/ArchiveFormat;
 	public static final field CBZ Lcom/mori/comic/ArchiveFormat;
 	public static final field Companion Lcom/mori/comic/ArchiveFormat$Companion;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
