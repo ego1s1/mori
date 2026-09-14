@@ -35,6 +35,7 @@ fun sharedCoverModifier(comicId: String): Modifier {
         Modifier.sharedElement(
             rememberSharedContentState(comicCoverSharedKey(comicId)),
             animatedScope,
+            boundsTransform = MoriMotion.coverMorphTransform(),
         )
     }
 }

@@ -1,5 +1,7 @@
 package com.mori.core.designsystem
 
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
@@ -31,6 +33,7 @@ import com.mori.core.model.MotionStyle
  * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
  * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
  * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | readerEnter/Exit |
+ * | Cover launch morph               | 650ms    | EmphasizedDecelerate | coverMorphSpec   |
  *
  * Rules: no raw `tween`/`spring` durations outside this file — call sites use
  * these tokens or named constants beside the usage. Screen-level transitions
@@ -89,10 +92,22 @@ object MoriMotion {
     fun readerExitSpec(): FiniteAnimationSpec<Float> =
         tween(durationMillis = READER_FADE_OUT_MS, easing = EmphasizedAccelerate)
 
+    /**
+     * Cover launch morph: the shared element glides (and scales, where the
+     * card and hero aspects differ) a beat slower than screen chrome, so the
+     * book visibly travels instead of snapping.
+     */
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    fun coverMorphTransform(): BoundsTransform =
+        BoundsTransform { _, _ ->
+            tween(durationMillis = COVER_MORPH_MS, easing = EmphasizedDecelerate)
+        }
+
     private const val PAGE_TURN_MS = 180
     private const val DOUBLE_TAP_ZOOM_MS = 350
     private const val READER_FADE_IN_MS = 180
     private const val READER_FADE_OUT_MS = 150
+    private const val COVER_MORPH_MS = 650
 }
 
 /**
