@@ -49,6 +49,10 @@ jobs:
         run: |
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
+            case "$TAG" in
+              v*) ;;
+              *) echo "::error::Tag must look like v1.2.3, got '$TAG'."; exit 1 ;;
+            esac
           else
             TAG="${GITHUB_REF#refs/tags/}"
           fi
@@ -96,7 +100,15 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: |
           set -euo pipefail
+          # Mask secrets explicitly (defense in depth over auto-masking) and
+          # keep passwords out of the process table: apksigner reads them
+          # from files instead of CLI args.
+          echo "::add-mask::$KEY_PASSWORD"
+          echo "::add-mask::$STORE_PASSWORD"
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          printf '%s' "$STORE_PASSWORD" > .store.pass
+          printf '%s' "$KEY_PASSWORD" > .key.pass
+          chmod 600 release.keystore .store.pass .key.pass
           BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           UNSIGNED=$(ls app/build/outputs/apk/release/app-release-unsigned.apk)
           ALIGNED=app-release-aligned.apk
@@ -105,11 +117,11 @@ jobs:
           "$BUILD_TOOLS/apksigner" sign \
             --ks release.keystore \
             --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass "pass:$STORE_PASSWORD" \
-            --key-pass "pass:$KEY_PASSWORD" \
+            --ks-pass "file:.store.pass" \
+            --key-pass "file:.key.pass" \
             --out "$SIGNED" "$ALIGNED"
           "$BUILD_TOOLS/apksigner" verify --print-certs "$SIGNED" | head -5
-          rm -f release.keystore "$ALIGNED"
+          rm -f release.keystore "$ALIGNED" .store.pass .key.pass
           echo "apk=$SIGNED" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact

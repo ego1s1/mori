@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Scoped backup: the library index (Room) and reading progress (DataStore)
+  survive reinstalls; regenerable covers and transient caches do not.
+  SAF folder grants never survive a restore — rows pointing at dead URIs
+  degrade to error states with a relink path, never a crash.
+-->
+<full-backup-content>
+    <include domain="database" path="." />
+    <include domain="file" path="." />
+    <exclude domain="file" path="covers/" />
+</full-backup-content>

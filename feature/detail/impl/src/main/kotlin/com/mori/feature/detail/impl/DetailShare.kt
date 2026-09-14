@@ -19,12 +19,20 @@ internal fun shareComicIntent(
     displayName: String,
     mimeType: String,
     chooserTitle: String,
-): Intent = Intent(Intent.ACTION_SEND).apply {
-    type = mimeType
-    putExtra(Intent.EXTRA_STREAM, Uri.parse(uri))
-    putExtra(Intent.EXTRA_SUBJECT, displayName)
-    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-}.let { Intent.createChooser(it, chooserTitle) }
+): Intent {
+    // Single documents only: a folder (tree) grant would over-share the
+    // whole library directory with the target app. Rows only ever hold
+    // document URIs; this guards the invariant at the share boundary by
+    // matching SAF's literal "tree" path segment (not a substring, so
+    // authorities or file names containing "tree" still pass).
+    require("tree" !in Uri.parse(uri).pathSegments) { "Refusing to share a folder grant" }
+    return Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, Uri.parse(uri))
+        putExtra(Intent.EXTRA_SUBJECT, displayName)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }.let { Intent.createChooser(it, chooserTitle) }
+}
 
 internal fun launchShare(context: Context, message: DetailMessage.ShareFile, chooserTitle: String) {
     context.startActivity(

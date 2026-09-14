@@ -63,6 +63,18 @@ object ComicInfoParser {
             runCatching { setFeature("http://xml.org/sax/features/external-general-entities", false) }
             runCatching { setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
             runCatching { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+            // Second layer for parsers that ignore the doctype ban above:
+            // secure processing plus tight expansion budgets. ComicInfo files
+            // are kilobytes; anything bigger is hostile.
+            runCatching {
+                setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true)
+            }
+            runCatching {
+                setAttribute("http://www.oracle.com/xml/jaxp/properties/entityExpansionLimit", 1_000)
+            }
+            runCatching {
+                setAttribute("http://www.oracle.com/xml/jaxp/properties/totalEntitySizeLimit", 100_000)
+            }
         }
         .newDocumentBuilder()
 

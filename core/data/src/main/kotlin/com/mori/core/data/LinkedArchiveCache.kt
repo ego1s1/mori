@@ -55,7 +55,9 @@ class LinkedArchiveCache @Inject constructor(
     private fun cacheName(uri: Uri, displayName: String, size: Long, modified: Long): String {
         val safe = displayName.replace('/', '_').replace('\\', '_').trim()
             .ifBlank { "comic" }.take(80)
-        return "${uri.toString().hashCode().toUInt()}-$size-$modified-$safe"
+        // Truncated SHA-256, not String.hashCode: 32-bit hashes collide by
+        // accident at library scale, and a collision serves the wrong book.
+        return "${sha256Hex(uri.toString()).take(16)}-$size-$modified-$safe"
     }
 
     private fun evictToFit(incoming: Long) {

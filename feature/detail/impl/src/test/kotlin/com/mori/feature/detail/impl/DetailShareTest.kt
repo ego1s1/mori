@@ -39,4 +39,20 @@ class DetailShareTest {
         assertEquals(Uri.parse("content://tree/book.cbz"), inner?.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
         assertTrue((inner?.flags ?: 0) and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
     }
+
+    @Test
+    fun shareRefusesFolderGrants() {
+        var failed = false
+        try {
+            shareComicIntent(
+                uri = "content://com.android.externalstorage.documents/tree/primary%3ABooks",
+                displayName = "Books",
+                mimeType = "*/*",
+                chooserTitle = "Share comic",
+            )
+        } catch (e: IllegalArgumentException) {
+            failed = true
+        }
+        assertTrue(failed)
+    }
 }

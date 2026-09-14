@@ -45,6 +45,28 @@ class PageDecoderTest {
         assertEquals(1131, dims.height)
     }
 
+    @Test
+    fun gigapixelHeaderIsRefusedBeforeDecode() {
+        // Minimal JPEG claiming 65535x65535 (~4GP): pixel paths must fail as
+        // a normal decode error, never reach an allocation. (If bounds
+        // parsing itself rejects the stub, that also throws DecodeException.)
+        val header = byteArrayOf(
+            0xFF.toByte(), 0xD8.toByte(), // SOI
+            0xFF.toByte(), 0xC0.toByte(), // SOF0
+            0x00, 0x0B, // segment length
+            0x08, // precision
+            0xFF.toByte(), 0xFF.toByte(), // height
+            0xFF.toByte(), 0xFF.toByte(), // width
+            0x01, 0x01, 0x11, 0x00, // one component
+        )
+        assertThrows(DecodeException::class.java) {
+            decoder.decode(header, MediaType.JPEG, DecodeOptions())
+        }
+        assertThrows(DecodeException::class.java) {
+            decoder.decodeRegion(header, MediaType.JPEG, Rect(0, 0, 200, 200), DecodeOptions())
+        }
+    }
+
     // --- Full decode ---
 
     @Test

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Same policy as backup_rules.xml, in API 31+ data-extraction-rules form
+  (which supersedes fullBackupContent there). Applies to cloud backup and
+  device transfers alike: progress is worth keeping, caches are not, and
+  dead-on-restore SAF grants degrade gracefully.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <exclude domain="file" path="covers/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <exclude domain="file" path="covers/" />
+    </device-transfer>
+</data-extraction-rules>

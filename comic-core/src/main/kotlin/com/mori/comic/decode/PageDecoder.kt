@@ -25,19 +25,21 @@ class PageDecoder {
     fun readDimensions(bytes: ByteArray, mediaType: MediaType): PageDimensions {
         if (bytes.isEmpty()) throw DecodeException("Cannot decode dimensions of empty image data")
         val options = boundsOptions()
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-        val width = options.outWidth
-        val height = options.outHeight
-        if (width <= 0 || height <= 0) {
-            throw DecodeException("Unable to decode image dimensions for $mediaType")
-        }
+        // Framework decoders may throw (not just return empty bounds) on
+        // hostile input; the decoder contract is DecodeException either way.
+        val dimensions = runCatching {
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            PageDimensions(options.outWidth, options.outHeight, mediaType)
+        }.getOrNull()?.takeIf { it.width > 0 && it.height > 0 }
+            ?: throw DecodeException("Unable to decode image dimensions for $mediaType")
         val orientation = readOrientation(bytes, mediaType)
-        return PageDimensions(width, height, mediaType, orientation)
+        return dimensions.copy(orientation = orientation)
     }
 
     /** Decodes the full page into a [DecodedPage], honoring [options]. */
     fun decode(bytes: ByteArray, mediaType: MediaType, options: DecodeOptions): DecodedPage {
         val dimensions = readDimensions(bytes, mediaType)
+        checkPixelBudget(dimensions)
         val sampleSize = chooseSampleSize(dimensions, options)
         val bitmap = decodeSubsampled(bytes, sampleSize, options, dimensions)
         // Note: the source is deliberately not recycled — createBitmap may
@@ -81,6 +83,7 @@ class PageDecoder {
         options: DecodeOptions,
     ): DecodedPage {
         val dimensions = readDimensions(bytes, mediaType)
+        checkPixelBudget(dimensions)
         val clamped = region.intersectFull(dimensions)
         return if (decoderSupportsRegions(mediaType)) {
             decodeRegionFast(bytes, mediaType, clamped, options, dimensions)
@@ -151,7 +154,9 @@ class PageDecoder {
             inSampleSize = sampleSize
             inPreferredConfig = options.preferredConfig
         }
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+        val bitmap = runCatching {
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+        }.getOrNull()
             ?: throw DecodeException("Failed to decode image as ${dimensions.mediaType}")
         return if (options.respectExif && dimensions.orientation != 1) {
             rotateForOrientation(bitmap, dimensions.orientation)
@@ -172,6 +177,21 @@ class PageDecoder {
 
     private fun boundsOptions(): BitmapFactory.Options = BitmapFactory.Options().apply {
         inJustDecodeBounds = true
+    }
+
+    /**
+     * Refuses absurd dimensions before any pixel buffer is allocated. Bounded
+     * callers (reader, covers, thumbs) never approach the cap; only a crafted
+     * header claiming gigapixels trips it, turning a potential OOM into the
+     * normal decode-error path the UI already renders.
+     */
+    private fun checkPixelBudget(dimensions: PageDimensions) {
+        if (dimensions.width.toLong() * dimensions.height > MAX_PIXELS) {
+            throw DecodeException(
+                "Refusing ${dimensions.width}x${dimensions.height} image " +
+                    "(${dimensions.mediaType}): exceeds $MAX_PIXELS pixel budget",
+            )
+        }
     }
 
     private fun readOrientation(bytes: ByteArray, mediaType: MediaType): Int {
@@ -237,6 +257,16 @@ class PageDecoder {
         right.coerceIn(0, width),
         bottom.coerceIn(0, height),
     )
+
+    private companion object {
+        /**
+         * Source images beyond this pixel count are refused before decoding.
+         * Generous against real content (a 1600px-bounded reader page is
+         * ~2MP; phone photos top out near 50MP) while keeping a crafted
+         * gigapixel header from ever reaching a pixel allocation.
+         */
+        private const val MAX_PIXELS = 64L * 1024 * 1024
+    }
 }
 
 /**

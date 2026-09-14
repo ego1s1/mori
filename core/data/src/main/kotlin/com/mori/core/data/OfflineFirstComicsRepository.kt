@@ -27,7 +27,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import android.content.Context
 import android.net.Uri
-import java.security.MessageDigest
 
 @Singleton
 internal class OfflineFirstComicsRepository @Inject constructor(
@@ -315,12 +314,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     }
 
     /** Stable cover file key for a linked document URI. */
-    private fun linkedCoverId(documentUri: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(documentUri.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }.take(24)
-        return "$LINKED_COVER_PREFIX$hash"
-    }
+    private fun linkedCoverId(documentUri: String): String =
+        "$LINKED_COVER_PREFIX${sha256Hex(documentUri).take(24)}"
 
     companion object {
         /** Cover filename prefix for linked documents (see [linkedCoverId]). */

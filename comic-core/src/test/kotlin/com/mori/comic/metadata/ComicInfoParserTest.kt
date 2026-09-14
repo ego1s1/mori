@@ -103,6 +103,28 @@ class ComicInfoParserTest {
     }
 
     @Test
+    fun billionLaughsFallsBackWithoutExpanding() {
+        // Exponential entity expansion must die at the doctype ban or the
+        // expansion budget — never in an OOM. Six levels of 10x would be 10^6
+        // chars even unthrottled, so a vulnerable parser fails fast here.
+        val expansions = "<!ENTITY l0 \"x\">" + (0 until 6).joinToString("") { level ->
+            val refs = "&l$level;".repeat(10)
+            "<!ENTITY l${level + 1} \"$refs\">"
+        }
+        val xml = "<!DOCTYPE ComicInfo [$expansions]><ComicInfo><Title>&l6;</Title></ComicInfo>"
+        assertEquals(ComicMetadata(), parse(xml))
+    }
+
+    @Test
+    fun externalParameterEntitiesAreRejected() {
+        val xml = """
+            <!DOCTYPE ComicInfo [<!ENTITY % xxe SYSTEM "file:///etc/passwd"> %xxe;]>
+            <ComicInfo><Title>T</Title></ComicInfo>
+        """.trimIndent()
+        assertEquals(ComicMetadata(), parse(xml))
+    }
+
+    @Test
     fun whitespaceOnlyValuesAreIgnored() {
         val meta = parse("<ComicInfo><Title>   </Title><Series>S</Series></ComicInfo>")
         assertNull(meta.title)
