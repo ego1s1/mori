@@ -180,16 +180,20 @@ private fun ReaderContent(
     // restarts from the live offset, so rapid chains stay smooth and lossless.
     // Slider seeks and calm motion jump instantly (direct manipulation, no
     // animation to interrupt). Swipes keep their native gesture animation.
+    // The target is clamped to the live count and the effect keys on it: a
+    // split/direction rebuild mid-glide cancels the stale animation instead
+    // of retargeting out of range.
     val pagerExpressive = LocalExpressiveMotionEnabled.current
-    LaunchedEffect(state.pageIndex, state.turnAnimated, pagerExpressive) {
-        if (pagerState.currentPage != state.pageIndex) {
+    LaunchedEffect(state.pageIndex, state.pageCount, state.turnAnimated, pagerExpressive) {
+        val target = state.pageIndex.coerceIn(0, (state.pageCount - 1).coerceAtLeast(0))
+        if (pagerState.currentPage != target) {
             if (pagerExpressive && state.turnAnimated) {
                 pagerState.animateScrollToPage(
-                    state.pageIndex,
+                    target,
                     animationSpec = MoriMotion.pageTurnSpec(),
                 )
             } else {
-                pagerState.scrollToPage(state.pageIndex)
+                pagerState.scrollToPage(target)
             }
         }
     }

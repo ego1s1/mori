@@ -1,5 +1,8 @@
 package com.mori.feature.reader.impl
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -11,12 +14,14 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.PageFit
+import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -484,6 +489,44 @@ class ReaderScreenTest {
             }
         }
         composeTestRule.onNodeWithTag(ReaderTestTags.PageCounter).assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun shrinkingPageCountClampsPagerTarget() {
+        // A split/direction rebuild mid-glide must never retarget out of
+        // range: the stale index is clamped, no out-of-bounds glide runs,
+        // and the pager stays usable at the clamped page.
+        var pageCount by mutableStateOf(10)
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(pageIndex = 9).copy(
+                        pageCount = pageCount,
+                        viewerPages = List(pageCount) { ReaderViewerPage(it, PageHalf.FULL) },
+                        archivePageCount = pageCount,
+                        expandedForArchive = List(pageCount) { it },
+                    ),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+
+        pageCount = 2
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.none { it is ReaderAction.PageChanged })
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeRight()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.contains(ReaderAction.PageChanged(0)))
     }
 
     @Test
