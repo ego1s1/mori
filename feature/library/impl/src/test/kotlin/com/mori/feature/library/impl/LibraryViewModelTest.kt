@@ -177,6 +177,29 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun rescanProgressReachesUiState() = runTest {
+        // The index callback forwards done/total instead of being dropped,
+        // so large rescans show a determinate bar, not a stuck spinner.
+        val repository = FakeComicsRepository().apply {
+            linkReport = com.mori.core.model.ImportReport(2, 2, 0, emptyList())
+            indexGate = CompletableDeferred()
+        }
+        val preferences = FakePreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/old")
+        val viewModel = viewModel(repository, preferences = preferences)
+        viewModel.uiState.test {
+            awaitSuccess()
+            repository.indexGate?.complete(Unit)
+            val progress = awaitWhere {
+                (it as? LibraryUiState.Success)?.indexProgress != null
+            } as LibraryUiState.Success
+            assertEquals(2, progress.indexProgress?.done)
+            assertEquals(2, progress.indexProgress?.total)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun folderSelectedLinksAndIndexes() = runTest {
         val repository = FakeComicsRepository()
         val preferences = FakePreferencesDataSource()

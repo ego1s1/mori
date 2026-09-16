@@ -67,6 +67,8 @@ class LibraryViewModel @Inject constructor(
      */
     private val reindexMutex = Mutex()
     private val reindexPending = AtomicInteger(0)
+    /** Last reported index callback; cleared when no run is active. */
+    private val indexProgress = MutableStateFlow<IndexProgress?>(null)
     private val filterOpen = MutableStateFlow(false)
     private val searchOpen = MutableStateFlow(false)
 
@@ -107,8 +109,9 @@ class LibraryViewModel @Inject constructor(
         query,
         combine(refreshing, filterOpen, searchOpen, ::Chrome),
         preferences.sourceTreeUri,
-    ) { comics, query, chrome, treeUri ->
-        toUiState(comics, query, chrome, linked = treeUri != null)
+        indexProgress,
+    ) { comics, query, chrome, treeUri, progress ->
+        toUiState(comics, query, chrome, linked = treeUri != null, progress = progress)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -137,6 +140,7 @@ class LibraryViewModel @Inject constructor(
         query: LibraryQuery,
         chrome: Chrome,
         linked: Boolean,
+        progress: IndexProgress?,
     ): LibraryUiState = LibraryUiState.Success(
         comics = comics,
         query = query,
@@ -145,6 +149,7 @@ class LibraryViewModel @Inject constructor(
         searchOpen = chrome.searchOpen,
         linked = linked,
         continueReading = comics.continueShelf(),
+        indexProgress = progress,
     )
 
     init {
@@ -206,7 +211,9 @@ class LibraryViewModel @Inject constructor(
                 reindexMutex.withLock {
                     try {
                         val treeUri = preferences.sourceTreeUri.first() ?: return@withLock
-                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
+                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
+                            indexProgress.value = IndexProgress(done, total)
+                        }.failed
                         if (failed > 0) {
                             messageChannel.send(LibraryMessage.IndexFailed(failed))
                         }
@@ -215,7 +222,10 @@ class LibraryViewModel @Inject constructor(
                     }
                 }
             } finally {
-                if (reindexPending.decrementAndGet() == 0) refreshing.value = false
+                if (reindexPending.decrementAndGet() == 0) {
+                    refreshing.value = false
+                    indexProgress.value = null
+                }
             }
         }
     }

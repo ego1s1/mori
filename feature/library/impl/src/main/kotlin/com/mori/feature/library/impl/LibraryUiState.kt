@@ -17,10 +17,15 @@ sealed interface LibraryUiState {
         val linked: Boolean,
         /** In-progress books by recency, backing the continue shelf. */
         val continueReading: List<Comic>,
+        /** Determinate rescan progress (done/total); null when idle. */
+        val indexProgress: IndexProgress? = null,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
     }
 }
+
+/** Determinate rescan progress forwarded from the index callback. */
+data class IndexProgress(val done: Int, val total: Int)
 
 sealed interface LibraryAction {
     data class SearchTextChanged(val text: String) : LibraryAction

@@ -217,6 +217,7 @@ internal fun LibraryScreen(
                         comics = uiState.comics,
                         query = uiState.query,
                         refreshing = uiState.refreshing,
+                        indexProgress = uiState.indexProgress,
                         searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
                         shelf = uiState.continueReading,
@@ -242,6 +243,7 @@ private fun LibraryContent(
     comics: List<Comic>,
     query: LibraryQuery,
     refreshing: Boolean,
+    indexProgress: IndexProgress?,
     searchOpen: Boolean,
     linked: Boolean,
     shelf: List<Comic>,
@@ -253,6 +255,15 @@ private fun LibraryContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Determinate rescan bar: done/total from the index callback,
+            // so large rescans never read as a stuck spinner.
+            val progress = indexProgress
+            if (refreshing && progress != null && progress.total > 0) {
+                LinearProgressIndicator(
+                    progress = { (progress.done.coerceAtMost(progress.total)).toFloat() / progress.total },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             AnimatedVisibility(
                 visible = searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),

@@ -70,6 +70,7 @@ class FakeComicsRepository(
         linkedTrees += treeUri
         indexGate?.await()
         failLinkWith?.let { throw it }
+        onProgress(linkReport.succeeded.coerceAtMost(linkReport.total), linkReport.total)
         return linkReport
     }
 
