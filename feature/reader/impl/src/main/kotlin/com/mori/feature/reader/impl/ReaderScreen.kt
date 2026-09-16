@@ -553,15 +553,17 @@ private fun ReaderBottomChrome(
     }
     // In RTL the leading control advances; icons follow the visual direction.
     // Descriptions name the action, not the side, so TalkBack stays truthful.
+    val nextLabel = stringResource(R.string.reader_next_page)
+    val prevLabel = stringResource(R.string.reader_previous_page)
     val leadingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, "Next page")
+        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
     } else {
-        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, "Previous page")
+        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
     }
     val trailingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, "Previous page")
+        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
     } else {
-        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, "Next page")
+        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
     }
 
     Column(
