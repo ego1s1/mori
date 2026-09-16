@@ -115,13 +115,26 @@ internal class ReaderViewModel @Inject constructor(
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
 
-    /** Flushes the last progress write even as the scope dies. */
-    private val flushContext = SupervisorJob() + Dispatchers.IO + NonCancellable
+    /**
+     * Flushes the last progress write even as the scope dies. The job is
+     * cancelled once the flush lands (or immediately when nothing is
+     * pending) so closing the reader never leaks a scope per session.
+     */
+    private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + NonCancellable)
 
     override fun onCleared() {
         saveJob?.cancel()
-        pendingSave?.let { index ->
-            CoroutineScope(flushContext).launch { repository.saveProgress(args.comicId, index) }
+        val index = pendingSave
+        if (index != null) {
+            flushScope.launch {
+                try {
+                    repository.saveProgress(args.comicId, index)
+                } finally {
+                    flushScope.cancel()
+                }
+            }
+        } else {
+            flushScope.cancel()
         }
     }
 
