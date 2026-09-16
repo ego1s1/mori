@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import com.mori.comic.model.ComicPage
+import com.mori.comic.model.MediaType
 import com.mori.core.database.ComicDao
 import com.mori.core.database.MoriDatabase
 import com.mori.core.model.ComicError
@@ -385,6 +387,37 @@ class OfflineFirstComicsRepositoryTest {
         // Typed failure surfaces; null stays reserved for vanished docs.
         assertEquals(com.mori.core.model.ComicError.CORRUPT, failed?.error)
         assertEquals(ComicError.CORRUPT.name, dao.getById(id)?.error)
+    }
+
+    @Test
+    fun wideScanSkipsTornPagesInsteadOfVoidingScan() = runTest {
+        val landscape = resourceBytes("landscape.jpg")
+        registerDoc("wide.cbz", mapOf("001.jpg" to landscape, "002.jpg" to landscape))
+        val lister = FakeLinkedTreeLister(
+            LinkedTreeListResult(listOf(linkedDoc("wide.cbz", modified = 1000L)), walkFailed = false),
+        )
+        val healthy = FakeComicBackendDataSource(
+            defaultInspected = FakeComicBackendDataSource.inspected("001.jpg", "002.jpg"),
+            pageBytes = mapOf("001.jpg" to landscape, "002.jpg" to landscape),
+        )
+        repository(healthy, lister)
+            .indexLinkedTree(Uri.parse("content://com.example/tree")) { _, _ -> }
+        val id = docUri("wide.cbz").toString()
+
+        // 002.jpg tears mid-scan; 001.jpg is wide and must survive.
+        val flaky = object : ComicBackendDataSource by healthy {
+            override suspend fun readPageBytes(file: File, page: ComicPage): ByteArray {
+                if (page.name == "002.jpg") throw java.io.IOException("torn entry")
+                return healthy.readPageBytes(file, page)
+            }
+
+            override suspend fun readDimensions(
+                bytes: ByteArray,
+                mediaType: MediaType,
+            ): com.mori.comic.model.PageDimensions =
+                com.mori.comic.model.PageDimensions(200, 100, mediaType, 1)
+        }
+        assertEquals(setOf(0), repository(flaky, lister).widePageIndices(id))
     }
 }
 

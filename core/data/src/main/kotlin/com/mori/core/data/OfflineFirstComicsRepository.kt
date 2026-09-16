@@ -17,6 +17,7 @@ import com.mori.core.model.StorageUsage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
@@ -198,9 +199,17 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             val inspected = backend.inspect(file)
             buildSet {
                 inspected.pages.forEachIndexed { index, page ->
-                    val bytes = backend.readPageBytes(file, page)
-                    val dimensions = backend.readDimensions(bytes, page.mediaType)
-                    if (dimensions.width > dimensions.height) add(index)
+                    // Cooperative cancellation: leaving the reader mid-scan
+                    // stops the remaining bounds decodes instead of blocking
+                    // the split toggle behind a large book.
+                    ensureActive()
+                    // Per-page failures skip the page instead of voiding the
+                    // whole scan — one torn entry must not disable the split.
+                    runCatching {
+                        val bytes = backend.readPageBytes(file, page)
+                        val dimensions = backend.readDimensions(bytes, page.mediaType)
+                        if (dimensions.width > dimensions.height) add(index)
+                    }
                 }
             }
         }.getOrDefault(emptySet())
