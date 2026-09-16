@@ -54,11 +54,12 @@ internal fun ComicCard(
     compact: Boolean = false,
     cardTag: String = LibraryTestTags.cardFor(comic.id),
 ) {
-    // Wrappers remembered on the full comic: grid items skip recomposition
-    // when handlers and content are unchanged, and progress updates refresh
-    // the captured comic (keyed by equality, not id).
-    val click = remember(comic, onRead) { { onRead(comic) } }
-    val longClick = remember(comic, onDetails) { onDetails?.let { action -> { action(comic) } } }
+    // Wrappers keyed by click-relevant fields (identity, saved page, error)
+    // — not full-comic equality: cover/metadata re-emissions (updatedAt
+    // bumps on any write) no longer invalidate the handler, while a real
+    // progress save still refreshes the captured resume index.
+    val click = remember(comic.id, comic.lastPageIndex, comic.error, onRead) { { onRead(comic) } }
+    val longClick = remember(comic.id, onDetails) { onDetails?.let { action -> { action(comic) } } }
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
