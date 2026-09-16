@@ -1,5 +1,6 @@
 package com.mori.feature.detail.impl
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,8 +35,18 @@ internal fun shareComicIntent(
     }.let { Intent.createChooser(it, chooserTitle) }
 }
 
-internal fun launchShare(context: Context, message: DetailMessage.ShareFile, chooserTitle: String) {
-    context.startActivity(
-        shareComicIntent(message.uri, message.displayName, message.mimeType, chooserTitle),
-    )
+/**
+ * Launches the sharesheet; returns false when no app can handle the share
+ * (e.g. a device with no send handler) so the caller can explain instead
+ * of crashing.
+ */
+internal fun launchShare(context: Context, message: DetailMessage.ShareFile, chooserTitle: String): Boolean {
+    return try {
+        context.startActivity(
+            shareComicIntent(message.uri, message.displayName, message.mimeType, chooserTitle),
+        )
+        true
+    } catch (e: ActivityNotFoundException) {
+        false
+    }
 }

@@ -27,6 +27,7 @@
     <string name="detail_remove_cancel">Cancel</string>
     <string name="detail_snack_rescan_failed">Rescan failed. Try again.</string>
     <string name="detail_snack_remove_failed">Couldn\'t remove this comic. Try again.</string>
+    <string name="detail_snack_share_unavailable">No app available to share this file.</string>
     <string name="detail_page_chip">Open page %1$d</string>
     <string name="detail_page_chip_current">Open page %1$d, current</string>
 </resources>

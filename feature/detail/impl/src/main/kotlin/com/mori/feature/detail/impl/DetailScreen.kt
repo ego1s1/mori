@@ -89,8 +89,12 @@ internal fun DetailRoute(
                     snackbarHost.showSnackbar(context.getString(R.string.detail_snack_rescan_failed))
                 DetailMessage.RemoveFailed ->
                     snackbarHost.showSnackbar(context.getString(R.string.detail_snack_remove_failed))
-                is DetailMessage.ShareFile ->
-                    launchShare(context, message, context.getString(R.string.detail_share_title))
+                is DetailMessage.ShareFile -> {
+                    val launched = launchShare(context, message, context.getString(R.string.detail_share_title))
+                    if (!launched) {
+                        snackbarHost.showSnackbar(context.getString(R.string.detail_snack_share_unavailable))
+                    }
+                }
             }
         }
     }
