@@ -76,6 +76,9 @@ internal fun ZoomablePage(
     direction: ReadingDirection,
     cropMargins: Boolean,
     onZoneTap: (ReaderZone) -> Unit,
+    onZoomedChange: (Boolean) -> Unit,
+    onPinchingChange: (Boolean) -> Unit,
+    onEdgeTurn: (forward: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     half: PageHalf = PageHalf.FULL,
 ) {
@@ -84,6 +87,12 @@ internal fun ZoomablePage(
     // Split halves are distinct identities — each half zooms on its own.
     var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
     var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
+    // Zoom ownership reporting: the pager stands down while any page is
+    // zoomed or pinched so it can never steal the gesture. LaunchedEffect
+    // refires on fresh compositions, so recycled pages reset it for free.
+    LaunchedEffect(scale > 1f) {
+        onZoomedChange(scale > 1f)
+    }
     // Aspect of the DECODED art (post-crop, post-split). Fit is computed from
     // these bounds — Mihon's model, where SubsamplingScaleImageView derives
     // its minimum scale from the image, never from a fixed slot. Reset per
@@ -203,6 +212,9 @@ internal fun ZoomablePage(
                     getOffset = { offset },
                     setOffset = { offset = it },
                     onCancelMotion = { motionJob?.cancel() },
+                    direction = direction,
+                    onEdgeTurn = onEdgeTurn,
+                    onPinchingChange = onPinchingChange,
                 ),
         ) {
             Text(

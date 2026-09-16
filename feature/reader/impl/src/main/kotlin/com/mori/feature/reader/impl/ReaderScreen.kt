@@ -37,6 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -193,8 +194,16 @@ private fun ReaderContent(
         }
     }
     // Pager -> ViewModel (swipes).
+    // Zoom/pan ownership (Mihon edge-handoff): while a page reports zoomed
+    // or pinching, swipes belong to the page — the pager stands down so it
+    // can never steal the gesture, and turns happen only through the
+    // explicit edge dispatch below. A settled page is always at fit, so any
+    // pager move resets the gate.
+    var zoomed by remember { mutableStateOf(false) }
+    var pinching by remember { mutableStateOf(false) }
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
+            zoomed = false
             onAction(ReaderAction.PageChanged(page))
         }
     }
@@ -312,7 +321,7 @@ private fun ReaderContent(
                     state = pagerState,
                     reverseLayout = rtl,
                     beyondViewportPageCount = 1,
-                    userScrollEnabled = state.swipeToTurn,
+                    userScrollEnabled = state.swipeToTurn && !zoomed && !pinching,
                     modifier = Modifier
                         .width(pageWidth)
                         .fillMaxHeight()
@@ -348,6 +357,14 @@ private fun ReaderContent(
                         direction = state.direction,
                         cropMargins = state.cropMargins,
                         half = viewerPage.half,
+                        onZoomedChange = { zoomed = it },
+                        onPinchingChange = { pinching = it },
+                        onEdgeTurn = { forward ->
+                            // swipeToTurn off means swipes never turn — taps own that.
+                            if (state.swipeToTurn) {
+                                onAction(if (forward) ReaderAction.NextPage else ReaderAction.PrevPage)
+                            }
+                        },
                         modifier = Modifier.graphicsLayer {
                             val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
                             scaleX = scale

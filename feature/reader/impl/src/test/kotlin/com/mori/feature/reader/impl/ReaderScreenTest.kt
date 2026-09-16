@@ -622,6 +622,170 @@ class ReaderScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun swipeWhileZoomedPansInsteadOfTurning() {
+        // Double-tap zooms in; a following swipe must pan inside the zoomed
+        // page (Mihon edge-handoff), never turn the page outright. Zooming
+        // back out restores turning, proving gestures still flow.
+        composeTestRule.mainClock.autoAdvance = false
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, spot)
+                up(0)
+            }
+        }
+        // Let the double-tap zoom glide finish (frozen clock otherwise).
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.none { it is ReaderAction.PageChanged })
+
+        // Zoom back out: turning works again, so gestures were panning, not eaten.
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, spot)
+                up(0)
+            }
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.any { it is ReaderAction.PageChanged })
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun swipeAfterPinchZoomPansInsteadOfTurning() {
+        // Pinch out to zoom, then swipe: the pager must ignore the whole
+        // multi-touch gesture (only the initial settle may show), and the
+        // follow-up swipe pans instead of turning. Zooming back out restores
+        // turning, proving gestures still flow.
+        composeTestRule.mainClock.autoAdvance = false
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val left = Offset(bounds.width * 0.4f, bounds.height * 0.5f)
+        val right = Offset(bounds.width * 0.6f, bounds.height * 0.5f)
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            down(0, left)
+            down(1, right)
+            // Gradual spread like real fingers (not teleport jumps): six
+            // small steps with frame delays between them.
+            repeat(6) { step ->
+                val f = (step + 1) / 6f
+                moveTo(0, left + Offset(-80f * f, 0f), delayMillis = 16)
+                moveTo(1, right + Offset(80f * f, 0f), delayMillis = 16)
+            }
+            up(0)
+            up(1)
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        // The pinch itself must never turn: any pager move here stays on 12
+        // (the initial settle may or may not emit, hence `all` not equality).
+        assert(actions.filterIsInstance<ReaderAction.PageChanged>().all { it.index == 12 })
+        actions.clear()
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.none { it is ReaderAction.PageChanged })
+
+        // Zoom back out: turning works again, so gestures were panning, not eaten.
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, spot)
+                up(0)
+            }
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.any { it is ReaderAction.PageChanged })
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun swipePastPanEdgeTurnsExplicitly() {
+        // Zoomed, repeated full swipes: panning absorbs what fits, and pushing
+        // past the clamp dispatches an explicit NextPage — never a pager
+        // PageChanged, since the pager stands down while zoomed.
+        composeTestRule.mainClock.autoAdvance = false
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val edgeBounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val edgeSpot = Offset(edgeBounds.width * 0.9f, edgeBounds.height * 0.5f)
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, edgeSpot)
+                up(0)
+            }
+        }
+        // Let the double-tap zoom glide finish (frozen clock otherwise).
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+
+        repeat(4) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                swipeLeft()
+            }
+            composeTestRule.mainClock.advanceTimeBy(1_000)
+        }
+
+        assert(actions.contains(ReaderAction.NextPage))
+        assert(actions.none { it is ReaderAction.PageChanged })
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun composeIgnoresVolumeKeys() {
         // Volume paging is owned by the activity interceptor, not
         // composition: key presses here must never navigate, so a press can

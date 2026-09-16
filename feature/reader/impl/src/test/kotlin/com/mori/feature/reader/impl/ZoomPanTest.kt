@@ -1,7 +1,10 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.ui.geometry.Offset
+import com.mori.core.model.ReadingDirection
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ZoomPanTest {
@@ -29,5 +32,14 @@ class ZoomPanTest {
             Offset(200f, -300f),
             clampPan(Offset(500f, -900f), scale = 2f, widthPx = 400f, heightPx = 600f),
         )
+    }
+
+    @Test
+    fun edgeTurnFollowsReadingDirection() {
+        // Pushing past the left clamp advances in LTR, retreats in RTL.
+        assertTrue(edgeTurnForward(-100f, ReadingDirection.LEFT_TO_RIGHT))
+        assertFalse(edgeTurnForward(100f, ReadingDirection.LEFT_TO_RIGHT))
+        assertTrue(edgeTurnForward(100f, ReadingDirection.RIGHT_TO_LEFT))
+        assertFalse(edgeTurnForward(-100f, ReadingDirection.RIGHT_TO_LEFT))
     }
 }
