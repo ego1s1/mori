@@ -125,6 +125,25 @@ class DetailViewModelTest {
     }
 
     @Test
+    fun rapidRefreshTapsQueueInsteadOfDropping() = runTest {
+        // Park the first refresh inside a gate; the second tap must queue
+        // behind the mutex instead of being dropped.
+        val repository = FakeComicsRepository(mapOf("a" to FakeComicsRepository.comic("a")))
+        repository.refreshGate = kotlinx.coroutines.CompletableDeferred()
+        val (viewModel, _) = viewModel(repository = repository)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(DetailAction.Refresh)
+            viewModel.onAction(DetailAction.Refresh)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            repository.refreshGate?.complete(Unit)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(2, repository.refreshCalls)
+    }
+
+    @Test
     fun removeFlowAsksConfirmsAndMarksRemoved() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {

@@ -32,6 +32,8 @@ class FakeComicsRepository(
     val linkedTrees = mutableListOf<Uri>()
     var failLinkWith: Exception? = null
     var failRefreshWith: Exception? = null
+    /** Optional gate held inside refreshComic so tests can overlap refreshes. */
+    var refreshGate: CompletableDeferred<Unit>? = null
     var refreshCalls = 0
     val removedIds = mutableListOf<String>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
@@ -73,6 +75,7 @@ class FakeComicsRepository(
 
     override suspend fun refreshComic(id: String): Comic? {
         refreshCalls += 1
+        refreshGate?.await()
         failRefreshWith?.let { throw it }
         return getComic(id)
     }

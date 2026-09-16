@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,6 +29,11 @@ internal class DetailViewModel @Inject constructor(
     private val args: DetailRoute = savedStateHandle.toRoute<DetailRoute>()
 
     private val refreshing = MutableStateFlow(false)
+    /**
+     * Serializes refresh runs: rapid rescan taps queue instead of the
+     * second tap being dropped behind the running refresh.
+     */
+    private val refreshMutex = Mutex()
     private val confirmRemove = MutableStateFlow(false)
     private val removed = MutableStateFlow(false)
 
@@ -86,20 +93,21 @@ internal class DetailViewModel @Inject constructor(
     }
 
     private fun refresh() {
-        if (refreshing.value) return
         viewModelScope.launch {
-            refreshing.value = true
-            try {
-                // A null return means the document vanished: surface it like
-                // any other rescan failure instead of clearing the spinner
-                // silently.
-                if (repository.refreshComic(args.comicId) == null) {
+            refreshMutex.withLock {
+                refreshing.value = true
+                try {
+                    // A null return means the document vanished: surface it like
+                    // any other rescan failure instead of clearing the spinner
+                    // silently.
+                    if (repository.refreshComic(args.comicId) == null) {
+                        messageChannel.send(DetailMessage.RescanFailed)
+                    }
+                } catch (e: Exception) {
                     messageChannel.send(DetailMessage.RescanFailed)
+                } finally {
+                    refreshing.value = false
                 }
-            } catch (e: Exception) {
-                messageChannel.send(DetailMessage.RescanFailed)
-            } finally {
-                refreshing.value = false
             }
         }
     }
