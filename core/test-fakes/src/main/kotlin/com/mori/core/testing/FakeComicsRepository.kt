@@ -68,6 +68,9 @@ class FakeComicsRepository(
         onProgress: (done: Int, total: Int) -> Unit,
     ): ImportReport {
         linkedTrees += treeUri
+        // Opening tick before the gate: lets tests observe in-flight
+        // progress deterministically while the run is still parked.
+        onProgress(0, linkReport.total)
         indexGate?.await()
         failLinkWith?.let { throw it }
         onProgress(linkReport.succeeded.coerceAtMost(linkReport.total), linkReport.total)

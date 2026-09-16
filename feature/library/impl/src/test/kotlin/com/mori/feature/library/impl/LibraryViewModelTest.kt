@@ -51,7 +51,7 @@ class LibraryViewModelTest {
     @Test
     fun chromeTogglesNeverRescanResume() = runTest {
         val repository = FakeComicsRepository(
-            listOf(FakeComicsRepository.comic("a", title = "Apple")),
+            listOf(FakeComicsRepository.comic("a", title = "Apple", lastPageIndex = 3)),
         )
         val viewModel = viewModel(repository)
         viewModel.resumeTarget.test {
@@ -188,13 +188,15 @@ class LibraryViewModelTest {
         preferences.setSourceTreeUri("content://tree/old")
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.uiState.test {
-            awaitSuccess()
-            repository.indexGate?.complete(Unit)
-            val progress = awaitWhere {
-                (it as? LibraryUiState.Success)?.indexProgress != null
-            } as LibraryUiState.Success
-            assertEquals(2, progress.indexProgress?.done)
+            // The launch rescan parks inside the gate with its opening
+            // progress tick already forwarded — no race with the clear.
+            // (The first Success may already carry it, so await the
+            // predicate directly instead of awaiting twice.)
+            val progress = awaitSuccessWhere { it.indexProgress != null }
+            assertEquals(0, progress.indexProgress?.done)
             assertEquals(2, progress.indexProgress?.total)
+            repository.indexGate?.complete(Unit)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
         }
     }

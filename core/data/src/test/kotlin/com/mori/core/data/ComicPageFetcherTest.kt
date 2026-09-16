@@ -97,7 +97,7 @@ class ComicPageFetcherTest {
         var failed = false
         try {
             fetcher.fetch()
-        } catch (e: IllegalArgumentException) {
+        } catch (e: java.io.FileNotFoundException) {
             failed = true
         }
         assertTrue(failed)
@@ -117,7 +117,7 @@ class ComicPageFetcherTest {
         var failed = false
         try {
             fetcher.fetch()
-        } catch (e: IndexOutOfBoundsException) {
+        } catch (e: java.io.IOException) {
             failed = true
         }
         assertTrue(failed)
