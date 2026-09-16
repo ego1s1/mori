@@ -339,7 +339,7 @@ private fun DetailContent(
                 onRemove = { onAction(DetailAction.AskRemove) },
             )
         } else {
-            val startPage = if (comic.isInProgress) comic.lastPageIndex else 0
+            val startPage = comic.resumeIndex
             Button(
                 onClick = { onReadClick(comic.id, startPage) },
                 modifier = Modifier

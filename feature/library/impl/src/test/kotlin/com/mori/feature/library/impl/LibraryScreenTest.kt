@@ -122,6 +122,17 @@ class LibraryScreenTest {
     }
 
     @Test
+    fun finishedBookRestartsAtZero() {
+        var opened: Pair<String, Int>? = null
+        val done = FakeComicsRepository.comic("d", title = "Done", pageCount = 10, lastPageIndex = 9)
+        setScreen(success().copy(comics = listOf(done)), onReadClick = { id, index -> opened = id to index })
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("d")).performClick()
+
+        assert(opened == ("d" to 0))
+    }
+
+    @Test
     fun cardLongPressOpensDetails() {
         var detailed: String? = null
         setScreen(success(), onComicLongClick = { detailed = it })

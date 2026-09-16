@@ -161,7 +161,7 @@ private fun LibraryRouteContent(
     LaunchedEffect(resumeTarget) {
         val target = resumeTarget
         onResumeAvailable(
-            target?.let { ResumeTarget(it.id, it.lastPageIndex, it.title) },
+            target?.let { ResumeTarget(it.id, it.resumeIndex, it.title) },
         )
     }
     LibraryScreen(
@@ -379,7 +379,7 @@ private fun LibraryBody(
     val onCardRead: (Comic) -> Unit = remember(onReadClick) {
         { comic ->
             launchingId = comic.id
-            onReadClick(comic.id, comic.lastPageIndex)
+            onReadClick(comic.id, comic.resumeIndex)
         }
     }
     val onCardDetails: (Comic) -> Unit = remember(onComicLongClick) {
@@ -490,7 +490,7 @@ private fun ContinueShelf(
             items(comics, key = { it.id }) { comic ->
                 ComicCard(
                     comic = comic,
-                    onRead = { onReadClick(it.id, it.lastPageIndex) },
+                    onRead = { onReadClick(it.id, it.resumeIndex) },
                     onDetails = null,
                     compact = true,
                     cardTag = LibraryTestTags.shelfCardFor(comic.id),

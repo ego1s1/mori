@@ -105,6 +105,16 @@ class DetailScreenTest {
     }
 
     @Test
+    fun finishedBookStartsAtZero() {
+        var opened: Pair<String, Int>? = null
+        setScreen(ready(pageCount = 10, lastPageIndex = 9), onReadClick = { id, index -> opened = id to index })
+
+        composeTestRule.onNodeWithTag(DetailTestTags.ReadButton).performClick()
+
+        assert(opened == ("a" to 0))
+    }
+
+    @Test
     fun freshComicShowsStartReading() {
         setScreen(ready(lastPageIndex = 0))
 

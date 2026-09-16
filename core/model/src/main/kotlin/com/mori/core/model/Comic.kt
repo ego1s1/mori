@@ -37,6 +37,14 @@ data class Comic(
     /** Pages remaining after the current one; the card badge reads this. */
     val pagesLeft: Int
         get() = (pageCount - lastPageIndex - 1).coerceAtLeast(0)
+
+    /**
+     * Where opening this comic lands: the saved page while in progress,
+     * page 0 otherwise. Finished books restart instead of reopening on
+     * their last page, which reads as stuck.
+     */
+    val resumeIndex: Int
+        get() = if (isInProgress) lastPageIndex else 0
 }
 
 /** In-progress books by recency, backing the continue shelf. */

@@ -53,6 +53,13 @@ class ComicTest {
     }
 
     @Test
+    fun resumeIndexRestartsFinishedAndFreshBooks() {
+        assertEquals(4, comic(pageCount = 10, lastPageIndex = 4).resumeIndex)
+        assertEquals(0, comic(pageCount = 10, lastPageIndex = 0).resumeIndex)
+        assertEquals(0, comic(pageCount = 10, lastPageIndex = 9).resumeIndex)
+    }
+
+    @Test
     fun progressClampsOvershoot() {
         val comic = comic(pageCount = 10, lastPageIndex = 50)
         assertEquals(1f, comic.progress, 0.0001f)
