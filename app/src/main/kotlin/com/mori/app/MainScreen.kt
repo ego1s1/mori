@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -55,6 +56,26 @@ import kotlinx.serialization.Serializable
 /** Top-level main viewport: Library and Settings as bottom-nav tabs. */
 @Serializable
 object MainRoute
+
+/**
+ * Survives process death (unlike plain remember): the resume FAB stays
+ * until the library flow re-emits, instead of vanishing after a kill.
+ */
+private val ResumeTargetSaver: Saver<ResumeTarget?, Any> = Saver(
+    save = { target ->
+        target?.let { listOf(it.comicId, it.pageIndex, it.title) }
+    },
+    restore = { saved ->
+        @Suppress("UNCHECKED_CAST")
+        (saved as? List<Any>)?.let { parts ->
+            ResumeTarget(
+                comicId = parts[0] as String,
+                pageIndex = (parts[1] as Number).toInt(),
+                title = parts[2] as String,
+            )
+        }
+    },
+)
 
 fun NavController.navigateToMain() {
     navigate(MainRoute) {
@@ -115,7 +136,7 @@ internal fun MainScreen(
         }
     }
 
-    var resume by remember { mutableStateOf<ResumeTarget?>(null) }
+    var resume by rememberSaveable(stateSaver = ResumeTargetSaver) { mutableStateOf<ResumeTarget?>(null) }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
 
     // Single floating navigator for both tabs (destinations + resume); the
