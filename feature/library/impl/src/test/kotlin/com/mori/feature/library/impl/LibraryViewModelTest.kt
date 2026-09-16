@@ -10,6 +10,8 @@ import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
 import com.mori.core.testing.awaitWhere
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -201,6 +203,28 @@ class LibraryViewModelTest {
         )
     }
 
+    @Test
+    fun folderPickDuringRescanIsQueuedNotDropped() = runTest {
+        val repository = FakeComicsRepository()
+        repository.indexGate = CompletableDeferred()
+        val preferences = FakePreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/old")
+        // init holds the launch rescan inside the gate...
+        val viewModel = viewModel(repository, preferences = preferences)
+        // ...so this pick queues behind the lock instead of returning early.
+        viewModel.onAction(LibraryAction.FolderSelected(android.net.Uri.parse("content://tree/new")))
+        // The new URI persists immediately even while indexing runs.
+        assertEquals("content://tree/new", preferences.sourceTreeUri.first())
+        repository.indexGate?.complete(Unit)
+        dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            listOf(
+                android.net.Uri.parse("content://tree/old"),
+                android.net.Uri.parse("content://tree/new"),
+            ),
+            repository.linkedTrees,
+        )
+    }
     @Test
     fun emptyShelfAutoIndexesLinkedTree() = runTest {
         val repository = FakeComicsRepository()

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,6 +57,12 @@ class LibraryViewModel @Inject constructor(
         initialValue = LibraryQuery(),
     )
     private val refreshing = MutableStateFlow(false)
+    /**
+     * Serializes reindex runs: a folder pick is never dropped behind a
+     * running rescan, and rapid refresh taps queue instead of overlapping
+     * index writes.
+     */
+    private val reindexMutex = Mutex()
     private val filterOpen = MutableStateFlow(false)
     private val searchOpen = MutableStateFlow(false)
 
@@ -180,15 +187,15 @@ class LibraryViewModel @Inject constructor(
     /**
      * Link-only rescan: re-indexes a tree in place — nothing is ever copied.
      * With no tree linked there is nothing to rescan. [linkUri] persists a
-     * freshly picked folder first (post-onboarding rescue from the empty
-     * shelf); rescans reuse the persisted tree.
+     * freshly picked folder first, so a pick during a running rescan is
+     * never dropped: it queues behind the lock instead.
      */
     private fun reindex(linkUri: String? = null) {
-        if (refreshing.value) return
         viewModelScope.launch {
-            refreshing.value = true
+            if (linkUri != null) preferences.setSourceTreeUri(linkUri)
+            reindexMutex.lock()
             try {
-                if (linkUri != null) preferences.setSourceTreeUri(linkUri)
+                refreshing.value = true
                 val treeUri = preferences.sourceTreeUri.first() ?: return@launch
                 val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
                 if (failed > 0) {
@@ -198,6 +205,7 @@ class LibraryViewModel @Inject constructor(
                 messageChannel.send(LibraryMessage.RescanFailed)
             } finally {
                 refreshing.value = false
+                reindexMutex.unlock()
             }
         }
     }

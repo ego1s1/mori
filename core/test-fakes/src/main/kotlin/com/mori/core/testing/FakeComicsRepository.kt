@@ -9,6 +9,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,8 @@ class FakeComicsRepository(
     val removedIds = mutableListOf<String>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
     var widePages: Set<Int> = emptySet()
+    /** Optional gate held inside indexLinkedTree so tests can overlap runs. */
+    var indexGate: CompletableDeferred<Unit>? = null
     var usage = StorageUsage(0, 0L, 0L)
     var clearCacheCalls = 0
 
@@ -59,6 +62,7 @@ class FakeComicsRepository(
         onProgress: (done: Int, total: Int) -> Unit,
     ): ImportReport {
         linkedTrees += treeUri
+        indexGate?.await()
         failLinkWith?.let { throw it }
         return linkReport
     }
