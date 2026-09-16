@@ -51,5 +51,11 @@ data class Comic(
 fun List<Comic>.continueShelf(max: Int = 10): List<Comic> =
     filter { it.isInProgress }.sortedByDescending { it.updatedAt }.take(max)
 
-/** Most recently touched comic; the resume button opens it at its saved page. */
-fun List<Comic>.resumeTarget(): Comic? = maxByOrNull { it.updatedAt }
+/**
+ * Most recently touched readable comic; the resume button opens it at its
+ * saved page. Errored rows (tap goes to details, never the reader) and
+ * untouched books (nothing to resume) never win, so the FAB can't deep-link
+ * into a book the reader would immediately reject.
+ */
+fun List<Comic>.resumeTarget(): Comic? = filter { it.error == null && it.lastPageIndex > 0 }
+    .maxByOrNull { it.updatedAt }

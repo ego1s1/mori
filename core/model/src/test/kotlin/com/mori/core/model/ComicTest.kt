@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ComicTest {
 
-    private fun comic(pageCount: Int, lastPageIndex: Int) = Comic(
+    private fun comic(pageCount: Int, lastPageIndex: Int, error: ComicError? = null) = Comic(
         id = "c",
         title = "Title",
         series = null,
@@ -18,6 +18,7 @@ class ComicTest {
         sourceDisplayName = "c.cbz",
         createdAt = 1L,
         updatedAt = 1L,
+        error = error,
     )
 
     @Test
@@ -91,5 +92,17 @@ class ComicTest {
         )
         assertEquals("b", list.resumeTarget()?.id)
         assertEquals(null, emptyList<Comic>().resumeTarget())
+    }
+
+    @Test
+    fun resumeTargetSkipsErroredAndUntouched() {
+        val list = listOf(
+            comic(pageCount = 10, lastPageIndex = 0).copy(id = "fresh", updatedAt = 100L),
+            comic(pageCount = 10, lastPageIndex = 4, error = ComicError.CORRUPT).copy(id = "broken", updatedAt = 90L),
+            comic(pageCount = 10, lastPageIndex = 2).copy(id = "readable", updatedAt = 10L),
+        )
+        // Highest updatedAt overall is untouched/errored; the FAB must land
+        // on the readable in-progress book instead.
+        assertEquals("readable", list.resumeTarget()?.id)
     }
 }
