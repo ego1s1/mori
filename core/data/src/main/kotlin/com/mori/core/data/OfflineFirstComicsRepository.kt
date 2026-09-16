@@ -15,6 +15,7 @@ import com.mori.core.model.ImportStatus
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -132,7 +133,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         // user original is never touched; progress/bookmarks carry over via
         // `existing`. A vanished document unlinks the row.
         val doc = treeLister.resolve(Uri.parse(row.sourcePath)) ?: return@withContext null
-        return@withContext runCatching {
+        return@withContext try {
             val temp = linkedCache.materialize(doc.uri, doc.name)
             val updated = indexFile(
                 temp,
@@ -147,7 +148,19 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             )
             dao.upsert(updated)
             updated.toModel()
-        }.getOrNull()
+        } catch (e: Exception) {
+            // Typed failure, not silence: stamp the row with the mapped
+            // error (progress/bookmarks preserved) so detail/reader show
+            // the specific Failed(error) card. Null stays reserved for a
+            // vanished document (no row / unresolvable URI above).
+            if (e is CancellationException) throw e
+            val errored = row.copy(
+                error = mapError(e).name,
+                updatedAt = System.currentTimeMillis(),
+            )
+            dao.upsert(errored)
+            errored.toModel()
+        }
     }
 
     override suspend fun removeComic(id: String) = withContext(Dispatchers.IO) {

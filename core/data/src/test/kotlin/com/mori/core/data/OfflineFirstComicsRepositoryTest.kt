@@ -362,6 +362,30 @@ class OfflineFirstComicsRepositoryTest {
 
         assertEquals(2000L, updated?.let { dao.getById(it.id)?.sourceModified })
     }
+
+    @Test
+    fun refreshComicStampsTypedErrorInsteadOfNull() = runTest {
+        registerDoc("alpha.cbz")
+        val lister = FakeLinkedTreeLister(
+            LinkedTreeListResult(listOf(linkedDoc("alpha.cbz", modified = 1000L)), walkFailed = false),
+        )
+        val backend = backendFor()
+        val repository = repository(backend, lister)
+        repository.indexLinkedTree(Uri.parse("content://com.example/tree")) { _, _ -> }
+        val id = docUri("alpha.cbz").toString()
+
+        // Corrupt on re-read with a bumped modified (skips the fast path).
+        backend.failWith = com.mori.comic.CorruptArchiveException("torn")
+        lister.result = LinkedTreeListResult(
+            listOf(linkedDoc("alpha.cbz", modified = 2000L)),
+            walkFailed = false,
+        )
+        val failed = repository.refreshComic(id)
+
+        // Typed failure surfaces; null stays reserved for vanished docs.
+        assertEquals(com.mori.core.model.ComicError.CORRUPT, failed?.error)
+        assertEquals(ComicError.CORRUPT.name, dao.getById(id)?.error)
+    }
 }
 
 /** Scripted tree lister: no SAF provider needed. */
