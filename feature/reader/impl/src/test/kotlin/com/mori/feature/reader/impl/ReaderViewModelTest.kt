@@ -484,6 +484,29 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun setDirectionKeepsArchivePageAfterPrefsLand() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            viewModel.onAction(ReaderAction.SeekPage(2))
+            awaitReadyWhere { it.pageIndex == 2 }
+            viewModel.onAction(ReaderAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT))
+            // The anchor follows the prefs write and stays on archive 2.
+            val flipped = awaitReadyWhere {
+                it.direction == ReadingDirection.RIGHT_TO_LEFT && it.currentArchiveIndex == 2
+            }
+            assertEquals(2, flipped.currentArchiveIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(

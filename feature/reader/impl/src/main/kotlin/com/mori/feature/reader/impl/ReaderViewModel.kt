@@ -282,13 +282,22 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.CloseOverview -> chrome.value = chrome.value.copy(overviewOpen = false)
             is ReaderAction.SetDirection -> {
                 // Halves read in direction order, so a flip reorders split
-                // positions — stay on the same archive page, synchronously
-                // (the new direction is known, no prefs read needed).
+                // positions — stay on the same archive page. Anchor AFTER the
+                // prefs land (same pattern as ToggleDualSplit): navigation
+                // must index into the list the new prefs build.
                 val ready = uiState.value as? ReaderUiState.Ready
                 val archive = ready?.currentArchiveIndex
                 updatePrefs { it.copy(direction = action.direction) }
                 if (ready != null && archive != null && ready.dualPageSplit) {
-                    retarget(ready, archive, action.direction)
+                    viewModelScope.launch {
+                        val prefs = preferences.readerPreferences.first { it.direction == action.direction }
+                        retarget(
+                            ready, archive, prefs.direction,
+                            split = true,
+                            wide = wideCache.value[ready.comicId].orEmpty(),
+                            invert = prefs.dualPageInvert,
+                        )
+                    }
                 }
             }
             is ReaderAction.SetPageFit -> updatePrefs { it.copy(pageFit = action.fit) }
@@ -316,12 +325,18 @@ internal class ReaderViewModel @Inject constructor(
                 val invert = !(ready?.dualPageInvert ?: false)
                 updatePrefs { it.copy(dualPageInvert = invert) }
                 if (ready != null && archive != null && ready.dualPageSplit) {
-                    retarget(
-                        ready, archive, ready.direction,
-                        split = true,
-                        wide = wideCache.value[ready.comicId].orEmpty(),
-                        invert = invert,
-                    )
+                    // Anchor AFTER the prefs land: same race as the split
+                    // toggle — a stale synchronous retarget would index into
+                    // the pre-flip list.
+                    viewModelScope.launch {
+                        val prefs = preferences.readerPreferences.first { it.dualPageInvert == invert }
+                        retarget(
+                            ready, archive, prefs.direction,
+                            split = true,
+                            wide = wideCache.value[ready.comicId].orEmpty(),
+                            invert = prefs.dualPageInvert,
+                        )
+                    }
                 }
             }
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
@@ -386,8 +401,9 @@ internal class ReaderViewModel @Inject constructor(
     /**
      * Re-anchors [navigation] on [archiveIndex]'s first position after the
      * pager list is rebuilt (split toggled, halves inverted, direction
-     * flipped). Synchronous: every input is passed explicitly so no prefs
-     * read can race the preference write that triggered the rebuild.
+     * flipped). Every input is passed explicitly — callers await the prefs
+     * write that triggered the rebuild and forward the fresh values, so no
+     * stale read can race the preference update.
      */
     private fun retarget(
         ready: ReaderUiState.Ready,
