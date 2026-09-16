@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 
 @HiltViewModel
@@ -60,9 +62,11 @@ class LibraryViewModel @Inject constructor(
     /**
      * Serializes reindex runs: a folder pick is never dropped behind a
      * running rescan, and rapid refresh taps queue instead of overlapping
-     * index writes.
+     * index writes. The counter keeps the spinner up across queued runs —
+     * a finisher never clears it while another run is still parked.
      */
     private val reindexMutex = Mutex()
+    private val reindexPending = AtomicInteger(0)
     private val filterOpen = MutableStateFlow(false)
     private val searchOpen = MutableStateFlow(false)
 
@@ -193,19 +197,25 @@ class LibraryViewModel @Inject constructor(
     private fun reindex(linkUri: String? = null) {
         viewModelScope.launch {
             if (linkUri != null) preferences.setSourceTreeUri(linkUri)
-            reindexMutex.lock()
+            // Raised before parking: queued runs show the spinner instead
+            // of a dead gap. withLock (not manual lock/unlock) releases
+            // the mutex on cancellation instead of deadlocking the next run.
+            reindexPending.incrementAndGet()
+            refreshing.value = true
             try {
-                refreshing.value = true
-                val treeUri = preferences.sourceTreeUri.first() ?: return@launch
-                val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
-                if (failed > 0) {
-                    messageChannel.send(LibraryMessage.IndexFailed(failed))
+                reindexMutex.withLock {
+                    try {
+                        val treeUri = preferences.sourceTreeUri.first() ?: return@withLock
+                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { _, _ -> }.failed
+                        if (failed > 0) {
+                            messageChannel.send(LibraryMessage.IndexFailed(failed))
+                        }
+                    } catch (e: Exception) {
+                        messageChannel.send(LibraryMessage.RescanFailed)
+                    }
                 }
-            } catch (e: Exception) {
-                messageChannel.send(LibraryMessage.RescanFailed)
             } finally {
-                refreshing.value = false
-                reindexMutex.unlock()
+                if (reindexPending.decrementAndGet() == 0) refreshing.value = false
             }
         }
     }
