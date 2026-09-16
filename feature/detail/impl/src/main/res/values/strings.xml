@@ -30,4 +30,5 @@
     <string name="detail_snack_share_unavailable">No app available to share this file.</string>
     <string name="detail_page_chip">Open page %1$d</string>
     <string name="detail_page_chip_current">Open page %1$d, current</string>
+    <string name="detail_pages_show_all">All %1$d pages</string>
 </resources>
