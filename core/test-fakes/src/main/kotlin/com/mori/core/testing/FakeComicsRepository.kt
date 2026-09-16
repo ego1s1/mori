@@ -36,6 +36,10 @@ class FakeComicsRepository(
     val removedIds = mutableListOf<String>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
     var widePages: Set<Int> = emptySet()
+    val wideScanCalls = mutableListOf<String>()
+    var failWideWith: Exception? = null
+    /** Optional gate held inside widePageIndices so tests can overlap scans. */
+    var wideGate: CompletableDeferred<Unit>? = null
     /** Optional gate held inside indexLinkedTree so tests can overlap runs. */
     var indexGate: CompletableDeferred<Unit>? = null
     var usage = StorageUsage(0, 0L, 0L)
@@ -86,7 +90,12 @@ class FakeComicsRepository(
         }
     }
 
-    override suspend fun widePageIndices(id: String): Set<Int> = widePages
+    override suspend fun widePageIndices(id: String): Set<Int> {
+        wideScanCalls += id
+        wideGate?.await()
+        failWideWith?.let { throw it }
+        return widePages
+    }
 
     override suspend fun toggleBookmark(id: String) {
         comics.value = comics.value.mapValues { (_, comic) ->

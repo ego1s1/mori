@@ -67,11 +67,19 @@ internal class ReaderViewModel @Inject constructor(
     private val turnAnimated = MutableStateFlow(true)
 
     /**
-     * Wide-page scan results per comic, for the dual-page split. Empty means
-     * "not scanned yet" — indistinguishable from "no wide pages" on purpose,
-     * so a pending scan renders whole pages instead of blocking on loading.
+     * Wide-page scan results per comic, for the dual-page split. Absent means
+     * "not scanned yet"; present-but-empty means "scanned, no wide pages" and
+     * renders whole pages. Failures are never cached, so a later toggle
+     * retries instead of disabling the split for the session.
      */
     private val wideCache = MutableStateFlow<Map<String, Set<Int>>>(emptyMap())
+
+    /**
+     * Comics with a scan currently in flight. The cache guard alone is
+     * check-then-suspend: rapid split toggles while a bounds decode runs
+     * would otherwise launch duplicate full-book decodes.
+     */
+    private val wideInFlight = MutableStateFlow<Set<String>>(emptySet())
 
     /**
      * Declared before [init] on purpose: the init collectors can run eagerly
@@ -131,35 +139,52 @@ internal class ReaderViewModel @Inject constructor(
         // Dual-page split scan: bounds-decodes the book once per session when
         // the split is enabled. Failures yield empty (whole pages), never an
         // error state — reading must not break over a display preference.
+        // The id flow is de-duplicated so progress saves (which re-emit the
+        // comic) never retrigger a decode; the pair distinct guards toggles.
         viewModelScope.launch {
             combine(
-                repository.observeComic(args.comicId).map { it?.id },
+                repository.observeComic(args.comicId).map { it?.id }.distinctUntilChanged(),
                 preferences.readerPreferences.map { it.dualPageSplit }.distinctUntilChanged(),
             ) { id, split -> id to split }
                 .distinctUntilChanged()
                 .collect { (id, split) ->
-                    if (id != null && split && !wideCache.value.containsKey(id)) {
-                        val wide = repository.widePageIndices(id)
-                        // Wide first, anchor second: the intermediate state
-                        // keeps a valid index under the longer count (the
-                        // pager never moves, so no phantom save fires), and
-                        // the anchor write then settles the right archive
-                        // with a correct save. Reversed order would strand an
-                        // expanded index under the short count instead.
-                        wideCache.value = wideCache.value + (id to wide)
-                        // The pager just gained positions; re-anchor on the
-                        // archive page being read instead of stranding it.
-                        val ready = uiState.value as? ReaderUiState.Ready
-                        if (ready != null && ready.comicId == id) {
+                    if (id != null && split &&
+                        !wideCache.value.containsKey(id) &&
+                        !wideInFlight.value.contains(id)
+                    ) {
+                        wideInFlight.update { it + id }
+                        try {
+                            val wide = repository.widePageIndices(id)
+                            // Wide first, anchor second: the intermediate state
+                            // keeps a valid index under the longer count (the
+                            // pager never moves, so no phantom save fires), and
+                            // the anchor write then settles the right archive
+                            // with a correct save. Reversed order would strand an
+                            // expanded index under the short count instead.
+                            wideCache.value = wideCache.value + (id to wide)
+                            // The pager just gained positions; re-anchor on the
+                            // archive page being read instead of stranding it.
+                            // The scan is async: bail if the split was turned
+                            // back off mid-decode, and build from fresh prefs
+                            // so a mid-scan flip can't strand a stale layout.
                             val prefs = preferences.readerPreferences.first()
-                            val pages = buildViewerPages(
-                                ready.archivePageCount, wide, prefs.direction, prefs.dualPageInvert,
-                            )
-                            val archive = ready.currentArchiveIndex
-                                .coerceIn(0, ready.archivePageCount - 1)
-                            setNavigation(
-                                archiveToExpandedPositions(pages, ready.archivePageCount)[archive],
-                            )
+                            if (!prefs.dualPageSplit) return@collect
+                            val ready = uiState.value as? ReaderUiState.Ready
+                            if (ready != null && ready.comicId == id) {
+                                val pages = buildViewerPages(
+                                    ready.archivePageCount, wide, prefs.direction, prefs.dualPageInvert,
+                                )
+                                val archive = ready.currentArchiveIndex
+                                    .coerceIn(0, ready.archivePageCount - 1)
+                                setNavigation(
+                                    archiveToExpandedPositions(pages, ready.archivePageCount)[archive],
+                                )
+                            }
+                        } catch (e: Exception) {
+                            // Never cache failures: the next toggle retries.
+                            // The collector itself must survive any impl.
+                        } finally {
+                            wideInFlight.update { it - id }
                         }
                     }
                 }

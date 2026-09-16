@@ -411,6 +411,79 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun wideScanRunsOnceAndSurvivesProgressSaves() = runTest {
+        // Progress saves re-emit the comic; the id de-dup must keep the
+        // bounds decode to a single emission per session.
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(600)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("c"), repository.wideScanCalls)
+    }
+
+    @Test
+    fun wideScanFailureStaysWholePagesAndRetries() = runTest {
+        // A transient decode failure must not poison the session: whole
+        // pages render, and the next toggle retries the scan.
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply {
+            widePages = setOf(2)
+            failWideWith = IllegalStateException("decode boom")
+        }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            val whole = awaitReadyWhere { !it.dualPageSplit || it.pageCount == 10 }
+            assertEquals(10, whole.pageCount)
+            repository.failWideWith = null
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            awaitReadyWhere { !it.dualPageSplit }
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            assertEquals(11, awaitReadyWhere { it.dualPageSplit && it.pageCount == 11 }.pageCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("c", "c"), repository.wideScanCalls)
+    }
+
+    @Test
+    fun concurrentToggleDuringScanDecodesOnce() = runTest {
+        // Rapid off/on while a decode is parked must not launch a second
+        // full-book decode; the in-flight guard collapses it.
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply {
+            widePages = setOf(2)
+            wideGate = kotlinx.coroutines.CompletableDeferred()
+        }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            awaitReadyWhere { !it.dualPageSplit }
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            repository.wideGate?.complete(Unit)
+            assertEquals(11, awaitReadyWhere { it.dualPageSplit && it.pageCount == 11 }.pageCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("c"), repository.wideScanCalls)
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(
