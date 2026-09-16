@@ -90,7 +90,12 @@ internal class DetailViewModel @Inject constructor(
         viewModelScope.launch {
             refreshing.value = true
             try {
-                repository.refreshComic(args.comicId)
+                // A null return means the document vanished: surface it like
+                // any other rescan failure instead of clearing the spinner
+                // silently.
+                if (repository.refreshComic(args.comicId) == null) {
+                    messageChannel.send(DetailMessage.RescanFailed)
+                }
             } catch (e: Exception) {
                 messageChannel.send(DetailMessage.RescanFailed)
             } finally {

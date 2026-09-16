@@ -115,6 +115,16 @@ class DetailViewModelTest {
     }
 
     @Test
+    fun refreshVanishedDocumentSendsRescanFailed() = runTest {
+        // Empty repository: refreshComic returns null instead of throwing.
+        val (viewModel, _) = viewModel(repository = FakeComicsRepository(emptyMap()))
+        viewModel.messages.test {
+            viewModel.onAction(DetailAction.Refresh)
+            assertEquals(DetailMessage.RescanFailed, awaitItem())
+        }
+    }
+
+    @Test
     fun removeFlowAsksConfirmsAndMarksRemoved() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {
