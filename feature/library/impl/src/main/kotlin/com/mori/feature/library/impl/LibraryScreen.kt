@@ -506,7 +506,17 @@ private fun ContinueShelf(
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(comics, key = { it.id }) { comic ->
+            items(
+                comics,
+                key = { it.id },
+                // Same bitmask bucket as the grid: variants never
+                // cross-recycle when the shelf list re-emits.
+                contentType = { comic ->
+                    (if (comic.error != null) 4 else 0) +
+                        (if (comic.isInProgress) 2 else 0) +
+                        (if (comic.isFinished) 1 else 0)
+                },
+            ) { comic ->
                 ComicCard(
                     comic = comic,
                     onRead = {
