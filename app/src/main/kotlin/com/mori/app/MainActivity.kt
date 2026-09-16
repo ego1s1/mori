@@ -24,6 +24,10 @@ class MainActivity : ComponentActivity() {
      * Reader-owned keys (volume paging) are consumed before the system sees
      * them, so handled presses never move the system volume (Mihon parity).
      * The super call is the documented dispatch chain for this override.
+     *
+     * RestrictedApi is suppressed only for this override: dispatchKeyEvent
+     * is the framework's own interception point, and the reader contract is
+     * covered by ReaderScreen key-handler tests plus manual volume-key runs.
      */
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

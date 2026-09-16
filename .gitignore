@@ -24,3 +24,9 @@ out/
 
 # Local helper scripts (e.g. personal APK builders).
 scripts/build-apk.sh
+
+# Stray design-reference drops at the repo root (screenshots, mockups).
+# Real assets live in module res/ dirs; these must never be committed.
+/*.png
+/*.jpg
+/*.jpeg
