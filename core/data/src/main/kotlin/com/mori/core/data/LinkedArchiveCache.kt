@@ -5,10 +5,13 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,25 +32,46 @@ class LinkedArchiveCache @Inject constructor(
 ) {
     private val cacheDir = File(context.cacheDir, LINKED_DIR).apply { mkdirs() }
 
+    /**
+     * Per-entry locks: concurrent page-fetch plus cover-gen for the same
+     * document serialize instead of double-copying, and different books
+     * still materialize in parallel.
+     */
+    private val entryLocks = ConcurrentHashMap<String, Mutex>()
+
     suspend fun materialize(uri: Uri, displayName: String): File = withContext(Dispatchers.IO) {
         val doc = DocumentFile.fromSingleUri(context, uri)
             ?: throw IOException("Unable to open $displayName")
         val size = doc.length()
         val modified = doc.lastModified()
         val dest = File(cacheDir, cacheName(uri, displayName, size, modified))
-        if (!dest.isFile) {
-            evictToFit(size)
-            val stream = context.contentResolver.openInputStream(uri)
-                ?: throw IOException("Unable to open $displayName")
-            stream.use { input ->
-                FileOutputStream(dest).use { output ->
-                    input.copyTo(output)
+        entryLocks.getOrPut(dest.name) { Mutex() }.withLock {
+            if (!dest.isFile) {
+                evictToFit(size)
+                val stream = context.contentResolver.openInputStream(uri)
+                    ?: throw IOException("Unable to open $displayName")
+                // Copy to a temp sibling and rename: a concurrent reader
+                // never observes a partial file, and a crash never leaves
+                // a torn entry that looks complete.
+                val tmp = File(cacheDir, dest.name + ".part")
+                try {
+                    stream.use { input ->
+                        FileOutputStream(tmp).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    tmp.setLastModified(System.currentTimeMillis())
+                    if (!tmp.renameTo(dest) && !dest.isFile) {
+                        throw IOException("Unable to cache $displayName")
+                    }
+                } finally {
+                    if (tmp.isFile && !dest.isFile) runCatching { tmp.delete() }
                 }
+                dest.setLastModified(System.currentTimeMillis())
+            } else {
+                // LRU touch: recently read archives survive eviction.
+                dest.setLastModified(System.currentTimeMillis())
             }
-            dest.setLastModified(System.currentTimeMillis())
-        } else {
-            // LRU touch: recently read archives survive eviction.
-            dest.setLastModified(System.currentTimeMillis())
         }
         dest
     }
