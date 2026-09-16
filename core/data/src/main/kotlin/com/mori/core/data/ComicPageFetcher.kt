@@ -11,6 +11,8 @@ import coil3.request.Options
 import com.mori.comic.decode.PageDecoder
 import com.mori.comic.model.DecodeOptions
 import com.mori.core.model.PageHalf
+import java.io.FileNotFoundException
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -43,15 +45,25 @@ class ComicPageFetcher internal constructor(
     private val linkedCache: LinkedArchiveCache,
 ) : Fetcher {
 
+    /**
+     * All fetch failures surface as [IOException] (never
+     * [IllegalArgumentException]/[IndexOutOfBoundsException]): Coil treats
+     * IO errors as source failures with the error placeholder, while
+     * programming-error exceptions would read as unrecoverable crashes.
+     * Mapping: unknown comic -> [FileNotFoundException] (row removed);
+     * bad index -> [IOException] with the valid range (stale split list).
+     */
     override suspend fun fetch(): FetchResult {
         val comic = repository.getComic(data.comicId)
-            ?: throw IllegalArgumentException("Unknown comic: ${data.comicId}")
+            ?: throw FileNotFoundException("Unknown comic: ${data.comicId}")
         // Linked rows materialize through the bounded read cache; the user
         // original is never copied into the library.
         val file = linkedCache.fileFor(comic)
         val inspected = backend.inspect(file)
         val page = inspected.pages.getOrNull(data.pageIndex)
-            ?: throw IndexOutOfBoundsException("Page ${data.pageIndex} of ${data.comicId}")
+            ?: throw IOException(
+                "Page ${data.pageIndex} of ${data.comicId} (count ${inspected.pages.size})",
+            )
         val bytes = backend.readPageBytes(file, page)
         // Crop rides the decode (and the key above), so toggling it can never
         // serve a stale cached bitmap.
