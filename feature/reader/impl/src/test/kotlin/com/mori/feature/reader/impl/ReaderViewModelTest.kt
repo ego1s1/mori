@@ -366,6 +366,31 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun toggleSplitOffKeepsArchivePage() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            // Second half of archive 2, then split off: the anchor lands on
+            // archive 2's (only) position in the identity list.
+            viewModel.onAction(ReaderAction.SeekPage(3))
+            awaitReadyWhere { it.pageIndex == 3 }
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            // The anchor follows the prefs write: settle on archive 2's
+            // position in the identity list, not the stale expanded index.
+            val unsplit = awaitReadyWhere { !it.dualPageSplit && it.pageIndex == 2 }
+            assertEquals(10, unsplit.pageCount)
+            assertEquals(2, unsplit.currentArchiveIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun progressSavesArchiveIndexWhenSplit() = runTest {
         val repository = FakeComicsRepository(
             mapOf("c" to FakeComicsRepository.comic("c")),

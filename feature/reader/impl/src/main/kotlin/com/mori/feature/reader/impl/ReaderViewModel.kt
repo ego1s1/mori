@@ -140,6 +140,12 @@ internal class ReaderViewModel @Inject constructor(
                 .collect { (id, split) ->
                     if (id != null && split && !wideCache.value.containsKey(id)) {
                         val wide = repository.widePageIndices(id)
+                        // Wide first, anchor second: the intermediate state
+                        // keeps a valid index under the longer count (the
+                        // pager never moves, so no phantom save fires), and
+                        // the anchor write then settles the right archive
+                        // with a correct save. Reversed order would strand an
+                        // expanded index under the short count instead.
                         wideCache.value = wideCache.value + (id to wide)
                         // The pager just gained positions; re-anchor on the
                         // archive page being read instead of stranding it.
@@ -267,11 +273,16 @@ internal class ReaderViewModel @Inject constructor(
                 val split = !(ready?.dualPageSplit ?: false)
                 updatePrefs { it.copy(dualPageSplit = split) }
                 if (ready != null && archive != null) {
-                    // The scan may still be pending — anchor on the archive
-                    // page with whatever is known; the collector re-anchors
-                    // again when the scan lands.
-                    val wide = if (split) wideCache.value[ready.comicId].orEmpty() else emptySet()
-                    retarget(ready, archive, ready.direction, split, wide)
+                    // Anchor AFTER the prefs land: navigation must index into
+                    // the list the new prefs build. Writing it first would
+                    // strand a stale expanded index under the new count and
+                    // save the wrong archive. The transient in between stays
+                    // coercible, and the scan (split-on) re-anchors on arrival.
+                    viewModelScope.launch {
+                        val prefs = preferences.readerPreferences.first { it.dualPageSplit == split }
+                        val wide = if (split) wideCache.value[ready.comicId].orEmpty() else emptySet()
+                        retarget(ready, archive, prefs.direction, split, wide, prefs.dualPageInvert)
+                    }
                 }
             }
             ReaderAction.ToggleDualInvert -> {
