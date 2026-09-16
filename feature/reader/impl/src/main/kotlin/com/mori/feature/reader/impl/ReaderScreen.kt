@@ -635,9 +635,18 @@ private fun ReaderBottomChrome(
                                 pageIndex + 1,
                                 pageCount,
                             )
+                            // Scrub preview: the thumb follows the finger
+                            // locally and commits once on release, so a long
+                            // scrub fires one seek (one glide, one debounced
+                            // save) instead of a seek per drag tick.
+                            var scrub by remember { mutableStateOf<Int?>(null) }
                             Slider(
-                                value = pageIndex.toFloat(),
-                                onValueChange = { onAction(ReaderAction.SeekPage(it.toInt())) },
+                                value = (scrub ?: pageIndex).toFloat(),
+                                onValueChange = { scrub = it.toInt() },
+                                onValueChangeFinished = {
+                                    scrub?.let { onAction(ReaderAction.SeekPage(it)) }
+                                    scrub = null
+                                },
                                 valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
                                 steps = (pageCount - 2).coerceAtLeast(0),
                                 interactionSource = sliderInteraction,
