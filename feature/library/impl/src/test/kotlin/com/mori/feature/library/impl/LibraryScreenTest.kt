@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ComicError
 import com.mori.core.testing.FakeComicsRepository
 import org.junit.Rule
 import org.junit.Test
@@ -130,6 +131,23 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("d")).performClick()
 
         assert(opened == ("d" to 0))
+    }
+
+    @Test
+    fun errorCardTapOpensDetailsInsteadOfReading() {
+        var opened: Pair<String, Int>? = null
+        var detailed: String? = null
+        val broken = FakeComicsRepository.comic("e", title = "Broken", error = ComicError.CORRUPT)
+        setScreen(
+            success().copy(comics = listOf(broken)),
+            onReadClick = { id, index -> opened = id to index },
+            onComicLongClick = { detailed = it },
+        )
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("e")).performClick()
+
+        assert(opened == null)
+        assert(detailed == "e")
     }
 
     @Test

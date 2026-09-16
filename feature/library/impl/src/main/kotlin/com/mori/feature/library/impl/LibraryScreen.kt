@@ -376,10 +376,16 @@ private fun LibraryBody(
     // Hoisted once per body composition: item lambdas stay referentially
     // stable so unchanged cards skip recomposition during scroll-adjacent
     // updates (launch flags, refresh ticks).
-    val onCardRead: (Comic) -> Unit = remember(onReadClick) {
+    val onCardRead: (Comic) -> Unit = remember(onReadClick, onComicLongClick) {
         { comic ->
             launchingId = comic.id
-            onReadClick(comic.id, comic.resumeIndex)
+            // Errored rows can't open the reader; tap goes to details where
+            // retry/remove live, matching the detail screen's own gate.
+            if (comic.error != null) {
+                onComicLongClick(comic.id)
+            } else {
+                onReadClick(comic.id, comic.resumeIndex)
+            }
         }
     }
     val onCardDetails: (Comic) -> Unit = remember(onComicLongClick) {
@@ -436,6 +442,7 @@ private fun LibraryBody(
                         ContinueShelf(
                             comics = shelf,
                             onReadClick = onReadClick,
+                            onComicLongClick = onComicLongClick,
                         )
                     }
                 }
@@ -473,6 +480,7 @@ private fun LibraryBody(
 private fun ContinueShelf(
     comics: List<Comic>,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(LibraryTestTags.Shelf)) {
@@ -490,7 +498,13 @@ private fun ContinueShelf(
             items(comics, key = { it.id }) { comic ->
                 ComicCard(
                     comic = comic,
-                    onRead = { onReadClick(it.id, it.resumeIndex) },
+                    onRead = {
+                        if (it.error != null) {
+                            onComicLongClick(it.id)
+                        } else {
+                            onReadClick(it.id, it.resumeIndex)
+                        }
+                    },
                     onDetails = null,
                     compact = true,
                     cardTag = LibraryTestTags.shelfCardFor(comic.id),
