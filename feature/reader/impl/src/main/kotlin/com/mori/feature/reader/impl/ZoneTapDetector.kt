@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import com.mori.core.model.ReadingDirection
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,7 +48,6 @@ import kotlinx.coroutines.launch
 internal fun Modifier.zoneTaps(
     viewportWidth: State<Float>,
     direction: ReadingDirection,
-    scope: CoroutineScope,
     onZoneTap: (ReaderZone) -> Unit,
     onZoom: (tap: Offset, center: Offset) -> Unit,
     consumeUp: Boolean,
@@ -116,11 +114,14 @@ internal fun Modifier.zoneTaps(
         if (zone == ReaderZone.MENU || !isRhythmActive(lastRhythmEdgeMs, nowMs)) {
             // Hold for a possible double-tap (Mihon single-tap-confirmed).
             // Center taps always take this path, so double-tap-to-zoom works
-            // from any state.
+            // from any state. Launched in the pointerInput receiver scope so
+            // a direction restart cancels the hold instead of orphaning it
+            // in the outer scope, where it would fire a stale-zone tap and
+            // pin the captured callback past its lifetime.
             val held = TapRecord(timeMs = nowMs, position = position, zone = zone)
             pendingTap = held
             holdJob?.cancel()
-            holdJob = scope.launch {
+            holdJob = launch {
                 delay(DOUBLE_TAP_TIMEOUT_MS)
                 if (pendingTap?.timeMs == held.timeMs) {
                     pendingTap = null

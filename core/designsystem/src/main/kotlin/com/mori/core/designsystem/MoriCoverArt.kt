@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -49,9 +49,12 @@ fun MoriCoverArt(
         if (coverPath != null) {
             // No per-load fade: the global loader crossfades, but grid cells
             // recycling through a fling must snap, not alpha-blend per frame.
-            val context = LocalContext.current
-            val request = remember(context, coverPath) {
-                ImageRequest.Builder(context)
+            // The request holds the application context (never the Activity)
+            // and keys on the path alone, so rotations cannot pin the old
+            // Activity through a remembered request.
+            val appContext = LocalContext.current.applicationContext
+            val request = remember(coverPath) {
+                ImageRequest.Builder(appContext)
                     .data(File(coverPath))
                     .crossfade(false)
                     .precision(Precision.INEXACT)
@@ -62,7 +65,9 @@ fun MoriCoverArt(
                 model = request,
                 contentScale = ContentScale.Crop,
             )
-            val painterState by painter.state.collectAsState()
+            // Lifecycle-aware: cells stop collecting painter state while the
+            // app is stopped instead of holding every grid cell's flow.
+            val painterState by painter.state.collectAsStateWithLifecycle()
             Image(
                 painter = painter,
                 contentDescription = contentDescription,

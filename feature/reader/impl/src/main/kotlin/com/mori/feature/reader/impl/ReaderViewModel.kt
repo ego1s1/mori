@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 /**
@@ -129,7 +130,15 @@ internal class ReaderViewModel @Inject constructor(
         if (index != null) {
             flushScope.launch {
                 try {
-                    repository.saveProgress(args.comicId, index)
+                    // Bounded: a hung database must not pin an IO thread and
+                    // a scope per reader-close for an unbounded session.
+                    withTimeout(FLUSH_TIMEOUT_MS) {
+                        repository.saveProgress(args.comicId, index)
+                    }
+                } catch (e: Exception) {
+                    // The debounced save already landed the last settled page
+                    // in the common path; a failed flush only loses an
+                    // in-flight settle, never corrupts.
                 } finally {
                     flushScope.cancel()
                 }
@@ -475,6 +484,9 @@ internal class ReaderViewModel @Inject constructor(
 
     companion object {
         private const val PROGRESS_SAVE_DEBOUNCE_MS = 500L
+
+        /** Upper bound for the close-time progress flush (see onCleared). */
+        private const val FLUSH_TIMEOUT_MS = 5_000L
 
         private const val SAVED_PAGE_INDEX = "mori_saved_page_index"
 

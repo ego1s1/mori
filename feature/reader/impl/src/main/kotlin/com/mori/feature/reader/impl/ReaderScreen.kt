@@ -40,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -102,7 +101,7 @@ internal fun ReaderRoute(
     // while the reader is visible, MainActivity offers every key event to
     // this handler before the system sees it.
     DisposableEffect(Unit) {
-        ReaderKeyInterceptor.handler = { event ->
+        val ours: (KeyEvent) -> Boolean = { event ->
             when (val outcome = routeVolumeKey(latestState.value, event.keyCode, event.action)) {
                 VolumeKeyOutcome.Ignored -> false
                 VolumeKeyOutcome.Consumed -> true
@@ -112,8 +111,13 @@ internal fun ReaderRoute(
                 }
             }
         }
+        ReaderKeyInterceptor.handler = ours
         onDispose {
-            ReaderKeyInterceptor.handler = null
+            // CAS-null: stacked readers must not wipe each other's handler —
+            // only clear if ours is still installed.
+            if (ReaderKeyInterceptor.handler === ours) {
+                ReaderKeyInterceptor.handler = null
+            }
         }
     }
     ReaderScreen(
@@ -222,7 +226,6 @@ private fun ReaderContent(
     val haptic = LocalHapticFeedback.current
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
-    val contentScope = rememberCoroutineScope()
 
     // Back exits through the NavHost: Navigation Compose scrubs the pop
     // transitions with the system gesture, so the library shows through for
@@ -316,7 +319,6 @@ private fun ReaderContent(
                     .zoneTaps(
                         viewportWidth = viewportWidth,
                         direction = state.direction,
-                        scope = contentScope,
                         onZoneTap = handleZone,
                         onZoom = { _, _ -> handleZone(ReaderZone.MENU) },
                         consumeUp = false,

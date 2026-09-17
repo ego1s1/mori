@@ -173,7 +173,6 @@ internal fun ZoomablePage(
                 .zoneTaps(
                     viewportWidth = viewportWidth,
                     direction = direction,
-                    scope = scope,
                     onZoneTap = { zone ->
                         if ((zone == ReaderZone.PREV || zone == ReaderZone.NEXT) && scale > 1f) {
                             val towardTrailing =
