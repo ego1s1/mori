@@ -21,9 +21,10 @@ object ComicInfoParser {
      * unsupported, so a hostile entry cannot buffer unbounded XML.
      */
     fun parse(input: InputStream): ComicMetadata {
-        val bytes = input.readUpTo(MAX_XML_BYTES) ?: return ComicMetadata()
-        val document = runCatching { newDocumentBuilder().parse(bytes.inputStream()) }.getOrNull()
-        val root = document?.documentElement ?: return ComicMetadata()
+        val bytes = input.readUpTo(MAX_XML_BYTES)
+        val root = bytes?.let {
+            runCatching { newDocumentBuilder().parse(it.inputStream()) }.getOrNull()
+        }?.documentElement ?: return ComicMetadata()
 
         val raw = collectElements(root)
         return if (raw.isEmpty()) ComicMetadata() else fromRaw(raw)
