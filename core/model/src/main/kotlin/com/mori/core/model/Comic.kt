@@ -22,7 +22,14 @@ data class Comic(
     val error: ComicError? = null,
     val bookmarked: Boolean = false,
 ) {
-    /** True when the user has started but not finished this comic. */
+    /**
+     * True when the user has started but not finished this comic.
+     *
+     * Single-page books (pageCount == 1) are born finished: index 0 is both
+     * the first and the last page, so they never enter progress-driven
+     * surfaces (continue shelf, resume target, history) and always open at
+     * 0. This is deliberate — there is no "unread" state to resume.
+     */
     val isInProgress: Boolean
         get() = lastPageIndex > 0 && lastPageIndex < pageCount - 1
 

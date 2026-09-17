@@ -125,6 +125,7 @@ public final class com/mori/comic/decode/SampleSizeCalculator {
 
 public final class com/mori/comic/metadata/ComicInfoParser {
 	public static final field INSTANCE Lcom/mori/comic/metadata/ComicInfoParser;
+	public static final field MAX_XML_BYTES I
 	public final fun parse (Ljava/io/InputStream;)Lcom/mori/comic/model/ComicMetadata;
 }
 
@@ -257,6 +258,12 @@ public final class com/mori/comic/model/PageDimensions {
 	public final fun getWidth ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mori/comic/util/ArchiveBudgetsKt {
+	public static final field MAX_PAGE_BYTES J
+	public static final fun readCapped (Ljava/io/InputStream;JLjava/lang/String;)[B
+	public static synthetic fun readCapped$default (Ljava/io/InputStream;JLjava/lang/String;ILjava/lang/Object;)[B
 }
 
 public final class com/mori/comic/util/NaturalSort {
