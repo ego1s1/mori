@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -41,11 +42,13 @@ internal class HistoryViewModel @Inject constructor(
 
     private fun toUiState(days: List<HistoryDay>, text: String): HistoryUiState {
         if (text.isBlank()) return HistoryUiState.Success(days, text)
-        val needle = text.trim().lowercase()
+        // ROOT folding on both sides: default-locale casing (Turkish dotted
+        // I) must never split a match asymmetrically.
+        val needle = text.trim().lowercase(Locale.ROOT)
         val filtered = days.mapNotNull { day ->
             val matches = day.comics.filter { comic ->
-                comic.title.lowercase().contains(needle) ||
-                    comic.series?.lowercase()?.contains(needle) == true
+                comic.title.lowercase(Locale.ROOT).contains(needle) ||
+                    comic.series?.lowercase(Locale.ROOT)?.contains(needle) == true
             }
             if (matches.isEmpty()) null else day.copy(comics = matches)
         }

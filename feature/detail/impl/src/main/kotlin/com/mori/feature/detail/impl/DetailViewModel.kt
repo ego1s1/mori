@@ -34,6 +34,12 @@ internal class DetailViewModel @Inject constructor(
      * second tap being dropped behind the running refresh.
      */
     private val refreshMutex = Mutex()
+
+    /**
+     * Serializes removals: rapid double-confirms delete once instead of
+     * enqueueing duplicate remove calls behind the first.
+     */
+    private val removeMutex = Mutex()
     private val confirmRemove = MutableStateFlow(false)
     private val removed = MutableStateFlow(false)
 
@@ -75,6 +81,9 @@ internal class DetailViewModel @Inject constructor(
             DetailAction.CancelRemove -> confirmRemove.value = false
             DetailAction.ConfirmRemove -> remove()
             DetailAction.ToggleBookmark -> {
+                // Bookmarks belong to a row: ignore taps once the comic is
+                // gone instead of toggling a phantom id.
+                if (uiState.value !is DetailUiState.Ready) return
                 viewModelScope.launch { repository.toggleBookmark(args.comicId) }
             }
             DetailAction.Share -> {
@@ -114,12 +123,17 @@ internal class DetailViewModel @Inject constructor(
 
     private fun remove() {
         viewModelScope.launch {
-            try {
-                repository.removeComic(args.comicId)
-                removed.value = true
-            } catch (e: Exception) {
-                confirmRemove.value = false
-                messageChannel.send(DetailMessage.RemoveFailed)
+            removeMutex.withLock {
+                // Second confirm while the first is in flight is a no-op:
+                // the row is already going away.
+                if (removed.value) return@withLock
+                try {
+                    repository.removeComic(args.comicId)
+                    removed.value = true
+                } catch (e: Exception) {
+                    confirmRemove.value = false
+                    messageChannel.send(DetailMessage.RemoveFailed)
+                }
             }
         }
     }

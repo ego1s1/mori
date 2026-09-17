@@ -55,4 +55,27 @@ class HistoryTest {
     fun dayStartTruncatesToMidnight() {
         assertEquals(1_789_603_200_000L, dayStartMillis(1_789_603_200_000L + 45_000_123L, utc))
     }
+
+    @Test
+    fun futureTimestampsClampToToday() {
+        val now = 1_789_603_200_000L + 3_600_000L
+        val groups = listOf(
+            comic("skewed", lastPageIndex = 2, updatedAt = now + 86_400_000L * 5),
+            comic("normal", lastPageIndex = 1, updatedAt = now - 1_000L),
+        ).historyGroups(nowMillis = now, zone = utc)
+
+        // No bucket in the future: the skewed row joins today.
+        assertEquals(1, groups.size)
+        assertEquals(1_789_603_200_000L, groups.single().dayStartMillis)
+    }
+
+    @Test
+    fun sameMillisTiesBreakById() {
+        val groups = listOf(
+            comic("b", lastPageIndex = 1, updatedAt = 5_000L),
+            comic("a", lastPageIndex = 1, updatedAt = 5_000L),
+        ).historyGroups(nowMillis = 9_000L, zone = utc)
+
+        assertEquals(listOf("a", "b"), groups.single().comics.map { it.id })
+    }
 }

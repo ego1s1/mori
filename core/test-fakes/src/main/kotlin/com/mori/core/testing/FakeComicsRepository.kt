@@ -36,6 +36,7 @@ class FakeComicsRepository(
     var refreshGate: CompletableDeferred<Unit>? = null
     var refreshCalls = 0
     val removedIds = mutableListOf<String>()
+    val bookmarkToggles = mutableListOf<String>()
     val progressSaves = mutableListOf<Pair<String, Int>>()
     var widePages: Set<Int> = emptySet()
     val wideScanCalls = mutableListOf<String>()
@@ -105,6 +106,7 @@ class FakeComicsRepository(
     }
 
     override suspend fun toggleBookmark(id: String) {
+        bookmarkToggles += id
         comics.value = comics.value.mapValues { (_, comic) ->
             if (comic.id == id) comic.copy(bookmarked = !comic.bookmarked) else comic
         }

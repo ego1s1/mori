@@ -54,6 +54,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.HistoryDay
 import com.mori.core.model.dayStartMillis
+import com.mori.core.model.previousDayStartMillis
 import java.text.DateFormat
 import java.util.Date
 
@@ -138,8 +139,16 @@ private fun HistoryContent(
         if (uiState.isEmpty) {
             MoriEmptyState(
                 icon = MoriIcons.History,
-                title = stringResource(R.string.history_empty_title),
-                body = stringResource(R.string.history_empty_body),
+                title = if (uiState.isNoResults) {
+                    stringResource(R.string.history_no_results_title)
+                } else {
+                    stringResource(R.string.history_empty_title)
+                },
+                body = if (uiState.isNoResults) {
+                    stringResource(R.string.history_no_results_body, uiState.queryText.trim())
+                } else {
+                    stringResource(R.string.history_empty_body)
+                },
                 actionLabel = null,
                 onAction = null,
                 modifier = Modifier.testTag(HistoryTestTags.EmptyState),
@@ -253,7 +262,7 @@ private fun HistoryDayHeader(dayStartMillis: Long, modifier: Modifier = Modifier
         val today = dayStartMillis(System.currentTimeMillis())
         when (dayStartMillis) {
             today -> context.getString(R.string.history_day_today)
-            today - 86_400_000L -> context.getString(R.string.history_day_yesterday)
+            previousDayStartMillis(today) -> context.getString(R.string.history_day_yesterday)
             else -> DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(dayStartMillis))
         }
     }

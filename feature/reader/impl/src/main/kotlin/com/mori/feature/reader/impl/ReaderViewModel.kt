@@ -220,6 +220,11 @@ internal class ReaderViewModel @Inject constructor(
         if (error != null) {
             return ReaderUiState.Error(ReaderErrorCause.Failed(error))
         }
+        if (comic.pageCount <= 0) {
+            // An empty row with no error stamping is still unreadable: show
+            // the typed empty card instead of fabricating a phantom page.
+            return ReaderUiState.Error(ReaderErrorCause.Failed(ComicError.EMPTY))
+        }
         val archivePageCount = comic.pageCount.coerceAtLeast(1)
         // Expanded pager positions (Mihon's InsertPage model): wide pages
         // become two halves when the split is on, identity otherwise. The
@@ -273,13 +278,18 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.PrevPage -> moveBy(-1)
             is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false, animated = false)
             is ReaderAction.PageChanged -> {
-                setNavigation(action.index)
+                // Stale or out-of-range pager events (split rebuilds,
+                // removed-comic Error states) never write navigation or
+                // enqueue saves for books the reader has rejected.
+                val ready = uiState.value as? ReaderUiState.Ready ?: return
+                val clamped = action.index.coerceIn(0, ready.pageCount - 1)
+                setNavigation(clamped)
                 // Swiping to a new page dismisses chrome, like a page turn —
                 // but never from under an open sheet.
                 if (!chrome.value.settingsOpen && !chrome.value.overviewOpen) {
                     chrome.value = chrome.value.copy(visible = false)
                 }
-                scheduleProgressSave(archiveIndexFor(action.index))
+                scheduleProgressSave(archiveIndexFor(clamped))
             }
             ReaderAction.ToggleBookmark -> {
                 viewModelScope.launch { repository.toggleBookmark(args.comicId) }

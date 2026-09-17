@@ -72,6 +72,51 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun searchNoMatchIsNoResultsNotEmptyHistory() = runTest {
+        val now = System.currentTimeMillis()
+        val viewModel = viewModel(
+            listOf(comic("a", lastPageIndex = 2, updatedAt = now)),
+        )
+        viewModel.uiState.test {
+            awaitWhere { (it as? HistoryUiState.Success)?.days?.isNotEmpty() == true }
+            viewModel.onAction(HistoryAction.SearchTextChanged("zzz"))
+            val state = awaitWhere {
+                val success = it as? HistoryUiState.Success
+                success != null && success.queryText == "zzz" && success.isEmpty
+            } as HistoryUiState.Success
+            assertTrue(state.isNoResults)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun searchFoldingIgnoresDefaultLocale() = runTest {
+        val previous = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale("tr", "TR"))
+        try {
+            val now = System.currentTimeMillis()
+            val viewModel = viewModel(
+                listOf(comic("a", lastPageIndex = 2, updatedAt = now).copy(title = "KITAP")),
+            )
+            viewModel.uiState.test {
+                awaitWhere { (it as? HistoryUiState.Success)?.days?.isNotEmpty() == true }
+                // Dotted capital İ lowercases to i̇ under tr; ROOT folding
+                // must still match the ASCII query.
+                viewModel.onAction(HistoryAction.SearchTextChanged("kitap"))
+                val state = awaitWhere {
+                    val success = it as? HistoryUiState.Success
+                    success != null && success.queryText == "kitap" &&
+                        success.days.flatMap { day -> day.comics }.size == 1
+                } as HistoryUiState.Success
+                assertEquals("a", state.days.single().comics.single().id)
+                cancelAndIgnoreRemainingEvents()
+            }
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
+
+    @Test
     fun searchNarrowsByTitle() = runTest {
         val now = System.currentTimeMillis()
         val viewModel = viewModel(

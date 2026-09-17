@@ -36,7 +36,7 @@ data class Comic(
 
     /** Pages remaining after the current one; the card badge reads this. */
     val pagesLeft: Int
-        get() = (pageCount - lastPageIndex - 1).coerceAtLeast(0)
+        get() = if (pageCount <= 0) 0 else (pageCount - lastPageIndex - 1).coerceIn(0, pageCount)
 
     /**
      * Where opening this comic lands: the saved page while in progress,

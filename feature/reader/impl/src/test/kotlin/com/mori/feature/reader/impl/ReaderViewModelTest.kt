@@ -507,6 +507,42 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun emptyPageCountIsTypedErrorNotPhantomPage() = runTest {
+        val viewModel = viewModel(
+            repository = FakeComicsRepository(
+                mapOf("c" to FakeComicsRepository.comic("c").copy(pageCount = 0)),
+            ),
+        )
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state is ReaderUiState.Error)
+            assertEquals(
+                ReaderErrorCause.Failed(ComicError.EMPTY),
+                (state as ReaderUiState.Error).cause,
+            )
+        }
+    }
+
+    @Test
+    fun pageChangedAfterRemovalSavesNothing() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val viewModel = viewModel(repository = repository)
+        viewModel.uiState.test {
+            awaitReady()
+            repository.send(emptyList())
+            awaitItem() // Error(Removed)
+            // Stale pager event for the deleted book: no navigation write,
+            // no progress save — and nothing to flush on close either.
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(600)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(repository.progressSaves.isEmpty())
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(

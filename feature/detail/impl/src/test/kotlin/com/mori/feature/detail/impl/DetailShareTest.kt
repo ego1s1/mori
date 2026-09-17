@@ -88,9 +88,14 @@ class DetailShareTest {
         )
         assertFalse(refused)
 
-        // No handler installed under Robolectric: ActivityNotFound maps to false.
+        // No handler installed: ActivityNotFound maps to false, no crash.
+        val noHandler = object : android.content.ContextWrapper(context) {
+            override fun startActivity(intent: Intent) {
+                throw android.content.ActivityNotFoundException("no handler")
+            }
+        }
         val unhandled = launchShare(
-            context,
+            noHandler,
             DetailMessage.ShareFile(
                 uri = "content://authority/book.cbz",
                 displayName = "book.cbz",

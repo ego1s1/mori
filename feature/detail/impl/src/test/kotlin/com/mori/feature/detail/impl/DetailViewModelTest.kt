@@ -144,6 +144,38 @@ class DetailViewModelTest {
     }
 
     @Test
+    fun bookmarkAfterRemovalIsIgnored() = runTest {
+        val (viewModel, repository) = viewModel()
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(DetailAction.AskRemove)
+            awaitItem() // confirmRemove = true
+            viewModel.onAction(DetailAction.ConfirmRemove)
+            assertTrue(awaitItem() is DetailUiState.Missing)
+            viewModel.onAction(DetailAction.ToggleBookmark)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        // The row is gone: no phantom bookmark write for the removed id.
+        assertTrue(repository.bookmarkToggles.isEmpty())
+    }
+
+    @Test
+    fun doubleConfirmRemovesOnce() = runTest {
+        val (viewModel, repository) = viewModel()
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(DetailAction.AskRemove)
+            awaitItem() // confirmRemove = true
+            viewModel.onAction(DetailAction.ConfirmRemove)
+            viewModel.onAction(DetailAction.ConfirmRemove)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("a"), repository.removedIds)
+    }
+
+    @Test
     fun removeFlowAsksConfirmsAndMarksRemoved() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {

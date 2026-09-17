@@ -127,7 +127,7 @@ class LibraryViewModel @Inject constructor(
     val resumeTarget: StateFlow<Comic?> = comics
         .map { list -> list.resumeTarget() }
         .distinctUntilChanged { a, b ->
-            a?.id == b?.id && a?.lastPageIndex == b?.lastPageIndex
+            a?.id == b?.id && a?.lastPageIndex == b?.lastPageIndex && a?.error == b?.error
         }
         .stateIn(
             scope = viewModelScope,

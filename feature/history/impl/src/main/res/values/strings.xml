@@ -4,6 +4,8 @@
     <string name="history_search_label">Search history</string>
     <string name="history_empty_title">No reading history yet</string>
     <string name="history_empty_body">Books you open will appear here, grouped by day.</string>
+    <string name="history_no_results_title">No matches in history</string>
+    <string name="history_no_results_body">Nothing you read matches “%1$s”.</string>
     <string name="history_day_today">Today</string>
     <string name="history_day_yesterday">Yesterday</string>
     <string name="history_row_position">Page %1$d of %2$d</string>

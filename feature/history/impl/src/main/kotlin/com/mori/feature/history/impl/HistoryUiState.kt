@@ -10,6 +10,9 @@ sealed interface HistoryUiState {
         val queryText: String,
     ) : HistoryUiState {
         val isEmpty: Boolean get() = days.isEmpty()
+
+        /** Searching with zero matches is "no results", not "no history". */
+        val isNoResults: Boolean get() = isEmpty && queryText.isNotBlank()
     }
 }
 

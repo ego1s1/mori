@@ -21,15 +21,19 @@ data class HistoryDay(
 /**
  * Touched books (anything opened past the cover) grouped by local day.
  * Untouched books have nothing to resume; errored rows stay visible but the
- * UI routes their taps to details, like the library cards.
+ * UI routes their taps to details, like the library cards. Future-dated
+ * rows (clock skew, restored backups) clamp to today instead of forming a
+ * bucket in the future; same-millis ties break by id so ordering never
+ * depends on repository emission order.
  */
 fun List<Comic>.historyGroups(
     nowMillis: Long = System.currentTimeMillis(),
     zone: TimeZone = TimeZone.getDefault(),
 ): List<HistoryDay> {
-    val touched = filter { it.lastPageIndex > 0 }.sortedByDescending { it.updatedAt }
+    val touched = filter { it.lastPageIndex > 0 }
+        .sortedWith(compareByDescending<Comic> { minOf(it.updatedAt, nowMillis) }.thenBy { it.id })
     if (touched.isEmpty()) return emptyList()
-    return touched.groupBy { dayStartMillis(it.updatedAt, zone) }
+    return touched.groupBy { dayStartMillis(minOf(it.updatedAt, nowMillis), zone) }
         .map { (dayStart, comics) -> HistoryDay(dayStart, comics) }
         .sortedByDescending { it.dayStartMillis }
 }
@@ -38,6 +42,19 @@ fun List<Comic>.historyGroups(
 fun dayStartMillis(millis: Long, zone: TimeZone = TimeZone.getDefault()): Long {
     val calendar = Calendar.getInstance(zone).apply {
         timeInMillis = millis
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return calendar.timeInMillis
+}
+
+/** Local-midnight millis of the day before [dayStart] (DST-safe). */
+fun previousDayStartMillis(dayStart: Long, zone: TimeZone = TimeZone.getDefault()): Long {
+    val calendar = Calendar.getInstance(zone).apply {
+        timeInMillis = dayStart
+        add(Calendar.DAY_OF_YEAR, -1)
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)

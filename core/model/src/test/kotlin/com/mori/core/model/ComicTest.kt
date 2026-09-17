@@ -74,6 +74,13 @@ class ComicTest {
     }
 
     @Test
+    fun pagesLeftClampsNegativeAndEmptyBooks() {
+        // Stale negative progress never reports more pages than exist.
+        assertEquals(10, comic(pageCount = 10, lastPageIndex = -1).pagesLeft)
+        assertEquals(0, comic(pageCount = 0, lastPageIndex = 0).pagesLeft)
+    }
+
+    @Test
     fun continueShelfOrdersInProgressByRecency() {
         val shelf = listOf(
             comic(pageCount = 10, lastPageIndex = 0).copy(id = "fresh"),
