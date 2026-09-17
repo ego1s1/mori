@@ -37,6 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -174,6 +175,10 @@ private fun ReaderContent(
         initialPage = state.pageIndex,
         pageCount = { state.pageCount },
     )
+    // Layout generation for the page slots below: any rebuild of the viewer
+    // list (split/direction/invert/scan) remounts pages at fit. Computed
+    // once per list instance so slot lookup stays O(1).
+    val viewerLayoutKey = remember(state.viewerPages) { state.viewerPages.hashCode() }
 
     // ViewModel -> pager (buttons, taps, slider, seeks). Turns glide on a
     // short retargeting spec: each new target cancels the in-flight glide and
@@ -353,7 +358,16 @@ private fun ReaderContent(
                     // resolving to an archive page plus the half to decode.
                     val viewerPage = state.viewerPages.getOrNull(page)
                         ?: ReaderViewerPage(page, PageHalf.FULL)
-                    ZoomablePage(
+                    // Remount on list rebuilds (split/direction/invert/scan):
+                    // zoom and pan belong to a layout, not a slot — the page
+                    // remembers zoom by archive identity, so carrying it
+                    // across a rebuild would strand the zoomed gate on a page
+                    // it no longer describes and freeze swipe-turns. Fresh
+                    // pages start at fit with the gate released. The key is a
+                    // content hash, not the list: equality is O(pages) once
+                    // per rebuild, O(1) per composition afterwards.
+                    key(viewerLayoutKey) {
+                        ZoomablePage(
                         comicId = state.comicId,
                         pageIndex = viewerPage.archiveIndex,
                         pageNumber = viewerPage.archiveIndex + 1,
@@ -378,6 +392,7 @@ private fun ReaderContent(
                         onZoneTap = handleZone,
                     )
                     }
+                }
             }
         }
 

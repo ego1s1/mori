@@ -529,6 +529,69 @@ class ReaderScreenTest {
         assert(actions.contains(ReaderAction.PageChanged(0)))
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun splitToggleWhileZoomedReleasesPager() {
+        // Zoomed, then the viewer list rebuilds (split on): zoom belongs to
+        // the old layout, so the page remounts at fit with the gate released
+        // instead of stranding swipe-turns behind a stale zoomed flag.
+        composeTestRule.mainClock.autoAdvance = false
+        var split by mutableStateOf(false)
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                val pages = buildViewerPages(
+                    10,
+                    if (split) setOf(2) else emptySet(),
+                    ReadingDirection.LEFT_TO_RIGHT,
+                    false,
+                )
+                ReaderScreen(
+                    uiState = ready(pageIndex = 0).copy(
+                        pageCount = pages.size,
+                        viewerPages = pages,
+                        archivePageCount = 10,
+                        expandedForArchive = archiveToExpandedPositions(pages, 10),
+                        dualPageSplit = split,
+                    ),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, spot)
+                up(0)
+            }
+        }
+        // Let the double-tap zoom glide finish (frozen clock otherwise).
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+
+        // Zoomed: the pager stands down, swipes never turn.
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        assert(actions.none { it is ReaderAction.PageChanged })
+
+        // The viewer list rebuilds: the gate releases, swipes turn again.
+        split = true
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.any { it is ReaderAction.PageChanged })
+    }
+
     @Test
     fun errorStateShowsMessage() {
         composeTestRule.setContent {
