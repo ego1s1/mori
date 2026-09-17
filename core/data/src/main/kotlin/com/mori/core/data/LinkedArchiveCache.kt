@@ -40,38 +40,70 @@ class LinkedArchiveCache @Inject constructor(
     private val entryLocks = ConcurrentHashMap<String, Mutex>()
 
     suspend fun materialize(uri: Uri, displayName: String): File = withContext(Dispatchers.IO) {
-        val doc = DocumentFile.fromSingleUri(context, uri)
-            ?: throw IOException("Unable to open $displayName")
+        // Only SAF documents are materialized: anything restored from backup
+        // (or otherwise unexpected) that is not a content URI reads as a
+        // vanished document instead of being queried blindly. Revoked grants
+        // surface as IOException so Coil shows its error placeholder rather
+        // than crashing on the unchecked SecurityException.
+        if (uri.scheme != "content") throw IOException("Not a document: $displayName")
+        val doc = try {
+            DocumentFile.fromSingleUri(context, uri)
+        } catch (e: SecurityException) {
+            throw IOException("Grant revoked: $displayName", e)
+        } ?: throw IOException("Unable to open $displayName")
         val size = doc.length()
         val modified = doc.lastModified()
         val dest = File(cacheDir, cacheName(uri, displayName, size, modified))
-        entryLocks.getOrPut(dest.name) { Mutex() }.withLock {
-            if (!dest.isFile) {
-                evictToFit(size)
-                val stream = context.contentResolver.openInputStream(uri)
-                    ?: throw IOException("Unable to open $displayName")
-                // Copy to a temp sibling and rename: a concurrent reader
-                // never observes a partial file, and a crash never leaves
-                // a torn entry that looks complete.
-                val tmp = File(cacheDir, dest.name + ".part")
-                try {
-                    stream.use { input ->
-                        FileOutputStream(tmp).use { output ->
-                            input.copyTo(output)
+        val lock = entryLocks.getOrPut(dest.name) { Mutex() }
+        try {
+            lock.withLock {
+                if (!dest.isFile) {
+                    evictToFit(size)
+                    val stream = try {
+                        context.contentResolver.openInputStream(uri)
+                    } catch (e: SecurityException) {
+                        throw IOException("Grant revoked: $displayName", e)
+                    } ?: throw IOException("Unable to open $displayName")
+                    // Copy to a temp sibling and rename: a concurrent reader
+                    // never observes a partial file, and a crash never leaves
+                    // a torn entry that looks complete. The copy is capped:
+                    // a hostile provider must not stream unbounded bytes to
+                    // disk, and eviction accounts actual bytes written.
+                    val tmp = File(cacheDir, dest.name + ".part")
+                    var written = 0L
+                    try {
+                        stream.use { input ->
+                            FileOutputStream(tmp).use { output ->
+                                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                                while (true) {
+                                    val read = input.read(buffer)
+                                    if (read < 0) break
+                                    written += read
+                                    if (written > MATERIALIZE_BYTE_CAP) {
+                                        throw IOException("$displayName exceeds size cap")
+                                    }
+                                    output.write(buffer, 0, read)
+                                }
+                            }
                         }
+                        tmp.setLastModified(System.currentTimeMillis())
+                        if (!tmp.renameTo(dest) && !dest.isFile) {
+                            throw IOException("Unable to cache $displayName")
+                        }
+                        evictToFit(written)
+                    } finally {
+                        if (tmp.isFile && !dest.isFile) runCatching { tmp.delete() }
                     }
-                    tmp.setLastModified(System.currentTimeMillis())
-                    if (!tmp.renameTo(dest) && !dest.isFile) {
-                        throw IOException("Unable to cache $displayName")
-                    }
-                } finally {
-                    if (tmp.isFile && !dest.isFile) runCatching { tmp.delete() }
+                    dest.setLastModified(System.currentTimeMillis())
+                } else {
+                    // LRU touch: recently read archives survive eviction.
+                    dest.setLastModified(System.currentTimeMillis())
                 }
-                dest.setLastModified(System.currentTimeMillis())
-            } else {
-                // LRU touch: recently read archives survive eviction.
-                dest.setLastModified(System.currentTimeMillis())
             }
+        } finally {
+            // Mutexes accumulate to library size otherwise; drop the idle
+            // one (remove only if it is still ours).
+            entryLocks.remove(dest.name, lock)
         }
         dest
     }
@@ -99,6 +131,13 @@ class LinkedArchiveCache @Inject constructor(
     internal companion object {
         const val LINKED_DIR = "linked"
         const val CACHE_BOUND_BYTES = 256L * 1024 * 1024
+
+        /**
+         * Hard ceiling per materialized document: a hostile or broken
+         * provider streaming past this aborts instead of filling disk.
+         * Far above any plausible book (2 GiB).
+         */
+        const val MATERIALIZE_BYTE_CAP = 2L * 1024 * 1024 * 1024
     }
 }
 

@@ -130,4 +130,13 @@ class ComicInfoParserTest {
         assertNull(meta.title)
         assertEquals("S", meta.series)
     }
+
+    @Test
+    fun oversizedEntryRefusedWithoutBuffering() {
+        // 600KB of padding: over the cap, so metadata falls back to empty
+        // instead of buffering a hostile entry.
+        val padding = "x".repeat(600 * 1024)
+        val meta = parse("<ComicInfo><Title>T</Title><Summary>$padding</Summary></ComicInfo>")
+        assertEquals(ComicMetadata(), meta)
+    }
 }

@@ -13,9 +13,16 @@ import javax.xml.parsers.DocumentBuilderFactory
  */
 object ComicInfoParser {
 
-    /** Parses [input] as `ComicInfo.xml`. The stream is consumed but not closed. */
+    /**
+     * Parses [input] as `ComicInfo.xml`. The stream is consumed but not
+     * closed. At most [MAX_XML_BYTES] are read first: real ComicInfo files
+     * are kilobytes, and the parser hardening below is best-effort on some
+     * Android runtimes — the byte cap holds even where entity budgets are
+     * unsupported, so a hostile entry cannot buffer unbounded XML.
+     */
     fun parse(input: InputStream): ComicMetadata {
-        val document = runCatching { newDocumentBuilder().parse(input) }.getOrNull()
+        val bytes = input.readUpTo(MAX_XML_BYTES) ?: return ComicMetadata()
+        val document = runCatching { newDocumentBuilder().parse(bytes.inputStream()) }.getOrNull()
         val root = document?.documentElement ?: return ComicMetadata()
 
         val raw = collectElements(root)
@@ -82,5 +89,26 @@ object ComicInfoParser {
         "yes", "true", "1", "y" -> true
         "no", "false", "0", "n" -> false
         else -> null
+    }
+
+    /** Real ComicInfo files are kilobytes; anything bigger is hostile. */
+    const val MAX_XML_BYTES = 512 * 1024
+
+    /**
+     * Reads up to [cap] bytes, or null when the stream is longer (the
+     * caller then refuses the entry instead of buffering it).
+     */
+    private fun InputStream.readUpTo(cap: Int): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var total = 0
+        while (true) {
+            val read = read(buffer)
+            if (read < 0) break
+            total += read
+            if (total > cap) return null
+            out.write(buffer, 0, read)
+        }
+        return out.toByteArray()
     }
 }
