@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Least-privilege share surface: only app-private files and cache entries
+     are ever served to other apps. User originals stay behind their own
+     document grants (content:// rows never touch this provider). -->
+<paths>
+    <files-path name="shared" path="." />
+    <cache-path name="shared" path="." />
+</paths>
