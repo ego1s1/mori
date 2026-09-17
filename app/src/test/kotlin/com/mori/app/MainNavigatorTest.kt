@@ -40,7 +40,19 @@ class MainNavigatorTest {
 
         composeTestRule.onNodeWithTag(MainTestTags.Navigator).assertExists()
         composeTestRule.onNodeWithTag(MainTestTags.LibraryTab).assertIsSelected()
+        composeTestRule.onNodeWithTag(MainTestTags.HistoryTab).assertIsNotSelected()
         composeTestRule.onNodeWithTag(MainTestTags.SettingsTab).assertIsNotSelected()
+    }
+
+    @Test
+    fun historySitsBetweenLibraryAndSettings() {
+        val order = mutableListOf<Int>()
+        setPill(selectedTab = 1, onSelectTab = order::add)
+
+        composeTestRule.onNodeWithTag(MainTestTags.HistoryTab).assertIsSelected()
+        composeTestRule.onNodeWithTag(MainTestTags.SettingsTab).performClick()
+
+        assertEquals(listOf(2), order)
     }
 
     @Test
@@ -50,7 +62,7 @@ class MainNavigatorTest {
 
         composeTestRule.onNodeWithTag(MainTestTags.SettingsTab).performClick()
 
-        assertEquals(1, selected)
+        assertEquals(2, selected)
     }
 
     @Test

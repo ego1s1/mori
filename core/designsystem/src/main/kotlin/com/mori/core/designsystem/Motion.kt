@@ -103,11 +103,26 @@ object MoriMotion {
             tween(durationMillis = COVER_MORPH_MS, easing = EmphasizedDecelerate)
         }
 
+    /**
+     * Tab travel glide: a beat longer than screen chrome so switching tabs
+     * reads as deliberate travel, not a snap. Fixed-time tweens (not
+     * springs) so rapid tab hops retarget cleanly mid-flight, matching the
+     * pager glide contract.
+     */
+    fun <T> tabEnterSpec(): FiniteAnimationSpec<T> =
+        tween(durationMillis = TAB_ENTER_MS, easing = EmphasizedDecelerate)
+
+    /** Tab travel exit: quicker than enter so the arrival leads. */
+    fun <T> tabExitSpec(): FiniteAnimationSpec<T> =
+        tween(durationMillis = TAB_EXIT_MS, easing = EmphasizedAccelerate)
+
     private const val PAGE_TURN_MS = 180
     private const val DOUBLE_TAP_ZOOM_MS = 350
     private const val READER_FADE_IN_MS = 180
     private const val READER_FADE_OUT_MS = 150
     private const val COVER_MORPH_MS = 650
+    private const val TAB_ENTER_MS = 450
+    private const val TAB_EXIT_MS = 300
 }
 
 /**

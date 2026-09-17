@@ -47,6 +47,7 @@ import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.model.ResumeTarget
+import com.mori.feature.history.impl.HistoryTabContent
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
@@ -104,11 +105,11 @@ fun NavGraphBuilder.mainScreen(
 }
 
 /**
- * Main viewport: Library and Settings are separate tab destinations under one
- * floating navigator — no swipe pager. Tabs switch with a short fade and each
- * keeps its state (grid scroll position survives a settings visit), so the
- * heavy settings page never composes mid-gesture. The system back gesture on
- * the Settings tab returns to Library instead of leaving.
+ * Main viewport: Library, History and Settings are separate tab destinations
+ * under one floating navigator — no swipe pager. Tabs switch with a smooth
+ * directional glide and each keeps its state (grid scroll position survives
+ * a settings visit), so the heavy settings page never composes mid-gesture.
+ * The system back gesture steps back one adjacent tab instead of leaving.
  */
 @Composable
 internal fun MainScreen(
@@ -120,15 +121,15 @@ internal fun MainScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabStateHolder = rememberSaveableStateHolder()
 
-    // Predictive-back preview for Settings → Library: the content leans with
-    // the gesture (subtle pull + settle) instead of snapping on release.
-    // Commit swaps tabs (the directional transition carries the arrival);
-    // cancel glides back to rest.
+    // Predictive-back preview for stepping back one tab: the content leans
+    // with the gesture (subtle pull + settle) instead of snapping on
+    // release. Commit swaps tabs (the directional transition carries the
+    // arrival); cancel glides back to rest.
     val backPreview = remember { Animatable(0f) }
-    PredictiveBackHandler(enabled = selectedTab == SETTINGS_TAB) { progress ->
+    PredictiveBackHandler(enabled = selectedTab != LIBRARY_TAB) { progress ->
         try {
             progress.collect { backPreview.snapTo(it.progress) }
-            selectedTab = LIBRARY_TAB
+            selectedTab -= 1
             backPreview.snapTo(0f)
         } catch (e: CancellationException) {
             backPreview.animateTo(0f)
@@ -139,7 +140,7 @@ internal fun MainScreen(
     var resume by rememberSaveable(stateSaver = ResumeTargetSaver) { mutableStateOf<ResumeTarget?>(null) }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
 
-    // Single floating navigator for both tabs (destinations + resume); the
+    // Single floating navigator for all tabs (destinations + resume); the
     // library's action toolbar floats above it. No bottom bar.
     Scaffold(
         // Edge-to-edge bottom: content draws behind the system nav bar while
@@ -154,20 +155,26 @@ internal fun MainScreen(
             .padding(padding)) {
             // No entry animation here: the NavHost transition already carries
             // the arrival. A second scale-in stacked on top read as a glitch.
-            // Tab travel is directional (specs are plain springs, so no
-            // composable-gated resolution is needed inside transitionSpec).
+            // Tab travel is a directional glide (fixed-time tweens retarget
+            // cleanly on rapid hops); calm motion crossfades instead.
             AnimatedContent(
                 targetState = selectedTab,
                 transitionSpec = {
-                    // Directional nudge: entering content drifts in from the
-                    // travel side while the old one recedes — subtler than a
-                    // full slide, calmer than a hard crossfade.
-                    val forward = targetState > initialState
-                    val sign = if (forward) 1 else -1
-                    (fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                        slideInHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()) { sign * it / 5 }) togetherWith
-                        (fadeOut(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                            slideOutHorizontally(animationSpec = MoriMotion.defaultSpatialSpec()) { -sign * it / 5 })
+                    if (!expressiveMotion) {
+                        fadeIn(animationSpec = MoriMotion.calmFade()) togetherWith
+                            fadeOut(animationSpec = MoriMotion.calmFade())
+                    } else {
+                        // Directional glide: entering content drifts in from
+                        // the travel side while the old one recedes — a beat
+                        // longer than screen chrome so tab travel reads as
+                        // deliberate, subtler than a full slide.
+                        val forward = targetState > initialState
+                        val sign = if (forward) 1 else -1
+                        (fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
+                            slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) { sign * it / 4 }) togetherWith
+                            (fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
+                                slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) { -sign * it / 4 })
+                    }
                 },
                 label = "mainTabs",
                 modifier = Modifier
@@ -186,6 +193,10 @@ internal fun MainScreen(
                             onReadClick = onReadClick,
                             onComicLongClick = onComicLongClick,
                             onResumeAvailable = { resume = it },
+                        )
+                        HISTORY_TAB -> HistoryTabContent(
+                            onReadClick = onReadClick,
+                            onComicLongClick = onComicLongClick,
                         )
                         else -> SettingsTabContent(
                             onLicensesClick = onLicensesClick,
@@ -243,4 +254,5 @@ internal fun MainScreen(
 }
 
 private const val LIBRARY_TAB = 0
-private const val SETTINGS_TAB = 1
+private const val HISTORY_TAB = 1
+private const val SETTINGS_TAB = 2

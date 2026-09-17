@@ -36,10 +36,10 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 
 /**
- * The floating navigator: Library + Settings destinations with caffeine-style
- * selected highlighting — the active tab is a wide pill carrying icon and
- * label, idle tabs are bare icons. Tab state lives in [MainScreen] and every
- * tap delegates out — no business logic here.
+ * The floating navigator: Library, History and Settings destinations with
+ * caffeine-style selected highlighting — the active tab is a wide pill
+ * carrying icon and label, idle tabs are bare icons. Tab state lives in
+ * [MainScreen] and every tap delegates out — no business logic here.
  *
  * Geometry is fully deterministic (M3 expressive 4dp grid): 48dp cells on a
  * 4dp gap inside 8x4dp chrome, so the bar always measures 56dp tall — the
@@ -74,6 +74,14 @@ internal fun MainNavigator(
             NavDestination(
                 selected = selectedTab == 1,
                 onClick = { onSelectTab(1) },
+                icon = MoriIcons.History,
+                label = "History",
+                contentDescription = "History tab",
+                testTag = MainTestTags.HistoryTab,
+            )
+            NavDestination(
+                selected = selectedTab == 2,
+                onClick = { onSelectTab(2) },
                 icon = MoriIcons.Settings,
                 label = "Settings",
                 contentDescription = "Settings tab",
