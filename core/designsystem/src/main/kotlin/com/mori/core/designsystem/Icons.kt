@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
@@ -37,6 +38,7 @@ object MoriIcons {
     val Delete = Icons.Rounded.Delete
     val FitScreen = Icons.Rounded.FitScreen
     val GridView = Icons.Rounded.GridView
+    val History = Icons.Rounded.History
     val MenuBook = Icons.Rounded.MenuBook
     val PlayArrow = Icons.Rounded.PlayArrow
     val Refresh = Icons.Rounded.Refresh

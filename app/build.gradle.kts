@@ -49,6 +49,7 @@ android {
 dependencies {
     implementation(project(":feature:onboarding:impl"))
     implementation(project(":feature:library:impl"))
+    implementation(project(":feature:history:impl"))
     implementation(project(":feature:detail:impl"))
     implementation(project(":feature:reader:impl"))
     implementation(project(":feature:settings:impl"))
