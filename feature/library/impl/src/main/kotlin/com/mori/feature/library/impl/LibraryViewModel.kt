@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 
@@ -67,6 +68,9 @@ class LibraryViewModel @Inject constructor(
      */
     private val reindexMutex = Mutex()
     private val reindexPending = AtomicInteger(0)
+
+    /** A refresh tap that arrived mid-run, folded into one follow-up pass. */
+    private val reindexQueued = AtomicBoolean(false)
     /** Last reported index callback; cleared when no run is active. */
     private val indexProgress = MutableStateFlow<IndexProgress?>(null)
     private val filterOpen = MutableStateFlow(false)
@@ -197,30 +201,41 @@ class LibraryViewModel @Inject constructor(
      * Link-only rescan: re-indexes a tree in place — nothing is ever copied.
      * With no tree linked there is nothing to rescan. [linkUri] persists a
      * freshly picked folder first, so a pick during a running rescan is
-     * never dropped: it queues behind the lock instead.
+     * never dropped: it folds into at most one follow-up run instead of
+     * queueing a full pass per tap.
      */
     private fun reindex(linkUri: String? = null) {
         viewModelScope.launch {
             if (linkUri != null) preferences.setSourceTreeUri(linkUri)
+            if (reindexMutex.isLocked) {
+                // A run is active (or a follow-up already folded): merge this
+                // tap into it. Folder picks persist above, so the follow-up
+                // indexes the newest tree; pure refresh taps collapse to one.
+                reindexQueued.set(true)
+                return@launch
+            }
             // Raised before parking: queued runs show the spinner instead
             // of a dead gap. withLock (not manual lock/unlock) releases
             // the mutex on cancellation instead of deadlocking the next run.
             reindexPending.incrementAndGet()
             refreshing.value = true
             try {
-                reindexMutex.withLock {
-                    try {
-                        val treeUri = preferences.sourceTreeUri.first() ?: return@withLock
-                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
-                            indexProgress.value = IndexProgress(done, total)
-                        }.failed
-                        if (failed > 0) {
-                            messageChannel.send(LibraryMessage.IndexFailed(failed))
+                do {
+                    reindexQueued.set(false)
+                    reindexMutex.withLock {
+                        try {
+                            val treeUri = preferences.sourceTreeUri.first() ?: return@withLock
+                            val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
+                                indexProgress.value = IndexProgress(done, total)
+                            }.failed
+                            if (failed > 0) {
+                                messageChannel.send(LibraryMessage.IndexFailed(failed))
+                            }
+                        } catch (e: Exception) {
+                            messageChannel.send(LibraryMessage.RescanFailed)
                         }
-                    } catch (e: Exception) {
-                        messageChannel.send(LibraryMessage.RescanFailed)
                     }
-                }
+                } while (reindexQueued.getAndSet(false))
             } finally {
                 if (reindexPending.decrementAndGet() == 0) {
                     refreshing.value = false

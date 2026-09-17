@@ -202,6 +202,27 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun rapidRefreshTapsCoalesceIntoOneFollowUp() = runTest {
+        // Three taps behind a parked run collapse into a single follow-up
+        // pass instead of queueing three full reindexes.
+        val repository = FakeComicsRepository()
+        repository.indexGate = CompletableDeferred()
+        val preferences = FakePreferencesDataSource()
+        preferences.setSourceTreeUri("content://tree/old")
+        val viewModel = viewModel(repository, preferences = preferences)
+        viewModel.uiState.test {
+            awaitSuccess()
+            viewModel.onAction(LibraryAction.Refresh)
+            viewModel.onAction(LibraryAction.Refresh)
+            viewModel.onAction(LibraryAction.Refresh)
+            repository.indexGate?.complete(Unit)
+            dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(2, repository.linkedTrees.size)
+    }
+
+    @Test
     fun folderSelectedLinksAndIndexes() = runTest {
         val repository = FakeComicsRepository()
         val preferences = FakePreferencesDataSource()

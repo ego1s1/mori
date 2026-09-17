@@ -1,5 +1,6 @@
 package com.mori.feature.reader.impl
 
+import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,8 +39,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -226,6 +229,13 @@ private fun ReaderContent(
     val haptic = LocalHapticFeedback.current
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
+    val contentScope = rememberCoroutineScope()
+    // Detector epoch for the container taps: a direction flip bumps it so a
+    // double-tap hold parked across the flip drops instead of dispatching
+    // with the old zone. Starts at 1 — the launch effect below runs on first
+    // composition too, and 0 must never read as a valid stamp.
+    val tapEpoch = remember { mutableIntStateOf(1) }
+    LaunchedEffect(state.direction) { tapEpoch.intValue++ }
 
     // Back exits through the NavHost: Navigation Compose scrubs the pop
     // transitions with the system gesture, so the library shows through for
@@ -319,6 +329,8 @@ private fun ReaderContent(
                     .zoneTaps(
                         viewportWidth = viewportWidth,
                         direction = state.direction,
+                        scope = contentScope,
+                        epoch = tapEpoch,
                         onZoneTap = handleZone,
                         onZoom = { _, _ -> handleZone(ReaderZone.MENU) },
                         consumeUp = false,

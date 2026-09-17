@@ -103,6 +103,10 @@ internal fun ZoomablePage(
         mutableFloatStateOf(PAGE_ASPECT)
     }
     val scope = rememberCoroutineScope()
+    // Detector epoch: a direction flip bumps it so a double-tap hold parked
+    // across the flip drops instead of dispatching with the old zone.
+    val tapEpoch = remember { mutableIntStateOf(1) }
+    LaunchedEffect(direction) { tapEpoch.intValue++ }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
     // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
     // cancel each other instead of fighting over scale/offset.
@@ -173,6 +177,8 @@ internal fun ZoomablePage(
                 .zoneTaps(
                     viewportWidth = viewportWidth,
                     direction = direction,
+                    scope = scope,
+                    epoch = tapEpoch,
                     onZoneTap = { zone ->
                         if ((zone == ReaderZone.PREV || zone == ReaderZone.NEXT) && scale > 1f) {
                             val towardTrailing =

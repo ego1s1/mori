@@ -177,6 +177,10 @@ internal class ReaderViewModel @Inject constructor(
                     ) {
                         wideInFlight.update { it + id }
                         try {
+                            // Generation guard: a turn landing mid-decode must
+                            // win over this anchor — re-anchoring the stale
+                            // archive would yank the pager back over it.
+                            val navBefore = navigation.value
                             val wide = repository.widePageIndices(id)
                             // Wide first, anchor second: the intermediate state
                             // keeps a valid index under the longer count (the
@@ -192,6 +196,7 @@ internal class ReaderViewModel @Inject constructor(
                             // so a mid-scan flip can't strand a stale layout.
                             val prefs = preferences.readerPreferences.first()
                             if (!prefs.dualPageSplit) return@collect
+                            if (navigation.value != navBefore) return@collect
                             val ready = uiState.value as? ReaderUiState.Ready
                             if (ready != null && ready.comicId == id) {
                                 val pages = buildViewerPages(
@@ -320,10 +325,14 @@ internal class ReaderViewModel @Inject constructor(
                 // must index into the list the new prefs build.
                 val ready = uiState.value as? ReaderUiState.Ready
                 val archive = ready?.currentArchiveIndex
+                val navBefore = navigation.value
                 updatePrefs { it.copy(direction = action.direction) }
                 if (ready != null && archive != null && ready.dualPageSplit) {
                     viewModelScope.launch {
                         val prefs = preferences.readerPreferences.first { it.direction == action.direction }
+                        // A turn landing mid-flip wins: re-anchoring the stale
+                        // archive would yank the pager back over it.
+                        if (navigation.value != navBefore) return@launch
                         retarget(
                             ready, archive, prefs.direction,
                             split = true,
@@ -338,6 +347,7 @@ internal class ReaderViewModel @Inject constructor(
                 val ready = uiState.value as? ReaderUiState.Ready
                 val archive = ready?.currentArchiveIndex
                 val split = !(ready?.dualPageSplit ?: false)
+                val navBefore = navigation.value
                 updatePrefs { it.copy(dualPageSplit = split) }
                 if (ready != null && archive != null) {
                     // Anchor AFTER the prefs land: navigation must index into
@@ -345,8 +355,10 @@ internal class ReaderViewModel @Inject constructor(
                     // strand a stale expanded index under the new count and
                     // save the wrong archive. The transient in between stays
                     // coercible, and the scan (split-on) re-anchors on arrival.
+                    // A turn landing mid-toggle wins over the stale anchor.
                     viewModelScope.launch {
                         val prefs = preferences.readerPreferences.first { it.dualPageSplit == split }
+                        if (navigation.value != navBefore) return@launch
                         val wide = if (split) wideCache.value[ready.comicId].orEmpty() else emptySet()
                         retarget(ready, archive, prefs.direction, split, wide, prefs.dualPageInvert)
                     }
@@ -356,13 +368,15 @@ internal class ReaderViewModel @Inject constructor(
                 val ready = uiState.value as? ReaderUiState.Ready
                 val archive = ready?.currentArchiveIndex
                 val invert = !(ready?.dualPageInvert ?: false)
+                val navBefore = navigation.value
                 updatePrefs { it.copy(dualPageInvert = invert) }
                 if (ready != null && archive != null && ready.dualPageSplit) {
                     // Anchor AFTER the prefs land: same race as the split
                     // toggle — a stale synchronous retarget would index into
-                    // the pre-flip list.
+                    // the pre-flip list. A mid-toggle turn wins.
                     viewModelScope.launch {
                         val prefs = preferences.readerPreferences.first { it.dualPageInvert == invert }
+                        if (navigation.value != navBefore) return@launch
                         retarget(
                             ready, archive, prefs.direction,
                             split = true,

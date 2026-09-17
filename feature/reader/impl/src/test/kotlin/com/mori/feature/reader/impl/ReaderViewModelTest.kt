@@ -543,6 +543,31 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun turnDuringSplitToggleWinsOverStaleAnchor() = runTest {
+        // The toggle captures archive 2, but a seek landing before the
+        // prefs round-trip completes must win: the stale anchor drops
+        // instead of yanking the pager back.
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        ).apply { widePages = setOf(2) }
+        val viewModel = viewModel(
+            repository = repository,
+            preferences = FakePreferencesDataSource(ReaderPreferences(dualPageSplit = true)),
+        )
+        viewModel.uiState.test {
+            awaitReadyWhere { it.pageCount == 11 }
+            viewModel.onAction(ReaderAction.SeekPage(2))
+            awaitReadyWhere { it.pageIndex == 2 }
+            viewModel.onAction(ReaderAction.ToggleDualSplit)
+            // Synchronous turn before the async prefs write lands.
+            viewModel.onAction(ReaderAction.SeekPage(5))
+            val settled = awaitReadyWhere { !it.dualPageSplit && it.pageIndex == 5 }
+            assertEquals(5, settled.currentArchiveIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun savedPageRestoresBeforeRepositoryEmits() = runTest {
         val viewModel = ReaderViewModel(
             savedStateHandle = SavedStateHandle(
