@@ -1,6 +1,16 @@
 # Changelog
 
-## 1.0.1
+## 0.1.0
+
+Fresh line after the v1.x reset: versioning restarts at 0.1.0 with patch
+increments from here (0.1.1, …). Highlights since the reset point:
+
+- History tab (day-grouped reading history between Library and Settings)
+- Determinate rescan progress, coalesced refreshes, cancel-safe index locks
+- Typed refresh error rows, single-emission wide-page scan, stale-anchor guards
+- FileProvider share boundary with ClipData grants, bounded SAF copies,
+  capped ComicInfo parsing, per-page decompression budgets
+- Least-privilege backup rules, remount-on-rebuild zoom gate release
 
 - Unified onboarding storage choice (custom folders link in place with zero
   copies; app storage copies), transient Done beat into the library

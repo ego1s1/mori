@@ -21,13 +21,13 @@ android {
     defaultConfig {
         applicationId = "com.mori.reader"
         // Version precedence: explicit -PappVersionName/-PappVersionCode (used by the
-        // release workflow) win; otherwise every commit gets an incremental 1.1.x
-        // build derived from the git commit count, e.g. 1.1.23.
+        // release workflow) win; otherwise every commit gets an incremental 0.1.x
+        // build derived from the git commit count, e.g. 0.1.23.
         val commitCount = gitCommitCount()
         versionCode = (project.findProperty("appVersionCode") as String?)
             ?.toIntOrNull() ?: commitCount.coerceAtLeast(1)
         versionName = (project.findProperty("appVersionName") as String?)
-            ?.removePrefix("v") ?: "1.1.$commitCount"
+            ?.removePrefix("v") ?: "0.1.$commitCount"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -83,7 +83,7 @@ dependencies {
 /**
  * Number of commits reachable from HEAD; drives the incremental dev version so
  * every commit produces a distinct, monotonically increasing versionCode and a
- * `1.1.N` versionName. Returns 0 when git is unavailable (shallow
+ * `0.1.N` versionName. Returns 0 when git is unavailable (shallow
  * checkouts should use fetch-depth 0; see .github/workflows).
  */
 fun gitCommitCount(): Int {

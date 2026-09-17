@@ -2,9 +2,13 @@
 # Cut a release by tagging; .github/workflows/release.yml builds, signs, and
 # publishes the GitHub Release from the tag. Tags without alpha/beta/rc
 # publish as production releases (prerelease: false).
-# Usage:
+#
+# Version line is 0.x: every auto release bumps the patch (0.1.0 -> 0.1.1).
+# After the v1.x reset there are no stable tags, so bootstrap explicitly:
+#   ./scripts/new-release.sh 0.1.0   # first release on the fresh line
+# Usage once 0.x tags exist:
 #   ./scripts/new-release.sh         # next patch (highest vX.Y.Z tag + .0.1)
-#   ./scripts/new-release.sh 1.0.1   # explicit version
+#   ./scripts/new-release.sh 0.2.0   # explicit version
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
