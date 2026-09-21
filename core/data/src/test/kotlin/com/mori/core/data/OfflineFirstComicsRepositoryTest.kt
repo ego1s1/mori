@@ -211,8 +211,39 @@ class OfflineFirstComicsRepositoryTest {
     }
 
     @Test
-    fun linkedCorruptArchivesBecomeErrorRows() = runTest {
-        registerDoc("broken.cbz")
+    fun realBackendIndexesReadableRowsEndToEnd() = runTest {
+        // Full real stack (backend, covers, cache, SAF shadows): a valid
+        // book must index with no error, survive a refresh, scan, and read.
+        registerDoc("alpha.cbz")
+        val realBackend = com.mori.comic.decode.PageDecoder().let {
+            MoriComicBackendDataSource(it)
+        }
+        val lister = FakeLinkedTreeLister(
+            LinkedTreeListResult(listOf(linkedDoc("alpha.cbz")), walkFailed = false),
+        )
+        val repository = repository(realBackend, lister)
+        val report = repository.indexLinkedTree(Uri.parse("content://com.example/tree")) { _, _ -> }
+
+        assertEquals(1, report.succeeded)
+        assertEquals(0, report.failed)
+        val id = docUri("alpha.cbz").toString()
+        val indexed = repository.getComic(id)
+        assertNull("indexed row must not carry an error: ${indexed?.error}", indexed?.error)
+        assertTrue((indexed?.pageCount ?: 0) > 0)
+
+        val refreshed = repository.refreshComic(id)
+        assertNull("refreshed row must not carry an error: ${refreshed?.error}", refreshed?.error)
+
+        val wide = repository.widePageIndices(id)
+        assertTrue(wide.isNotEmpty())
+
+        val file = LinkedArchiveCache(context).fileFor(indexed!!)
+        val bytes = realBackend.readPageBytes(file, realBackend.inspect(file).pages.first())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun linkedCorruptArchivesBecomeErrorRows() = runTest {        registerDoc("broken.cbz")
         val backend = FakeComicBackendDataSource(
             failWith = com.mori.comic.CorruptArchiveException("bad"),
         )

@@ -12,7 +12,6 @@ import com.mori.comic.model.ComicMetadata
 import com.mori.comic.model.ComicPage
 import com.mori.comic.model.MediaType
 import com.mori.comic.util.NaturalSort
-import com.mori.comic.util.readCapped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
@@ -53,7 +52,7 @@ internal class CbtArchive(
         val entry = imageEntries.getOrNull(page.index)?.takeIf { it.name == page.name }
             ?: throw PageNotFoundException("Page '${page.name}' not found in '${source.file.name}'")
         try {
-            tarFile.getInputStream(entry).use { it.readCapped(what = "Page '${entry.name}'") }
+            tarFile.getInputStream(entry).use { it.readBytes() }
         } catch (e: IOException) {
             throw CorruptArchiveException("Failed to read page '${entry.name}' from '${source.file.name}'", e)
         }

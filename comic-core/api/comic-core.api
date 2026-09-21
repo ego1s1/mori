@@ -260,12 +260,6 @@ public final class com/mori/comic/model/PageDimensions {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class com/mori/comic/util/ArchiveBudgetsKt {
-	public static final field MAX_PAGE_BYTES J
-	public static final fun readCapped (Ljava/io/InputStream;JLjava/lang/String;)[B
-	public static synthetic fun readCapped$default (Ljava/io/InputStream;JLjava/lang/String;ILjava/lang/Object;)[B
-}
-
 public final class com/mori/comic/util/NaturalSort {
 	public static final field INSTANCE Lcom/mori/comic/util/NaturalSort;
 	public final fun compare (Ljava/lang/String;Ljava/lang/String;)I
