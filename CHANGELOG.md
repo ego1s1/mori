@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.23 (hotfix)
+
+Reader-backend rollback for the "all comics Can't read" regression: page
+reads and the SAF cache copy return to their pre-sweep implementations
+while the real-stack end-to-end tripwire stays green. Kept from the sweep:
+typed refresh errors, FileProvider share, bounded XML parsing, backup
+scoping, and all history/motion work.
+
 ## 0.1.0
 
 Fresh line after the v1.x reset: versioning restarts at 0.1.0 with patch
@@ -8,8 +16,7 @@ increments from here (0.1.1, …). Highlights since the reset point:
 - History tab (day-grouped reading history between Library and Settings)
 - Determinate rescan progress, coalesced refreshes, cancel-safe index locks
 - Typed refresh error rows, single-emission wide-page scan, stale-anchor guards
-- FileProvider share boundary with ClipData grants, bounded SAF copies,
-  capped ComicInfo parsing, per-page decompression budgets
+- FileProvider share boundary with ClipData grants, capped ComicInfo parsing
 - Least-privilege backup rules, remount-on-rebuild zoom gate release
 
 - Unified onboarding storage choice (custom folders link in place with zero

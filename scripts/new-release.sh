@@ -9,7 +9,10 @@
 # Usage once 0.x tags exist:
 #   ./scripts/new-release.sh         # next patch (highest vX.Y.Z tag + .0.1)
 #   ./scripts/new-release.sh 0.2.0   # explicit version
+#   ./scripts/new-release.sh 0.1.23 hotfix   # moniker appended to tag message
 set -euo pipefail
+
+MONIKER="${2:-}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -59,7 +62,7 @@ export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 "$ROOT/gradlew" -p "$ROOT" :app:assembleRelease -PappVersionName="$TAG" >/dev/null
 echo "Release build verified."
 
-git tag -a "$TAG" -m "Mori $TAG"
+git tag -a "$TAG" -m "Mori $TAG${MONIKER:+ ($MONIKER)}"
 git push origin "$TAG"
 
 echo "Pushed $TAG."
