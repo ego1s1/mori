@@ -192,7 +192,11 @@ internal fun ZoomablePage(
                                         animate(
                                             initialValue = startX,
                                             targetValue = targetX,
-                                            animationSpec = MoriMotion.pageTurnSpec(),
+                                            animationSpec = if (expressiveMotion) {
+                                                MoriMotion.pageTurnSpec()
+                                            } else {
+                                                MoriMotion.calmFade()
+                                            },
                                         ) { value, _ ->
                                             offset = offset.copy(x = value)
                                         }
