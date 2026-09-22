@@ -11,17 +11,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +92,7 @@ import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 @Composable
 internal fun ReaderRoute(
@@ -365,8 +368,9 @@ private fun ReaderContent(
                             )
                         },
                 ) { page ->
-                    // Expressive page transform: neighbors shrink and fade like a carousel,
-                    // giving swipe momentum a physical feel.
+                    // Neighbor ease: a whisper of shrink, no fade. Alpha on a
+                    // black bed reads as flicker during fast swipes; the pager
+                    // owns swipe physics natively, so chrome adds only shape.
                     val pageOffset = (
                         (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                         ).absoluteValue
@@ -403,7 +407,6 @@ private fun ReaderContent(
                             val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
                             scaleX = scale
                             scaleY = scale
-                            alpha = 1f - (pageOffset * PAGE_FADE).coerceIn(0f, PAGE_FADE)
                         },
                         onZoneTap = handleZone,
                     )
@@ -489,7 +492,11 @@ private fun ReaderContent(
                 shape = MaterialTheme.shapes.extraLarge,
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 modifier = Modifier
-                    .padding(bottom = 24.dp)
+                    .padding(
+                        bottom = 24.dp +
+                            WindowInsets.safeDrawing.asPaddingValues()
+                                .calculateBottomPadding(),
+                    )
                     .testTag(ReaderTestTags.PageCounter),
             )
         }
@@ -505,7 +512,10 @@ private fun ReaderTopBar(
     onBookmarkClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
+    // Safe drawing (bars + cutout), not status bars alone: landscape cutouts
+    // and gesture/3-button nav insets would otherwise sit chrome under glass.
+    val safeDrawing = WindowInsets.safeDrawing.asPaddingValues()
+    val layoutDirection = LocalLayoutDirection.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -518,14 +528,24 @@ private fun ReaderTopBar(
                 ),
             )
             .swallowTaps()
-            .padding(top = statusBarPadding.calculateTopPadding())
+            .padding(top = safeDrawing.calculateTopPadding())
             .testTag(ReaderTestTags.TopBar),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
+                .align(Alignment.Center)
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+                .padding(
+                    start = maxOf(
+                        4.dp,
+                        safeDrawing.calculateStartPadding(layoutDirection),
+                    ),
+                    end = maxOf(4.dp, safeDrawing.calculateEndPadding(layoutDirection)),
+                    top = 8.dp,
+                    bottom = 8.dp,
+                ),
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
@@ -600,6 +620,7 @@ private fun ReaderBottomChrome(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
             .background(
@@ -612,13 +633,22 @@ private fun ReaderBottomChrome(
             )
             .swallowTaps()
             .padding(horizontal = 16.dp)
-            .padding(bottom = 20.dp),
+            .padding(
+                bottom = 16.dp +
+                    WindowInsets.safeDrawing.asPaddingValues()
+                        .calculateBottomPadding(),
+            ),
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides rowDirection) {
+            // Single-page books have nowhere to turn: the whole nav row
+            // (buttons + slider) hides instead of rendering disabled.
+            if (pageCount > 1) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
+                    .fillMaxWidth(),
             ) {
                 FilledIconButton(
                     onClick = { onAction(leadingAction.first) },
@@ -628,7 +658,7 @@ private fun ReaderBottomChrome(
                         contentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(CHROME_CONTROL_SIZE)
                         .testTag(ReaderTestTags.Prev),
                 ) {
                     Icon(
@@ -637,22 +667,29 @@ private fun ReaderBottomChrome(
                     )
                 }
 
-                if (pageCount > 1) {
-                    Surface(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.weight(1f),
+                // Scrub preview: the thumb and the number follow the finger
+                // locally and commit once on release, so a long scrub fires
+                // one seek (one glide, one debounced save) instead of a seek
+                // per drag tick. Hoisted above the pill so the number tracks
+                // live: the pill doubles as the slider's value indicator.
+                var scrub by remember { mutableStateOf<Int?>(null) }
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        ) {
-                            // Transparent widest-length text behind the current number keeps
-                            // the slider from shifting as digit counts change.
-                            Box(contentAlignment = Alignment.CenterEnd) {
-                                Text(
-                                    text = (pageIndex + 1).toString(),
+                        // Transparent widest-length text behind the current number keeps
+                        // the slider from shifting as digit counts change. The
+                        // number tracks the scrub live: the pill doubles as the
+                        // slider's value indicator.
+                        Box(contentAlignment = Alignment.CenterEnd) {
+                            Text(
+                                text = ((scrub ?: pageIndex) + 1).toString(),
                                     style = MoriEmphasized.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
@@ -662,31 +699,28 @@ private fun ReaderBottomChrome(
                                     color = Color.Transparent,
                                 )
                             }
-                            val sliderDescription = stringResource(
+                            val scrubDescription = stringResource(
                                 R.string.reader_pager_description,
-                                pageIndex + 1,
+                                (scrub ?: pageIndex) + 1,
                                 pageCount,
                             )
-                            // Scrub preview: the thumb follows the finger
-                            // locally and commits once on release, so a long
-                            // scrub fires one seek (one glide, one debounced
-                            // save) instead of a seek per drag tick.
-                            var scrub by remember { mutableStateOf<Int?>(null) }
                             Slider(
                                 value = (scrub ?: pageIndex).toFloat(),
-                                onValueChange = { scrub = it.toInt() },
+                                onValueChange = { scrub = it.roundToInt() },
                                 onValueChangeFinished = {
                                     scrub?.let { onAction(ReaderAction.SeekPage(it)) }
                                     scrub = null
                                 },
                                 valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
-                                steps = (pageCount - 2).coerceAtLeast(0),
+                                // Continuous: discrete steps quantize long books
+                                // into jumps; rounding lands the nearest page.
+                                steps = 0,
                                 interactionSource = sliderInteraction,
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag(ReaderTestTags.Slider)
                                     .semantics {
-                                        contentDescription = sliderDescription
+                                        contentDescription = scrubDescription
                                     },
                             )
                             Text(
@@ -696,9 +730,6 @@ private fun ReaderBottomChrome(
                             )
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
 
                 FilledIconButton(
                     onClick = { onAction(trailingAction.first) },
@@ -708,7 +739,7 @@ private fun ReaderBottomChrome(
                         contentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(CHROME_CONTROL_SIZE)
                         .testTag(ReaderTestTags.Next),
                 ) {
                     Icon(
@@ -717,13 +748,15 @@ private fun ReaderBottomChrome(
                     )
                 }
             }
+            }
         }
 
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
+                .height(CHROME_CONTROL_SIZE),
         ) {
             IconButton(
                 onClick = {
@@ -825,14 +858,14 @@ private fun ReaderScreenPreview() {
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
 
+/** Touch target for chrome controls (M3 minimum, down from 56dp). */
+private val CHROME_CONTROL_SIZE = 48.dp
+
 /** Content width cap on expanded windows (M3 readability guidance). */
 private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
 
 /** Neighbor pages shrink by this fraction at full offset (carousel feel). */
 private const val PAGE_SHRINK = 0.08f
-
-/** Neighbor pages fade by this fraction at full offset. */
-private const val PAGE_FADE = 0.4f
 
 /**
  * Whether a navigation action can move anywhere from [pageIndex].

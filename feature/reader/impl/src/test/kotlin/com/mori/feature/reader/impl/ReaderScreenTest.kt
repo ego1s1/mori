@@ -653,9 +653,11 @@ class ReaderScreenTest {
             }
         }
 
+        // Nowhere to turn: the whole nav row (slider and both buttons)
+        // hides instead of rendering disabled.
         composeTestRule.onNodeWithTag(ReaderTestTags.Slider).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ReaderTestTags.Next).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Prev).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(ReaderTestTags.Next).assertDoesNotExist()
     }
 
     @Test
