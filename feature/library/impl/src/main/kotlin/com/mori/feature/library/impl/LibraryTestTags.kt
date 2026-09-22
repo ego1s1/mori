@@ -17,4 +17,6 @@ object LibraryTestTags {
     fun cardFor(id: String): String = "libraryCard:$id"
 
     fun shelfCardFor(id: String): String = "libraryShelfCard:$id"
+
+    fun bookmarkBadgeFor(id: String): String = "libraryBookmark:$id"
 }

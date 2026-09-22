@@ -13,7 +13,6 @@
     <string name="library_continue_title">Continue reading</string>
     <string name="library_card_unreadable">Can\'t read</string>
     <string name="library_card_pages_left">%1$d left</string>
-    <string name="library_card_favorite">Favorited</string>
     <string name="library_card_read">Read %1$s</string>
     <string name="library_card_details">Comic details</string>
     <string name="library_sheet_filter">Filter</string>

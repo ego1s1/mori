@@ -306,7 +306,9 @@ private fun LibraryContent(
             LibraryBody(
                 comics = comics,
                 queryText = query.text,
-                refreshing = refreshing,
+                // Spinner only when no determinate bar: the two indicators
+                // overlap otherwise during indexed rescans.
+                refreshing = refreshing && indexProgress == null,
                 linked = linked,
                 shelf = shelf,
                 onAction = onAction,

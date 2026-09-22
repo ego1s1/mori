@@ -58,6 +58,7 @@ internal class HistoryViewModel @Inject constructor(
     fun onAction(action: HistoryAction) {
         when (action) {
             is HistoryAction.SearchTextChanged -> searchText.value = action.text
+            HistoryAction.ClearSearch -> searchText.value = ""
         }
     }
 }

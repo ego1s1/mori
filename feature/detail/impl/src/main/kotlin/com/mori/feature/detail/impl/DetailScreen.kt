@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -158,7 +160,9 @@ internal fun DetailScreen(
             .fillMaxSize()
             .padding(padding)) {
             when (uiState) {
-                DetailUiState.Loading -> MoriLoading()
+                DetailUiState.Loading -> MoriLoading(
+                    modifier = Modifier.testTag(DetailTestTags.Loading),
+                )
 
                 DetailUiState.Missing -> MoriEmptyState(
                     icon = MoriIcons.MenuBook,
@@ -166,6 +170,7 @@ internal fun DetailScreen(
                     body = stringResource(R.string.detail_removed_body),
                     actionLabel = stringResource(R.string.detail_back_to_library),
                     onAction = onBackClick,
+                    modifier = Modifier.testTag(DetailTestTags.Missing),
                 )
 
                 is DetailUiState.Ready -> {
@@ -384,7 +389,9 @@ private fun DetailContent(
                         label = { Text("${index + 1}") },
                         modifier = Modifier
                             .testTag(DetailTestTags.pageChip(index))
-                            .semantics { contentDescription = chipDescription },
+                            // State (not content) description: the label and
+                            // selected state stay announced by the chip.
+                            .semantics { stateDescription = chipDescription },
                     )
                 }
                 if (!stripExpanded && comic.pageCount > window * 2 + 1) {
@@ -426,7 +433,11 @@ private fun MetadataRow(label: String, value: String, modifier: Modifier = Modif
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(88.dp),
+            // Minimum slot with wrap: long locale labels grow instead of
+            // clipping against a fixed 88dp.
+            modifier = Modifier
+                .widthIn(min = 88.dp)
+                .padding(end = 8.dp),
         )
         Text(
             text = value,

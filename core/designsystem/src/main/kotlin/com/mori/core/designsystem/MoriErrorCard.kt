@@ -53,7 +53,9 @@ fun MoriErrorCard(
                         }
                     }
                 }
-                if (secondaryLabel != null && onSecondary != null) {
+                // Secondary stands down while loading: retry-then-remove
+                // double-fires otherwise.
+                if (secondaryLabel != null && onSecondary != null && !loading) {
                     TextButton(onClick = onSecondary) {
                         Text(secondaryLabel)
                     }

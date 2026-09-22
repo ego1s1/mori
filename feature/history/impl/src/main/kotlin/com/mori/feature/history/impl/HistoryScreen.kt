@@ -151,10 +151,25 @@ private fun HistoryContent(
                 } else {
                     stringResource(R.string.history_empty_body)
                 },
-                actionLabel = null,
-                onAction = null,
+                // No-results is recoverable in place; true empty has no
+                // action (history fills itself as books are opened).
+                actionLabel = if (uiState.isNoResults) {
+                    stringResource(R.string.history_clear_search)
+                } else {
+                    null
+                },
+                onAction = if (uiState.isNoResults) {
+                    { onAction(HistoryAction.ClearSearch) }
+                } else {
+                    null
+                },
                 modifier = Modifier.testTag(HistoryTestTags.EmptyState),
                 bottomPadding = FloatingChromeBottomReserve,
+                actionTestTag = if (uiState.isNoResults) {
+                    HistoryTestTags.EmptyClearSearch
+                } else {
+                    null
+                },
             )
         } else {
             HistoryDays(
@@ -264,7 +279,9 @@ private fun HistoryDayHeader(dayStartMillis: Long, modifier: Modifier = Modifier
         }
     }
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        // Container (not page surface) so the stuck header stays visible
+        // while rows scroll beneath it.
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier,
     ) {
         Text(

@@ -122,11 +122,15 @@ internal fun ComicCard(
                         color = Color.Black.copy(alpha = 0.6f),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(6.dp),
+                            .padding(6.dp)
+                            .testTag(LibraryTestTags.bookmarkBadgeFor(comic.id)),
                     ) {
                         Icon(
                             imageVector = MoriIcons.Bookmark,
-                            contentDescription = stringResource(R.string.library_card_favorite),
+                            // Decorative: the card's read action already names
+                            // the book, so a bare "favorite" would announce
+                            // without state.
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier
                                 .padding(6.dp)

@@ -2,6 +2,8 @@ package com.mori.feature.detail.impl
 
 /** Test tags for the detail screen. */
 object DetailTestTags {
+    const val Loading = "detailLoading"
+    const val Missing = "detailMissing"
     const val Hero = "detailHero"
     const val ReadButton = "detailRead"
     const val BookmarkButton = "detailBookmark"

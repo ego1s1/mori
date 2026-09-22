@@ -18,4 +18,6 @@ sealed interface HistoryUiState {
 
 sealed interface HistoryAction {
     data class SearchTextChanged(val text: String) : HistoryAction
+
+    data object ClearSearch : HistoryAction
 }

@@ -90,6 +90,29 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun clearSearchRestoresHistory() = runTest {
+        val now = System.currentTimeMillis()
+        val viewModel = viewModel(
+            listOf(comic("a", lastPageIndex = 2, updatedAt = now)),
+        )
+        viewModel.uiState.test {
+            awaitWhere { (it as? HistoryUiState.Success)?.days?.isNotEmpty() == true }
+            viewModel.onAction(HistoryAction.SearchTextChanged("zzz"))
+            awaitWhere {
+                val success = it as? HistoryUiState.Success
+                success != null && success.isNoResults
+            }
+            viewModel.onAction(HistoryAction.ClearSearch)
+            val restored = awaitWhere {
+                val success = it as? HistoryUiState.Success
+                success != null && success.queryText.isEmpty() && !success.isEmpty
+            } as HistoryUiState.Success
+            assertTrue(restored.days.isNotEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun searchFoldingIgnoresDefaultLocale() = runTest {
         val previous = java.util.Locale.getDefault()
         java.util.Locale.setDefault(java.util.Locale("tr", "TR"))

@@ -109,7 +109,12 @@ class LibraryScreenTest {
             actions = actions,
         )
 
-        composeTestRule.onNodeWithContentDescription("Favorited").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
+        // Unmerged: the clickable card merges badge semantics upward.
+        composeTestRule.onNodeWithTag(
+            LibraryTestTags.bookmarkBadgeFor("a"),
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test

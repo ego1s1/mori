@@ -6,6 +6,7 @@ object HistoryTestTags {
     const val List = "historyList"
     const val SearchField = "historySearchField"
     const val EmptyState = "historyEmptyState"
+    const val EmptyClearSearch = "historyEmptyClearSearch"
 
     fun rowFor(comicId: String) = "historyRow_$comicId"
 }
