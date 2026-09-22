@@ -22,9 +22,11 @@ Grab the latest APK or App Bundle from [GitHub Releases](https://github.com/ego1
 
 ## Why Mori
 
-* **Reads like Mihon.** Forgiving tap zones, volume-key paging (invertible), anchored double-tap zoom, hard-stop zoom pan with second-swipe turns, dual-page spreads, and a slider pill that stays out of the art.
-* **A shelf that keeps up.** Covers fill in behind you, continue-reading tracks recency, search/sorts/favorites find anything fast.
-* **Yours, offline.** System/light/dark themes, wallpaper color, AMOLED black, calm or expressive motion — everything on-device, nothing uploaded.
+* **Truly native UI.** Built with Jetpack Compose and Material 3 Expressive: dynamic wallpaper color, AMOLED black, smooth spring animations, and layouts that adapt from phones to tablets and foldables.
+* **An effortless reader.** Forgiving tap zones, volume-key paging, double-tap zoom that anchors where you tap, pinch and pan with hard-stop edges, dual-page spreads for wide art, and a slider pill for fast scrubbing.
+* **Never lose your place.** Reading history, per-book progress, bookmarks, and a continue-reading shelf pick up exactly where you left off — across every book.
+* **A library that runs itself.** Point Mori at a folder and your shelf fills in with covers, smart search, sorts, filters, and favorites. Your files stay where they are; nothing is ever moved or duplicated.
+* **Free forever.** No ads, no accounts, no tracking, no paywalls. Mori is free and open-source software (Apache 2.0) — your library stays on your device and works fully offline.
 
 ## Build it yourself
 
@@ -33,7 +35,7 @@ Requires JDK 17 and the Android SDK:
 ```bash
 ./gradlew :app:assembleDebug        # debug APK
 ./scripts/build-release.sh          # signed local release APK
-./scripts/new-release.sh 1.1.1      # tag + trigger the store release flow
+./scripts/new-release.sh 0.1.24     # tag + trigger the store release flow
 ./gradlew test lint detekt apiCheck assembleDebug   # full gate
 ```
 
@@ -47,7 +49,7 @@ Mori hosts zero content — it only reads comic files you already own.
 
 ## Credits
 
-Reader and library conventions (tap zones, volume-key turns, slider navigator) are inspired by [Mihon](https://github.com/mihonapp/mihon) — used purely as a design reference; every line here is original. Thanks also to the junrar, Coil, and Jetpack open-source projects. The full list ships in the app under Settings → About → Open-source licenses.
+Thanks to the junrar, Coil, and Jetpack open-source projects. The full list ships in the app under Settings → About → Open-source licenses.
 
 ## License
 
