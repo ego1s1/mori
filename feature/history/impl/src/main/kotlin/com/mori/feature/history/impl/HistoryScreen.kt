@@ -1,6 +1,5 @@
 package com.mori.feature.history.impl
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -42,17 +41,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
-import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
-import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
-import com.mori.core.designsystem.enter
-import com.mori.core.designsystem.exit
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.HistoryDay
