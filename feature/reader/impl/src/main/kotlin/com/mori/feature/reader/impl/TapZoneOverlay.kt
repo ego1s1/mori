@@ -82,9 +82,18 @@ internal fun TapZoneLegend(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier,
     ) {
-        val left = if (direction == ReadingDirection.LEFT_TO_RIGHT) "Previous" else "Next"
-        val right = if (direction == ReadingDirection.LEFT_TO_RIGHT) "Next" else "Previous"
-        listOf(left, "Menu", right).forEach { label ->
+        val left = if (direction == ReadingDirection.LEFT_TO_RIGHT) {
+            stringResource(R.string.reader_zone_previous)
+        } else {
+            stringResource(R.string.reader_zone_next)
+        }
+        val right = if (direction == ReadingDirection.LEFT_TO_RIGHT) {
+            stringResource(R.string.reader_zone_next)
+        } else {
+            stringResource(R.string.reader_zone_previous)
+        }
+        val menu = stringResource(R.string.reader_zone_menu)
+        listOf(left, menu, right).forEach { label ->
             Surface(
                 shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

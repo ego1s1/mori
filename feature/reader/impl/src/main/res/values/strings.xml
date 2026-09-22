@@ -27,7 +27,7 @@
     <string name="reader_crop_subtitle">Trim page borders when decoding</string>
     <string name="reader_sheet_zones">Tap zones</string>
     <string name="reader_zones_preview_title">Preview tap zones</string>
-    <string name="reader_zones_preview_subtitle">Overlay the navigation zones on the page</string>
+    <string name="reader_zones_preview_subtitle">Overlay the navigation zones on the page. Edge taps pan first while zoomed</string>
     <string name="reader_volume_title">Volume keys turn pages</string>
     <string name="reader_volume_subtitle">Volume down goes forward, volume up goes back</string>
     <string name="reader_volume_invert_title">Invert volume keys</string>
@@ -50,4 +50,5 @@
     <string name="reader_page_load_failed">Couldn\'t load this page</string>
     <string name="reader_page_retry">Retry</string>
     <string name="reader_error_removed">This comic was removed from your library.</string>
+    <string name="reader_back_to_library">Back to library</string>
 </resources>

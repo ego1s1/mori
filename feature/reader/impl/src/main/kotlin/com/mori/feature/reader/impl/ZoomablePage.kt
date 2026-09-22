@@ -222,11 +222,18 @@ internal fun ZoomablePage(
                     onPinchingChange = onPinchingChange,
                 ),
         ) {
-            Text(
-                text = pageNumber.toString(),
-                style = MoriEmphasized.headlineSmall,
-                color = Color.White.copy(alpha = 0.6f),
-            )
+            // Placeholder number behind the art: hidden once the decode
+            // lands so it can't ghost through letterbox bars on wide pages.
+            var artLoaded by remember(comicId, pageIndex, cropMargins, half) {
+                mutableStateOf(false)
+            }
+            if (!artLoaded) {
+                Text(
+                    text = pageNumber.toString(),
+                    style = MoriEmphasized.headlineSmall,
+                    color = Color.White.copy(alpha = 0.6f),
+                )
+            }
             PageArt(
                 comicId = comicId,
                 pageIndex = pageIndex,
@@ -234,6 +241,7 @@ internal fun ZoomablePage(
                 cropMargins = cropMargins,
                 half = half,
                 onArtSize = { artWidth, artHeight -> artAspect = artAspectFor(artWidth, artHeight) },
+                onLoadedChange = { artLoaded = it },
             )
         }
     }
@@ -252,6 +260,7 @@ private fun PageArt(
     cropMargins: Boolean,
     half: PageHalf,
     onArtSize: (widthPx: Float, heightPx: Float) -> Unit,
+    onLoadedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var attempt by remember(comicId, pageIndex, half) { mutableIntStateOf(0) }
@@ -261,6 +270,9 @@ private fun PageArt(
             contentScale = ContentScale.Fit,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
+        LaunchedEffect(painterState) {
+            onLoadedChange(painterState is AsyncImagePainter.State.Success)
+        }
         // Intrinsic size follows the decoded (possibly cropped) art; the fit
         // box wraps it so crop refits instead of sitting at the old scale.
         // A state write must not happen during composition, hence the effect.

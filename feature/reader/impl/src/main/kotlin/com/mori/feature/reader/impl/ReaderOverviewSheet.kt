@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +17,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import com.mori.core.designsystem.MoriLoadingIndicator
+import com.mori.core.designsystem.MoriScrimPill
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -137,7 +141,7 @@ private fun OverviewThumb(
     key(attempt) {
         val painter = rememberAsyncImagePainter(
             model = ComicPageKey(comicId, pageIndex, OVERVIEW_MAX_DIMENSION, cropMargins),
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.Crop,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
         Surface(
@@ -145,7 +149,7 @@ private fun OverviewThumb(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             border = if (selected) {
                 BorderStroke(
-                    2.dp,
+                    3.dp,
                     MaterialTheme.colorScheme.primary,
                 )
             } else {
@@ -164,24 +168,49 @@ private fun OverviewThumb(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.aspectRatio(PAGE_ASPECT),
             ) {
+                // Crop fills the fixed cell: Fit would pillarbox cropped or
+                // wide thumbs inside identical boxes.
                 Image(
                     painter = painter,
                     contentDescription = stringResource(R.string.reader_page_art, pageNumber),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
                 when (painterState) {
                     is AsyncImagePainter.State.Loading -> MoriLoadingIndicator(
                         modifier = Modifier.size(24.dp),
                     )
-                    is AsyncImagePainter.State.Error -> Icon(
-                        imageVector = MoriIcons.BrokenImage,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(32.dp),
-                    )
+                    // Docked to the bottom so center taps still seek: the
+                    // whole thumb (including failed ones, which retry on tap)
+                    // stays a single seek target with an explicit retry.
+                    is AsyncImagePainter.State.Error -> Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = MoriIcons.BrokenImage,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp),
+                        )
+                        TextButton(onClick = { attempt++ }) {
+                            Text(stringResource(R.string.reader_page_retry))
+                        }
+                    }
                     else -> Unit
                 }
+                // Page number survives cropping: scrim pill anchored top-start,
+                // clear of the bottom-docked retry.
+                MoriScrimPill(
+                    text = pageNumber.toString(),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp),
+                )
             }
         }
     }

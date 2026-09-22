@@ -157,12 +157,14 @@ internal fun ReaderScreen(
                 when (val cause = uiState.cause) {
                     ReaderErrorCause.Removed -> MoriErrorCard(
                         body = stringResource(R.string.reader_error_removed),
-                        primaryLabel = null,
-                        onPrimary = null,
+                        primaryLabel = stringResource(R.string.reader_back_to_library),
+                        onPrimary = onBackClick,
                     )
 
                     is ReaderErrorCause.Failed -> MoriComicErrorCard(
                         error = cause.error,
+                        secondaryLabel = stringResource(R.string.reader_back_to_library),
+                        onSecondary = onBackClick,
                     )
                 }
             }
@@ -415,7 +417,9 @@ private fun ReaderContent(
             }
         }
 
-        if (state.showTapZones) {
+        // Preview hides while sheets are open: it would tint the art
+        // behind the settings being adjusted.
+        if (state.showTapZones && !state.settingsOpen && !state.overviewOpen) {
             TapZoneOverlay(direction = state.direction)
         }
 
