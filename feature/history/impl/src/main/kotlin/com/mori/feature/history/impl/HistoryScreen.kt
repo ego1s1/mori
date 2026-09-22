@@ -126,7 +126,9 @@ private fun HistoryContent(
     Column(modifier = modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.history_title),
-            style = MaterialTheme.typography.headlineSmall,
+            // Same bar-title role as Library so sibling tabs match; this
+            // header stands in for an app bar on this screen.
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

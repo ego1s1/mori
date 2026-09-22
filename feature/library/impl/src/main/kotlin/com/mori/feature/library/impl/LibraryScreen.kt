@@ -65,7 +65,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriCoverArt
-import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
@@ -335,7 +334,9 @@ private fun LibraryTopBar(
         title = {
             Text(
                 text = stringResource(R.string.library_title),
-                style = MoriEmphasized.displaySmall,
+                // M3 small-bar role: titleLarge. Display scales belong to
+                // hero moments, not 64dp bars where 36sp ellipsizes.
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
