@@ -95,7 +95,9 @@ fun MoriMotion.exit(kind: MoriEnterKind): ExitTransition {
             MoriEnterKind.SEARCH -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 shrinkVertically(animationSpec = chromeSpring())
             MoriEnterKind.FAB -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                scaleOut(animationSpec = calmFade())
+                // Mirrors the enter spring (same spec, reversed endpoints):
+                // exits shrink back through the arrival scale, never snap.
+                scaleOut(animationSpec = defaultSpatialSpec(), targetScale = 0.6f)
             MoriEnterKind.RISE -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 slideOutVertically(animationSpec = chromeSpring()) { it / 4 }
             MoriEnterKind.FADE_THROUGH -> fadeOut(animationSpec = defaultEffectsSpec())
