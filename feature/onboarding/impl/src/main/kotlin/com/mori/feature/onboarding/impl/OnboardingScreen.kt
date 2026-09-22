@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -213,12 +212,19 @@ private fun WelcomeContent(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Staggered entrance: hero, then actions cascade in.
+    // Staggered entrance: hero, then actions cascade in. Delays only run
+    // when expressive: calm users get everything immediately, never a pause
+    // followed by a snap.
     var step by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        repeat(WELCOME_STEPS) {
-            delay(110)
-            step++
+    val staggerMotion = LocalExpressiveMotionEnabled.current
+    LaunchedEffect(staggerMotion) {
+        if (!staggerMotion) {
+            step = WELCOME_STEPS
+        } else {
+            repeat(WELCOME_STEPS) {
+                delay(110)
+                step++
+            }
         }
     }
     fun visibleAt(index: Int) = step > index
@@ -255,7 +261,7 @@ private fun WelcomeContent(
             AnimatedVisibility(
                 visible = visibleAt(0),
                 enter = MoriMotion.enter(MoriEnterKind.FAB),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                exit = MoriMotion.exit(MoriEnterKind.FAB),
             ) {
                 // Playful tonal collage (banner-style): accent tiles peek from
                 // behind the morphing hero.
@@ -286,7 +292,7 @@ private fun WelcomeContent(
             AnimatedVisibility(
                 visible = visibleAt(1),
                 enter = MoriMotion.enter(MoriEnterKind.RISE),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                exit = MoriMotion.exit(MoriEnterKind.RISE),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -321,7 +327,7 @@ private fun WelcomeContent(
             AnimatedVisibility(
                 visible = visibleAt(2),
                 enter = MoriMotion.enter(MoriEnterKind.RISE),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                exit = MoriMotion.exit(MoriEnterKind.RISE),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Button(
@@ -436,9 +442,11 @@ private fun WizardStep(
                     // steps read full — a partial fill parks mid-segment and
                     // looks stalled; the sweep between steps is the motion.
                     val target = if (index <= stepIndex) 1f else 0f
+                    // Progress fills on a quiet tween, never a spring: springs
+                    // overshoot, and a bar bouncing past 1.0 reads as broken.
                     val fill by animateFloatAsState(
                         targetValue = target,
-                        animationSpec = MoriMotion.defaultEffectsSpec(),
+                        animationSpec = MoriMotion.calmFade(),
                         label = "stepSegment",
                     )
                     LinearProgressIndicator(
@@ -573,11 +581,16 @@ private fun MorphingHero(
     modifier: Modifier = Modifier,
 ) {
     var morphed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(HERO_MORPH_DELAY_MS)
-        morphed = true
-    }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
+    LaunchedEffect(expressiveMotion) {
+        // Calm users skip the staged beat: the hero simply appears.
+        if (!expressiveMotion) {
+            morphed = true
+        } else {
+            delay(HERO_MORPH_DELAY_MS)
+            morphed = true
+        }
+    }
     // Shape morph endpoints: extraLarge resting state to full-round hero.
     // Absolute Dp (not tokens) because the animation interpolates radius.
     val corner by animateDpAsState(
