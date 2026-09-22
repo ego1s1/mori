@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.26
+
+Codebase cleanup: design documentation rewritten in the project's own
+terms, no external references in code, docs, or changelogs.
+
 ## 0.1.25
 
 Full M3 Expressive UI audit, built in phases:
