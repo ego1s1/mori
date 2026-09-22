@@ -140,7 +140,9 @@ internal fun ReaderScreen(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.scrim,
+        // Pure-black bed: pages and letterboxing assume Black, so a themed
+        // translucent scrim would seam mid-turn and at the well edges.
+        color = Color.Black,
     ) {
         when (uiState) {
             ReaderUiState.Loading -> MoriLoading()
@@ -510,7 +512,7 @@ private fun ReaderTopBar(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
                         Color.Transparent,
                     ),
                 ),
@@ -604,7 +606,7 @@ private fun ReaderBottomChrome(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.Black.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
                     ),
                 ),
             )
