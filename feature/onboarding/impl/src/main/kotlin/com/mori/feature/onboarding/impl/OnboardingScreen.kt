@@ -66,6 +66,7 @@ import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
+import com.mori.core.designsystem.topSheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -260,7 +261,7 @@ private fun WelcomeContent(
                 // behind the morphing hero.
                 Box(contentAlignment = Alignment.Center) {
                     Surface(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier
                             .size(88.dp)
@@ -478,7 +479,7 @@ private fun WizardStep(
             // Muted bottom panel: the CTA button carries the emphasis, the
             // panel itself stays a quiet tonal container.
             Surface(
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                shape = MaterialTheme.shapes.topSheet,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -577,6 +578,8 @@ private fun MorphingHero(
         morphed = true
     }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
+    // Shape morph endpoints: extraLarge resting state to full-round hero.
+    // Absolute Dp (not tokens) because the animation interpolates radius.
     val corner by animateDpAsState(
         targetValue = if (morphed) 64.dp else 28.dp,
         animationSpec = if (expressiveMotion) {

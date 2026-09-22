@@ -19,13 +19,17 @@ import androidx.compose.material.icons.rounded.ScreenRotation
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Tune
 
 /**
  * Single source of app icons. Screens reference [MoriIcons], never raw `Icons.*`, so icon
  * language stays consistent and themeable.
+ *
+ * SkipNext/SkipPrevious stay non-mirrored deliberately: the only caller
+ * (reader bottom chrome) swaps which icon it shows per reading direction,
+ * so automirroring would double-flip.
  */
 object MoriIcons {
     val Back = Icons.AutoMirrored.Rounded.ArrowBack

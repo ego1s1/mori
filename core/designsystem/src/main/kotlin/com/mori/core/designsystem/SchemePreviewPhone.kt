@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -124,7 +123,7 @@ private fun PhoneMockup(
             amoled = amoled,
         ) {
             Surface(
-                shape = RoundedCornerShape(17.dp),
+                shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.background,
                 border = if (selected) {
                     BorderStroke(
@@ -138,7 +137,7 @@ private fun PhoneMockup(
                     .fillMaxWidth()
                     .aspectRatio(9f / 16f)
                     .padding(4.dp)
-                    .clip(RoundedCornerShape(13.dp)),
+                    .clip(MaterialTheme.shapes.medium),
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     // App bar row.

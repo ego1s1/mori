@@ -2,6 +2,7 @@ package com.mori.core.designsystem
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
@@ -14,3 +15,10 @@ val MoriShapes = Shapes(
     large = RoundedCornerShape(16.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
+
+/**
+ * Top-only extra-large corners for bottom panels: the sheet language in one
+ * code path instead of per-screen 28dp literals.
+ */
+val Shapes.topSheet: Shape
+    get() = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
