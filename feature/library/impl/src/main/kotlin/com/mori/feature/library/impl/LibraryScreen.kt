@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
@@ -252,7 +254,8 @@ private fun LibraryContent(
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
+    // Centered well on expanded windows; phones stay full-bleed.
+    MoriContentWell(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Determinate rescan bar: done/total from the index callback,
             // so large rescans never read as a stuck spinner.
@@ -407,7 +410,12 @@ private fun LibraryBody(
         }
     }
     val gridPadding = remember {
-        PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 112.dp)
+        PaddingValues(
+            start = 12.dp,
+            top = 12.dp,
+            end = 12.dp,
+            bottom = FloatingChromeBottomReserve,
+        )
     }
     PullToRefreshBox(
         isRefreshing = refreshing,
@@ -567,7 +575,7 @@ private fun LibraryEmptyState(
         },
         onAction = if (rescue) onChooseFolder else onRefresh,
         modifier = modifier.testTag(LibraryTestTags.EmptyState),
-        bottomPadding = 112.dp,
+        bottomPadding = FloatingChromeBottomReserve,
         actionTestTag = if (rescue) {
             LibraryTestTags.EmptyChooseFolder
         } else {

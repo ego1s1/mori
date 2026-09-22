@@ -7,6 +7,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
@@ -123,7 +126,9 @@ private fun HistoryContent(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    // Centered well on expanded windows; phones stay full-bleed.
+    MoriContentWell(modifier = modifier) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.history_title),
             // Same bar-title role as Library so sibling tabs match; this
@@ -154,7 +159,7 @@ private fun HistoryContent(
                 actionLabel = null,
                 onAction = null,
                 modifier = Modifier.testTag(HistoryTestTags.EmptyState),
-                bottomPadding = 112.dp,
+                bottomPadding = FloatingChromeBottomReserve,
             )
         } else {
             HistoryDays(
@@ -164,6 +169,7 @@ private fun HistoryContent(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
     }
 }
 
@@ -212,6 +218,7 @@ private fun HistoryDays(
     ) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = FloatingChromeBottomReserve),
             modifier = modifier
                 .fillMaxSize()
                 .testTag(HistoryTestTags.List),
