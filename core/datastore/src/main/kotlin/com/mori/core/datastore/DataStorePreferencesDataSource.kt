@@ -43,6 +43,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 } ?: PageFit.WIDTH,
                 cropMargins = prefs[CROP_MARGINS] ?: false,
                 volumeKeys = prefs[VOLUME_KEYS] ?: false,
+                volumeKeysInverted = prefs[VOLUME_KEYS_INVERTED] ?: false,
                 keepScreenOn = prefs[KEEP_SCREEN_ON] ?: true,
                 showPageCounter = prefs[SHOW_PAGE_COUNTER] ?: true,
                 swipeToTurn = prefs[SWIPE_TO_TURN] ?: true,
@@ -69,6 +70,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[PAGE_FIT] = updated.pageFit.name
             it[CROP_MARGINS] = updated.cropMargins
             it[VOLUME_KEYS] = updated.volumeKeys
+            it[VOLUME_KEYS_INVERTED] = updated.volumeKeysInverted
             it[KEEP_SCREEN_ON] = updated.keepScreenOn
             it[SHOW_PAGE_COUNTER] = updated.showPageCounter
             it[SWIPE_TO_TURN] = updated.swipeToTurn
@@ -149,6 +151,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val PAGE_FIT = stringPreferencesKey("page_fit")
         val CROP_MARGINS = booleanPreferencesKey("crop_margins")
         val VOLUME_KEYS = booleanPreferencesKey("volume_keys")
+        val VOLUME_KEYS_INVERTED = booleanPreferencesKey("volume_keys_inverted")
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val SHOW_PAGE_COUNTER = booleanPreferencesKey("show_page_counter")
         val SWIPE_TO_TURN = booleanPreferencesKey("swipe_to_turn")

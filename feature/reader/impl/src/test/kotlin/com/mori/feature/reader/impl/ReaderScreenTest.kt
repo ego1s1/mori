@@ -54,6 +54,7 @@ class ReaderScreenTest {
         settingsOpen = settingsOpen,
         overviewOpen = false,
         volumeKeys = false,
+        volumeKeysInverted = false,
         keepScreenOn = true,
         showTapZones = false,
         showPageCounter = true,
@@ -233,6 +234,7 @@ class ReaderScreenTest {
                     pageFit = PageFit.WIDTH,
                     cropMargins = false,
                     volumeKeys = false,
+                    volumeKeysInverted = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -267,6 +269,7 @@ class ReaderScreenTest {
                     pageFit = PageFit.WIDTH,
                     cropMargins = false,
                     volumeKeys = false,
+                    volumeKeysInverted = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -289,6 +292,7 @@ class ReaderScreenTest {
                     pageFit = PageFit.WIDTH,
                     cropMargins = false,
                     volumeKeys = false,
+                    volumeKeysInverted = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -779,6 +783,55 @@ class ReaderScreenTest {
         composeTestRule.mainClock.advanceTimeBy(1_000)
 
         assert(actions.any { it is ReaderAction.PageChanged })
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun secondSwipeAtEdgeTurnsWhileZoomed() {
+        // Hard-stop then turn: the first swipe pans to the clamp without
+        // turning by itself; a fresh second swipe pushing further outward
+        // turns the page even while still zoomed. The turn arrives as an
+        // explicit NextPage edge dispatch, never as a pager PageChanged, and
+        // the swipe may start anywhere — only the outward direction matters.
+        composeTestRule.mainClock.autoAdvance = false
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = actions::add,
+                    onBackClick = {},
+                )
+            }
+        }
+
+        val bounds = composeTestRule.onNodeWithTag(ReaderTestTags.Pager)
+            .fetchSemanticsNode().boundsInRoot
+        val spot = Offset(bounds.width * 0.9f, bounds.height * 0.5f)
+        repeat(2) {
+            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+                down(0, spot)
+                up(0)
+            }
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        actions.clear()
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.none { it is ReaderAction.PageChanged })
+        actions.clear()
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
+            swipeLeft()
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        assert(actions.any { it is ReaderAction.NextPage })
+        assert(actions.none { it is ReaderAction.PageChanged })
     }
 
     @OptIn(ExperimentalTestApi::class)

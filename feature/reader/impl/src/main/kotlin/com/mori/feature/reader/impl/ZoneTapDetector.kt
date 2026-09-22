@@ -66,6 +66,7 @@ internal fun Modifier.zoneTaps(
     var pendingTap: TapRecord? = null
     var holdJob: Job? = null
     var lastRhythmEdgeMs = 0L
+    var lastRhythmZone: ReaderZone? = null
     val consumedIds = mutableSetOf<PointerId>()
 
     fun cancelHold() {
@@ -74,10 +75,16 @@ internal fun Modifier.zoneTaps(
         pendingTap = null
     }
 
-    /** Fires a held tap; edge taps open the instant-rhythm window. */
-    fun fireHeld(tap: TapRecord) {
+    /**
+     * Fires a held tap; edge taps open the instant-rhythm window stamped at
+     * fire time (not tap time) so the window length is consistent whether
+     * the tap fired after the hold or via early confirm. Rhythm resumes only
+     * for the same zone — a PREV then NEXT must both hold, never instant-fire.
+     */
+    fun fireHeld(tap: TapRecord, nowMs: Long = tap.timeMs) {
         if (tap.zone != ReaderZone.MENU) {
-            lastRhythmEdgeMs = tap.timeMs
+            lastRhythmEdgeMs = nowMs
+            lastRhythmZone = tap.zone
         }
         onZoneTap(tap.zone)
     }
@@ -119,9 +126,11 @@ internal fun Modifier.zoneTaps(
             // pairing, so fire the held tap now instead of waiting out the
             // window.
             cancelHold()
-            fireHeld(armed)
+            fireHeld(armed, nowMs)
         }
-        if (zone == ReaderZone.MENU || !isRhythmActive(lastRhythmEdgeMs, nowMs)) {
+        if (zone == ReaderZone.MENU || lastRhythmZone != zone ||
+            !isRhythmActive(lastRhythmEdgeMs, nowMs)
+        ) {
             // Hold for a possible double-tap (Mihon single-tap-confirmed).
             // Center taps always take this path, so double-tap-to-zoom works
             // from any state. The hold stamps the detector epoch: a
@@ -134,12 +143,13 @@ internal fun Modifier.zoneTaps(
                 delay(DOUBLE_TAP_TIMEOUT_MS)
                 if (pendingTap?.timeMs == held.timeMs && epoch.value == heldEpoch) {
                     pendingTap = null
-                    fireHeld(held)
+                    fireHeld(held, held.timeMs + DOUBLE_TAP_TIMEOUT_MS)
                 }
             }
         } else {
             // Rhythm: instant page turn, session refreshed.
             lastRhythmEdgeMs = nowMs
+            lastRhythmZone = zone
             onZoneTap(zone)
         }
     }

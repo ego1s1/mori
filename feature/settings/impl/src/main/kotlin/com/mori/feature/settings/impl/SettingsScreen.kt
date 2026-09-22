@@ -252,6 +252,14 @@ internal fun SettingsContent(
                 checked = reader.volumeKeys,
                 onCheckedChange = { onAction(SettingsAction.ToggleVolumeKeys) },
             )
+            if (reader.volumeKeys) {
+                MoriSettingSwitch(
+                    title = stringResource(R.string.settings_volume_invert_title),
+                    subtitle = stringResource(R.string.settings_volume_invert_subtitle),
+                    checked = reader.volumeKeysInverted,
+                    onCheckedChange = { onAction(SettingsAction.ToggleVolumeKeysInverted) },
+                )
+            }
             MoriSettingSwitch(
                 title = stringResource(R.string.settings_keep_on_title),
                 subtitle = stringResource(R.string.settings_keep_on_subtitle),

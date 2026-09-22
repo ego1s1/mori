@@ -10,6 +10,7 @@ class ReaderKeyHandlerTest {
 
     private fun ready(
         volumeKeys: Boolean = true,
+        volumeKeysInverted: Boolean = false,
         chromeVisible: Boolean = false,
         settingsOpen: Boolean = false,
     ) = ReaderUiState.Ready(
@@ -26,6 +27,7 @@ class ReaderKeyHandlerTest {
         settingsOpen = settingsOpen,
         overviewOpen = false,
         volumeKeys = volumeKeys,
+        volumeKeysInverted = volumeKeysInverted,
         keepScreenOn = true,
         showTapZones = false,
         showPageCounter = true,
@@ -89,6 +91,18 @@ class ReaderKeyHandlerTest {
         assertEquals(
             VolumeKeyOutcome.Ignored,
             routeVolumeKey(ready(), KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.ACTION_UP),
+        )
+    }
+
+    @Test
+    fun invertedPrefSwapsDirection() {
+        assertEquals(
+            VolumeKeyOutcome.Navigate(ReaderAction.PrevPage),
+            routeVolumeKey(ready(volumeKeysInverted = true), KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.ACTION_UP),
+        )
+        assertEquals(
+            VolumeKeyOutcome.Navigate(ReaderAction.NextPage),
+            routeVolumeKey(ready(volumeKeysInverted = true), KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.ACTION_UP),
         )
     }
 

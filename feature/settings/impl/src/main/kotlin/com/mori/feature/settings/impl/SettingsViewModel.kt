@@ -71,6 +71,7 @@ internal class SettingsViewModel @Inject constructor(
             is SettingsAction.SetDirection -> updateReader { it.copy(direction = action.direction) }
             is SettingsAction.SetPageFit -> updateReader { it.copy(pageFit = action.fit) }
             SettingsAction.ToggleVolumeKeys -> updateReader { it.copy(volumeKeys = !it.volumeKeys) }
+            SettingsAction.ToggleVolumeKeysInverted -> updateReader { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
             SettingsAction.ToggleKeepScreenOn -> updateReader { it.copy(keepScreenOn = !it.keepScreenOn) }
             SettingsAction.ToggleCropMargins -> updateReader { it.copy(cropMargins = !it.cropMargins) }
             SettingsAction.TogglePageCounter -> updateReader { it.copy(showPageCounter = !it.showPageCounter) }

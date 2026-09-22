@@ -2,9 +2,8 @@
 
 # Mori
 
-### Offline comics, shelved where they live
-Point Mori at the folder your comics already live in — it builds a fast,
-beautiful shelf without copying a single file. No account, no ads, no tracking.
+### A reader that gets out of the way
+Fast, beautiful comics on your phone or tablet. No account, no ads, no tracking.
 
 [![CI](https://github.com/ego1s1/mori/actions/workflows/ci.yml/badge.svg)](https://github.com/ego1s1/mori/actions)
 [![Latest release](https://img.shields.io/github/v/release/ego1s1/mori)](https://github.com/ego1s1/mori/releases)
@@ -13,7 +12,7 @@ beautiful shelf without copying a single file. No account, no ads, no tracking.
 
 </div>
 
-> **Status:** active development — 1.1.x is out, expect the occasional rough edge.
+> **Status:** active development — 0.1.x is out, expect the occasional rough edge.
 
 ## Download
 
@@ -21,21 +20,11 @@ Grab the latest APK or App Bundle from [GitHub Releases](https://github.com/ego1
 
 [<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](obtainium://app/%7B%22id%22%3A%20%22com.mori.reader%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fgithub.com%2Fego1s1%2Fmori%22%2C%20%22author%22%3A%20%22ego1s1%22%2C%20%22name%22%3A%20%22Mori%22%7D)
 
-## Features
+## Why Mori
 
-* **Link, don't copy.** Pick a folder once — Mori reads CBZ, CBR, CB7, and CBT files where they are, rescans on every launch, and never moves or duplicates your originals.
-* **A shelf that fills itself.** Covers load in the background, pull-to-refresh prunes deleted books, and a continue-reading shelf tracks recency.
-* **Find anything fast.** Search across titles, series, and numbers, with sorts, in-progress/unread/finished filters, favorites, and per-book progress.
-* **A reader that gets out of the way.** Forgiving tap zones, anchored double-tap zoom, springy page swipes, volume-key paging, dual-page spreads, margin cropping, and a slider pill.
-* **Make it yours.** System/light/dark themes, wallpaper dynamic color, AMOLED black, and calm or expressive motion.
-* **Fully offline.** Everything stays on your device and works without a connection.
-
-## Formats & limitations
-
-* **CBZ** fully supported, including `ComicInfo.xml` metadata and natural page order.
-* **CBR** works for RAR4 archives; RAR5 doesn't work with open-source libraries yet.
-* **CB7** (7-Zip, including LZMA/LZMA2) and **CBT** (TAR) supported, with password prompts for encrypted 7-Zip files.
-* A corrupt, locked, or empty file gives you a retry/remove prompt instead of a crash. Password entry is not supported yet.
+* **Reads like Mihon.** Forgiving tap zones, volume-key paging (invertible), anchored double-tap zoom, hard-stop zoom pan with second-swipe turns, dual-page spreads, and a slider pill that stays out of the art.
+* **A shelf that keeps up.** Covers fill in behind you, continue-reading tracks recency, search/sorts/favorites find anything fast.
+* **Yours, offline.** System/light/dark themes, wallpaper color, AMOLED black, calm or expressive motion — everything on-device, nothing uploaded.
 
 ## Build it yourself
 

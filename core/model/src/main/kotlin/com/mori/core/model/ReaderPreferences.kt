@@ -19,6 +19,8 @@ data class ReaderPreferences(
     val pageFit: PageFit = PageFit.WIDTH,
     val cropMargins: Boolean = false,
     val volumeKeys: Boolean = false,
+    /** Volume-down goes to previous page instead of next (Mihon's inverted pref). */
+    val volumeKeysInverted: Boolean = false,
     val keepScreenOn: Boolean = true,
     val showPageCounter: Boolean = true,
     /** Swipe pager gestures turn pages alongside tap zones; on by default. */

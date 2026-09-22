@@ -7,7 +7,6 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import com.mori.core.model.ReadingDirection
-import kotlin.math.abs
 
 /**
  * Pan/zoom routing for reader pages, mirroring Mihon's PhotoView contract
@@ -17,9 +16,13 @@ import kotlin.math.abs
  *   pager owns swipes outright instead of fighting over every delta;
  * - pinches always zoom (1x–[maxZoom]), anchored on the centroid so the art
  *   stays under the fingers;
- * - single-finger drags while zoomed pan inside content bounds; anything the
- *   clamp eats is left unconsumed so the pager takes over at the pan limits
- *   (edge handoff).
+ * - single-finger drags while zoomed pan 1:1 inside content bounds with a
+ *   hard stop at the clamp — the same gesture never turns the page;
+ * - a *new* swipe starting while already clamped turns the page: if the
+ *   first past-slop movement pushes further past the edge, [onEdgeTurn]
+ *   fires once ([forward] in reading direction) and the gesture ends. The
+ *   swipe may start anywhere on the page, like an unzoomed pager swipe —
+ *   only the direction matters. Pulling back into content pans instead.
  *
  * Nothing is consumed before touch slop, so clean taps still resolve to
  * zones in [zoneTaps]. Scale/offset read and write through accessors because
@@ -27,10 +30,8 @@ import kotlin.math.abs
  *
  * Ownership notes: the loop reports multi-touch ([onPinchingChange]) so the
  * pager can stand down for the whole pinch — a pager that tracks pinch
- * drift turns pages mid-zoom. Edge pushes past the clamp fire
- * [onEdgeTurn] exactly once per gesture ([forward] in reading direction);
- * the caller turns the page explicitly because the pager is stood down
- * while zoomed and could never take over by itself.
+ * drift turns pages mid-zoom. The caller turns the page explicitly because
+ * the pager is stood down while zoomed and could never take over by itself.
  */
 internal fun Modifier.zoomPan(
     getScale: () -> Float,
@@ -44,27 +45,32 @@ internal fun Modifier.zoomPan(
     maxZoom: Float = MAX_ZOOM,
 ): Modifier = pointerInput(Unit) {
     val touchSlop = viewConfiguration.touchSlop
-    // Push-past-edge travel that commits to a page turn. Several slops so a
-    // shaky hold at the clamp never turns by accident.
-    val edgeSlip = touchSlop * EDGE_TURN_SLOP_MULTIPLE
     awaitEachGesture {
         val downs = mutableMapOf<PointerId, Offset>()
         var pastSlop = false
         var prevCount = 0
         var prevCentroid = Offset.Zero
         var prevDist = 0f
-        var edgeFired = false
-        // Signed push accumulated past the clamp. Per-frame excess is tiny
-        // (one frame of travel), so a single frame can never commit — only
-        // sustained pushing in one direction trips the turn. Jitter cancels
-        // itself out; reversing restarts the count.
-        var edgeDebt = 0f
+        // Gesture-start snapshot for the second-swipe rule. Read on the
+        // first down — NOT at block entry: awaitEachGesture re-arms the
+        // block the moment the previous gesture ends (before clocks advance
+        // and zoom glides settle), so block-entry reads go stale and a later
+        // swipe would turn against pre-animation state.
+        var gestureArmed = false
+        var gestureStartScale = 1f
+        var gestureStartOffset = Offset.Zero
+        var edgeTurnFired = false
         try {
             while (true) {
                 val event = awaitPointerEvent()
                 for (change in event.changes) {
                     if (change.pressed && !change.previousPressed) {
                         downs[change.id] = change.position
+                        if (!gestureArmed) {
+                            gestureArmed = true
+                            gestureStartScale = getScale()
+                            gestureStartOffset = getOffset()
+                        }
                     }
                 }
                 val pressed = event.changes.filter { it.pressed }
@@ -79,6 +85,21 @@ internal fun Modifier.zoomPan(
                     if (!drifted) continue
                     pastSlop = true
                     onCancelMotion()
+                    // Second-swipe rule: a fresh single-finger gesture that
+                    // begins while already clamped turns when its first
+                    // movement pushes further outward — anywhere-origin, like
+                    // an unzoomed pager swipe. Pulling back pans instead.
+                    if (pressed.size == 1 && gestureStartScale > 1f && !edgeTurnFired) {
+                        val first = pressed.first()
+                        val start = downs[first.id] ?: first.position
+                        val dx = first.position.x - start.x
+                        if (isOutwardPush(gestureStartOffset.x, gestureStartScale, size.width.toFloat(), dx)) {
+                            edgeTurnFired = true
+                            onEdgeTurn(edgeTurnForward(dx, direction))
+                            pressed.forEach { it.consume() }
+                            break
+                        }
+                    }
                 }
                 if (pressed.size != prevCount) {
                     // Fresh finger(s): rebase so counts never jump the content.
@@ -111,18 +132,7 @@ internal fun Modifier.zoomPan(
                 val ratio = targetScale / scaleNow.coerceAtLeast(1e-6f)
                 val rawTarget = f * (1f - ratio) + getOffset() * ratio + (centroid - prevCentroid)
                 val target = clampPan(rawTarget, targetScale, size.width.toFloat(), size.height.toFloat())
-                if (!multi && scaleNow > 1f && !edgeFired) {
-                    val overshootX = rawTarget.x - target.x
-                    edgeDebt = when {
-                        overshootX == 0f -> 0f
-                        edgeDebt == 0f || overshootX * edgeDebt > 0f -> edgeDebt + overshootX
-                        else -> overshootX
-                    }
-                    if (abs(edgeDebt) > edgeSlip) {
-                        edgeFired = true
-                        onEdgeTurn(edgeTurnForward(overshootX, direction))
-                    }
-                }
+                // Hard stop: mid-gesture clamp excess is dropped, never turned.
                 val used = target != getOffset() || targetScale != scaleNow
                 if (used) {
                     setScale(targetScale)
@@ -142,8 +152,23 @@ internal fun Modifier.zoomPan(
 /** Pinch ceiling shared by manual pan/zoom and the double-tap toggle. */
 internal const val MAX_ZOOM = 4f
 
-/** Push-past-edge travel (in touch slops) that commits to a page turn. */
-internal const val EDGE_TURN_SLOP_MULTIPLE = 3f
+/**
+ * Whether a fresh swipe pushes further past the already-clamped edge.
+ * [offsetX] and [scale] are the gesture-start values; [dx] is the first
+ * past-slop horizontal travel. Pure for testability.
+ */
+internal fun isOutwardPush(offsetX: Float, scale: Float, widthPx: Float, dx: Float): Boolean {
+    if (scale <= 1f || dx == 0f) return false
+    val maxX = widthPx * (scale - 1f) / 2f
+    return when {
+        offsetX <= -maxX + EDGE_EPS_PX && dx < 0f -> true
+        offsetX >= maxX - EDGE_EPS_PX && dx > 0f -> true
+        else -> false
+    }
+}
+
+/** Clamp tolerance: offsets within a pixel of the limit count as at-edge. */
+internal const val EDGE_EPS_PX = 1f
 
 /** Maps a horizontal clamp overshoot to reading-direction travel. Pure for testability. */
 internal fun edgeTurnForward(overshootX: Float, direction: ReadingDirection): Boolean =

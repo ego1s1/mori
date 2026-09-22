@@ -42,4 +42,19 @@ class ZoomPanTest {
         assertTrue(edgeTurnForward(100f, ReadingDirection.RIGHT_TO_LEFT))
         assertFalse(edgeTurnForward(-100f, ReadingDirection.RIGHT_TO_LEFT))
     }
+
+    @Test
+    fun outwardPushOnlyAtClampedEdge() {
+        // 2x on 400px: limits +-200.
+        assertTrue(isOutwardPush(-200f, 2f, 400f, -10f))
+        assertTrue(isOutwardPush(200f, 2f, 400f, 10f))
+        // Pulling back into content is a pan, not a turn.
+        assertFalse(isOutwardPush(-200f, 2f, 400f, 10f))
+        assertFalse(isOutwardPush(200f, 2f, 400f, -10f))
+        // Mid-content swipes never turn, even outward-moving.
+        assertFalse(isOutwardPush(0f, 2f, 400f, -10f))
+        assertFalse(isOutwardPush(0f, 2f, 400f, 10f))
+        // Fit never turns.
+        assertFalse(isOutwardPush(0f, 1f, 400f, -10f))
+    }
 }

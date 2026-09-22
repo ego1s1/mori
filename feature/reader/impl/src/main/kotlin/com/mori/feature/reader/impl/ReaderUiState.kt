@@ -22,6 +22,7 @@ sealed interface ReaderUiState {
         val settingsOpen: Boolean,
         val overviewOpen: Boolean,
         val volumeKeys: Boolean,
+        val volumeKeysInverted: Boolean,
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,
         val showPageCounter: Boolean,

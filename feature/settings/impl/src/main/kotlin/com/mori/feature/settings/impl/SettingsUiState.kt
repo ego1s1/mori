@@ -37,6 +37,8 @@ sealed interface SettingsAction {
 
     data object ToggleVolumeKeys : SettingsAction
 
+    data object ToggleVolumeKeysInverted : SettingsAction
+
     data object ToggleKeepScreenOn : SettingsAction
 
     data object ToggleCropMargins : SettingsAction

@@ -269,6 +269,7 @@ internal class ReaderViewModel @Inject constructor(
             settingsOpen = chrome.settingsOpen,
             overviewOpen = chrome.overviewOpen,
             volumeKeys = prefs.volumeKeys,
+            volumeKeysInverted = prefs.volumeKeysInverted,
             keepScreenOn = prefs.keepScreenOn,
             showTapZones = prefs.showTapZones,
             showPageCounter = prefs.showPageCounter,
@@ -388,6 +389,7 @@ internal class ReaderViewModel @Inject constructor(
             }
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
             ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
+            ReaderAction.ToggleVolumeKeysInverted -> updatePrefs { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
             ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }

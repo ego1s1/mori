@@ -35,6 +35,7 @@ internal fun ReaderSettingsSheet(
     pageFit: PageFit,
     cropMargins: Boolean,
     volumeKeys: Boolean,
+    volumeKeysInverted: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
@@ -53,6 +54,7 @@ internal fun ReaderSettingsSheet(
             pageFit = pageFit,
             cropMargins = cropMargins,
             volumeKeys = volumeKeys,
+            volumeKeysInverted = volumeKeysInverted,
             keepScreenOn = keepScreenOn,
             showTapZones = showTapZones,
             showPageCounter = showPageCounter,
@@ -71,6 +73,7 @@ internal fun ReaderSettingsSheetContent(
     pageFit: PageFit,
     cropMargins: Boolean,
     volumeKeys: Boolean,
+    volumeKeysInverted: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
@@ -161,6 +164,14 @@ internal fun ReaderSettingsSheetContent(
             checked = volumeKeys,
             onCheckedChange = { onAction(ReaderAction.ToggleVolumeKeys) },
         )
+        if (volumeKeys) {
+            MoriSettingSwitch(
+                title = stringResource(R.string.reader_volume_invert_title),
+                subtitle = stringResource(R.string.reader_volume_invert_subtitle),
+                checked = volumeKeysInverted,
+                onCheckedChange = { onAction(ReaderAction.ToggleVolumeKeysInverted) },
+            )
+        }
         MoriSettingSwitch(
             title = stringResource(R.string.reader_keep_on_title),
             subtitle = stringResource(R.string.reader_keep_on_subtitle),

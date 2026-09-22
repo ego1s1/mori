@@ -25,6 +25,8 @@
     <string name="settings_fit_original">Original</string>
     <string name="settings_volume_title">Volume keys turn pages</string>
     <string name="settings_volume_subtitle">Volume down goes forward, volume up goes back</string>
+    <string name="settings_volume_invert_title">Invert volume keys</string>
+    <string name="settings_volume_invert_subtitle">Volume up goes forward, volume down goes back</string>
     <string name="settings_keep_on_title">Keep screen on</string>
     <string name="settings_keep_on_subtitle">Prevent the display from sleeping while reading</string>
     <string name="settings_crop_title">Crop page margins</string>

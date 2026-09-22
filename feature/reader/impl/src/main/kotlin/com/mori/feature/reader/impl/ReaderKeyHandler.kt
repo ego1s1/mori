@@ -19,7 +19,8 @@ internal sealed interface VolumeKeyOutcome {
  * consumed (so system volume never moves) and navigation fires on key-up
  * only — one turn per press, no repeat fire while held. Stands down unless
  * the pref is on with chrome hidden and settings closed, exactly like
- * Mihon's menu-visible guard. Pure logic, fully unit-testable.
+ * Mihon's menu-visible guard. The inverted pref swaps down/up (Mihon's
+ * `readWithVolumeKeysInverted`). Pure logic, fully unit-testable.
  */
 internal fun routeVolumeKey(
     state: ReaderUiState,
@@ -36,7 +37,9 @@ internal fun routeVolumeKey(
     if (eventAction != KeyEvent.ACTION_UP) {
         return VolumeKeyOutcome.Consumed
     }
-    val action = if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+    val down = keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+    val forward = if (ready.volumeKeysInverted) !down else down
+    val action = if (forward) {
         ReaderAction.NextPage
     } else {
         ReaderAction.PrevPage
