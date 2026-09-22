@@ -60,11 +60,13 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT))
             viewModel.onAction(SettingsAction.SetPageFit(PageFit.HEIGHT))
             viewModel.onAction(SettingsAction.ToggleVolumeKeys)
+            viewModel.onAction(SettingsAction.ToggleVolumeKeysInverted)
             viewModel.onAction(SettingsAction.ToggleKeepScreenOn)
             val settled = awaitReadyWhere {
                 it.reader.direction == ReadingDirection.RIGHT_TO_LEFT &&
                     it.reader.pageFit == PageFit.HEIGHT &&
-                    it.reader.volumeKeys && !it.reader.keepScreenOn
+                    it.reader.volumeKeys && it.reader.volumeKeysInverted &&
+                    !it.reader.keepScreenOn
             }
             assertEquals(ReadingDirection.RIGHT_TO_LEFT, settled.reader.direction)
         }

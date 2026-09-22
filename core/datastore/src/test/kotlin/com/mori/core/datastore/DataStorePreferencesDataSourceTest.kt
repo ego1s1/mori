@@ -92,6 +92,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(PageFit.WIDTH, defaults.pageFit)
             assertEquals(false, defaults.cropMargins)
             assertEquals(false, defaults.volumeKeys)
+            assertEquals(false, defaults.volumeKeysInverted)
             assertEquals(true, defaults.keepScreenOn)
             assertEquals(true, defaults.swipeToTurn)
             assertEquals(false, defaults.showTapZones)
@@ -104,6 +105,7 @@ class DataStorePreferencesDataSourceTest {
                     pageFit = PageFit.HEIGHT,
                     cropMargins = true,
                     volumeKeys = true,
+                    volumeKeysInverted = true,
                     keepScreenOn = false,
                     swipeToTurn = false,
                     showTapZones = true,
@@ -116,6 +118,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(PageFit.HEIGHT, updated.pageFit)
             assertEquals(true, updated.cropMargins)
             assertEquals(true, updated.volumeKeys)
+            assertEquals(true, updated.volumeKeysInverted)
             assertEquals(false, updated.keepScreenOn)
             assertEquals(false, updated.swipeToTurn)
             assertEquals(true, updated.showTapZones)

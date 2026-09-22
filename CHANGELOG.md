@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.24
+
+Reader experience pass, verified against Mihon's pager viewer:
+
+- Volume keys are invertible (volume up forward / down back), matching
+  Mihon's `readWithVolumeKeysInverted` pref in both reader and system settings
+- Zoomed panning is hard-stop 1:1 with no mid-gesture page turns; a fresh
+  second swipe pushing past the clamped edge turns the page from anywhere,
+  like an unzoomed swipe — tap hop-to-edge kept
+- Tap rhythm fixed: fire-time stamping and same-zone repeats, so rapid
+  skipping stays consistent and direction flips never dispatch stale taps
+- README refocused on the reader, the shelf, and offline-first strengths
+
 ## 0.1.23 (hotfix)
 
 Reader-backend rollback for the "all comics Can't read" regression: page

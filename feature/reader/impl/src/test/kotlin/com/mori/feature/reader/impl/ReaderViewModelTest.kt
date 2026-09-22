@@ -186,13 +186,16 @@ class ReaderViewModelTest {
             viewModel.onAction(ReaderAction.SetPageFit(PageFit.HEIGHT))
             viewModel.onAction(ReaderAction.ToggleCrop)
             viewModel.onAction(ReaderAction.ToggleVolumeKeys)
+            viewModel.onAction(ReaderAction.ToggleVolumeKeysInverted)
             viewModel.onAction(ReaderAction.ToggleKeepScreenOn)
             val settled = awaitReadyWhere {
-                it.pageFit == PageFit.HEIGHT && it.cropMargins && it.volumeKeys && !it.keepScreenOn
+                it.pageFit == PageFit.HEIGHT && it.cropMargins && it.volumeKeys &&
+                    it.volumeKeysInverted && !it.keepScreenOn
             }
             assertEquals(PageFit.HEIGHT, settled.pageFit)
             assertEquals(true, settled.cropMargins)
             assertEquals(true, settled.volumeKeys)
+            assertEquals(true, settled.volumeKeysInverted)
             assertEquals(false, settled.keepScreenOn)
         }
         val last = preferences.updates.last()
