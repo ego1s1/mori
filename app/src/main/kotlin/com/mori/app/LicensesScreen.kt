@@ -22,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +36,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriErrorCard
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSheet
@@ -67,9 +70,13 @@ private fun LicensesRouteContent(
 ) {
     val context = LocalContext.current
     var data by remember { mutableStateOf<LicensesData?>(null) }
+    var failed by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<LibraryEntry?>(null) }
-    LaunchedEffect(Unit) {
+    var attempt by remember { mutableIntStateOf(0) }
+    LaunchedEffect(attempt) {
+        failed = false
         data = withContext(Dispatchers.IO) { loadLicenses(context) }
+        failed = data == null
     }
     Scaffold(
         topBar = {
@@ -95,10 +102,23 @@ private fun LicensesRouteContent(
         modifier = modifier,
     ) { padding ->
         val libraries = data?.libraries.orEmpty()
-        if (data == null) {
-            MoriLoading(modifier = Modifier.padding(padding))
-        } else {
-            LazyColumn(
+        when {
+            failed -> MoriErrorCard(
+                body = stringResource(R.string.licenses_failed_body),
+                primaryLabel = stringResource(R.string.licenses_retry),
+                onPrimary = { attempt++ },
+                modifier = Modifier.padding(padding).padding(16.dp),
+            )
+            data == null -> MoriLoading(modifier = Modifier.padding(padding))
+            libraries.isEmpty() -> MoriEmptyState(
+                icon = MoriIcons.MenuBook,
+                title = stringResource(R.string.licenses_empty_title),
+                body = stringResource(R.string.licenses_empty_body),
+                actionLabel = null,
+                onAction = null,
+                modifier = Modifier.padding(padding),
+            )
+            else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),

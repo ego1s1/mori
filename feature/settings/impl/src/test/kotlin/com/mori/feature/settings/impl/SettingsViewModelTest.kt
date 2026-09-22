@@ -142,6 +142,16 @@ class SettingsViewModelTest {
         assertEquals(1, repository.clearCacheCalls)
     }
 
+    @Test
+    fun clearThumbnailCacheEmitsSnackbarEvent() = runTest {
+        val viewModel = SettingsViewModel(FakePreferencesDataSource(), FakeComicsRepository())
+        viewModel.events.test {
+            viewModel.onAction(SettingsAction.ClearThumbnailCache)
+            assertEquals(SettingsEvent.CacheCleared, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready =
         awaitWhere { it is SettingsUiState.Ready } as SettingsUiState.Ready
 

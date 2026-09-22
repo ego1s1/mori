@@ -19,10 +19,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,7 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
+import kotlinx.coroutines.flow.SharedFlow
 
 @Composable
 fun SettingsTabContent(
@@ -74,6 +79,7 @@ private fun SettingsRouteContent(
     SettingsScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
+        events = viewModel.events,
         onLicensesClick = onLicensesClick,
         appVersion = appVersion,
         modifier = modifier,
@@ -87,9 +93,29 @@ internal fun SettingsScreen(
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
     modifier: Modifier = Modifier,
+    events: SharedFlow<SettingsEvent>? = null,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val clearedMessage = stringResource(R.string.settings_cache_cleared)
+    val failedMessage = stringResource(R.string.settings_cache_failed)
+    LaunchedEffect(events) {
+        events?.collect { event ->
+            snackbarHost.showSnackbar(
+                when (event) {
+                    SettingsEvent.CacheCleared -> clearedMessage
+                    SettingsEvent.CacheClearFailed -> failedMessage
+                },
+            )
+        }
+    }
     Scaffold(
         modifier = modifier,
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHost,
+                modifier = Modifier.testTag(SettingsTestTags.Snackbar),
+            )
+        },
     ) { padding ->
         Surface(modifier = Modifier
             .fillMaxSize()

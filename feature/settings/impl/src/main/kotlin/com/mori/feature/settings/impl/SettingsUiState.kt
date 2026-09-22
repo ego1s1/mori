@@ -49,3 +49,10 @@ sealed interface SettingsAction {
 
     data object ClearThumbnailCache : SettingsAction
 }
+
+/** One-shot settings events (snackbar feedback, not state). */
+sealed interface SettingsEvent {
+    data object CacheCleared : SettingsEvent
+
+    data object CacheClearFailed : SettingsEvent
+}

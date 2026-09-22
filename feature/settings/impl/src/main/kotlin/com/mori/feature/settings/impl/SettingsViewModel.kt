@@ -9,9 +9,12 @@ import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -26,6 +29,9 @@ internal class SettingsViewModel @Inject constructor(
 
     private val storageRefresh = MutableStateFlow(0)
     private val storageInfo = MutableStateFlow<StorageUsage?>(null)
+
+    private val _events = MutableSharedFlow<SettingsEvent>()
+    val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
     val uiState: StateFlow<SettingsUiState> = combine(
         preferences.themePreferences,
@@ -100,8 +106,13 @@ internal class SettingsViewModel @Inject constructor(
 
     private fun clearCache() {
         viewModelScope.launch {
-            repository.clearThumbnailCache()
-            storageRefresh.update { it + 1 }
+            val cleared = runCatching { repository.clearThumbnailCache() }.isSuccess
+            if (cleared) {
+                storageRefresh.update { it + 1 }
+                _events.emit(SettingsEvent.CacheCleared)
+            } else {
+                _events.emit(SettingsEvent.CacheClearFailed)
+            }
         }
     }
 }

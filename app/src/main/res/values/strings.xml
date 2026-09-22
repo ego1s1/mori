@@ -2,4 +2,9 @@
 <resources>
     <string name="licenses_title">Open-source licenses</string>
     <string name="licenses_back">Back</string>
+    <string name="licenses_failed_title">Couldn’t load licenses</string>
+    <string name="licenses_failed_body">The license list failed to load. Check back after reinstalling the app.</string>
+    <string name="licenses_retry">Retry</string>
+    <string name="licenses_empty_title">No licenses listed</string>
+    <string name="licenses_empty_body">This build shipped without license metadata.</string>
 </resources>
