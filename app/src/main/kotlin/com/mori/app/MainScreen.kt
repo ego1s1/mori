@@ -7,8 +7,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -125,6 +123,7 @@ internal fun MainScreen(
     // with the gesture (subtle pull + settle) instead of snapping on
     // release. Commit swaps tabs (the directional transition carries the
     // arrival); cancel glides back to rest.
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
     val backPreview = remember { Animatable(0f) }
     PredictiveBackHandler(enabled = selectedTab != LIBRARY_TAB) { progress ->
         try {
@@ -132,13 +131,21 @@ internal fun MainScreen(
             selectedTab -= 1
             backPreview.snapTo(0f)
         } catch (e: CancellationException) {
-            backPreview.animateTo(0f)
+            // Settle on the motion setting: spring back expressively,
+            // quiet fade-spec glide when calm.
+            backPreview.animateTo(
+                0f,
+                animationSpec = if (expressiveMotion) {
+                    MoriMotion.defaultSpatialSpec()
+                } else {
+                    MoriMotion.calmFade()
+                },
+            )
             throw e
         }
     }
 
     var resume by rememberSaveable(stateSaver = ResumeTargetSaver) { mutableStateOf<ResumeTarget?>(null) }
-    val expressiveMotion = LocalExpressiveMotionEnabled.current
 
     // Single floating navigator for all tabs (destinations + resume); the
     // library's action toolbar floats above it. No bottom bar.
@@ -208,7 +215,7 @@ internal fun MainScreen(
             AnimatedVisibility(
                 visible = true,
                 enter = MoriMotion.enter(MoriEnterKind.TOOLBAR),
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()),
+                exit = MoriMotion.exit(MoriEnterKind.TOOLBAR),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .windowInsetsPadding(
@@ -228,17 +235,8 @@ internal fun MainScreen(
                     )
                     AnimatedVisibility(
                         visible = resume != null,
-                        enter = if (expressiveMotion) {
-                            fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                                scaleIn(
-                                    animationSpec = MoriMotion.defaultSpatialSpec(),
-                                    initialScale = 0.6f,
-                                )
-                        } else {
-                            fadeIn(animationSpec = MoriMotion.calmFade())
-                        },
-                        exit = fadeOut(animationSpec = MoriMotion.calmFade()) +
-                            scaleOut(animationSpec = MoriMotion.calmFade()),
+                        enter = MoriMotion.enter(MoriEnterKind.FAB),
+                        exit = MoriMotion.exit(MoriEnterKind.FAB),
                     ) {
                         resume?.let { target ->
                             ResumeButton(
