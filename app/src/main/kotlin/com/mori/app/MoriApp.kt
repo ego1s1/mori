@@ -92,10 +92,10 @@ fun MoriApp(
                     NavHost(
                         navController = navController,
                         startDestination = if (completed == true) MainRoute else OnboardingRoute,
-                        enterTransition = { screenEnter() },
-                        exitTransition = { screenExit() },
-                        popEnterTransition = { screenPopEnter() },
-                        popExitTransition = { screenPopExit() },
+                        enterTransition = { screenEnter(expressiveMotion) },
+                        exitTransition = { screenExit(expressiveMotion) },
+                        popEnterTransition = { screenPopEnter(expressiveMotion) },
+                        popExitTransition = { screenPopExit(expressiveMotion) },
                     ) {
                         onboardingScreen(
                             onOnboardingComplete = { navController.navigateToMain() },
@@ -115,6 +115,7 @@ fun MoriApp(
                         )
                         readerScreen(
                             onBackClick = { navController.popBackStack() },
+                            expressive = expressiveMotion,
                         )
                         licensesScreen(
                             onBackClick = { navController.popBackStack() },

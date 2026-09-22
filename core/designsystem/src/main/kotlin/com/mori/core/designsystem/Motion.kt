@@ -126,11 +126,11 @@ object MoriMotion {
      * easing/duration for transitions; springs drive components, not routes).
      * Calm callers pass [expressive] = false and get fade-only.
      */
-    fun screenEnterSpec(): FiniteAnimationSpec<Float> =
+    fun <T> screenEnterSpec(): FiniteAnimationSpec<T> =
         tween(durationMillis = EnterScreenMs, easing = EmphasizedDecelerate)
 
     /** Screen-route exit: quicker than enter so the arrival leads. */
-    fun screenExitSpec(): FiniteAnimationSpec<Float> =
+    fun <T> screenExitSpec(): FiniteAnimationSpec<T> =
         tween(durationMillis = ExitScreenMs, easing = EmphasizedAccelerate)
 
     private const val PAGE_TURN_MS = 180
