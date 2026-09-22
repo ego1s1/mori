@@ -23,10 +23,11 @@ import com.mori.core.model.MotionStyle
  *
  * | Use                              | Duration | Easing / spec        | Token            |
  * |----------------------------------|----------|----------------------|------------------|
- * | Screen enter                     | 400ms    | EmphasizedDecelerate | EnterScreenMs    |
- * | Screen exit                      | 200ms    | EmphasizedAccelerate | ExitScreenMs     |
+ * | Screen enter                     | 400ms    | EmphasizedDecelerate | screenEnterSpec  |
+ * | Screen exit                      | 200ms    | EmphasizedAccelerate | screenExitSpec   |
  * | Shared-element cover morph       | 500ms    | emphasized           | screen specs     |
- * | Tab / step fade-through          | spring   | spatial + effects    | FADE_THROUGH     |
+ * | Tab travel glide (retargetable)  | 450/300ms| EmphasizedDec/Acc    | tabEnter/ExitSpec|
+ * | Step fade-through                | spring   | spatial + effects    | FADE_THROUGH     |
  * | Content arrival fades            | spring   | effects              | FADE             |
  * | Page-turn glide                  | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
  * | Double-tap zoom glide            | 350ms    | EmphasizedDecelerate | zoomSpec         |
@@ -34,6 +35,10 @@ import com.mori.core.model.MotionStyle
  * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
  * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | readerEnter/Exit |
  * | Cover launch morph               | 650ms    | EmphasizedDecelerate | coverMorphSpec   |
+ *
+ * Tab travel deliberately uses fixed-time tweens instead of the FADE_THROUGH
+ * spring: rapid tab hops retarget cleanly mid-flight, matching the pager
+ * glide contract. Calm motion drops the slide and keeps the fade.
  *
  * Rules: no raw `tween`/`spring` durations outside this file — call sites use
  * these tokens or named constants beside the usage. Screen-level transitions
@@ -115,6 +120,18 @@ object MoriMotion {
     /** Tab travel exit: quicker than enter so the arrival leads. */
     fun <T> tabExitSpec(): FiniteAnimationSpec<T> =
         tween(durationMillis = TAB_EXIT_MS, easing = EmphasizedAccelerate)
+
+    /**
+     * Screen-route slide+fade: fixed-time emphasized tweens (M3 sanctions
+     * easing/duration for transitions; springs drive components, not routes).
+     * Calm callers pass [expressive] = false and get fade-only.
+     */
+    fun screenEnterSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = EnterScreenMs, easing = EmphasizedDecelerate)
+
+    /** Screen-route exit: quicker than enter so the arrival leads. */
+    fun screenExitSpec(): FiniteAnimationSpec<Float> =
+        tween(durationMillis = ExitScreenMs, easing = EmphasizedAccelerate)
 
     private const val PAGE_TURN_MS = 180
     private const val DOUBLE_TAP_ZOOM_MS = 350
