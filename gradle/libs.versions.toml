@@ -29,9 +29,11 @@ serialization = "1.7.3"
 javapoet = "1.13.0"
 documentfile = "1.0.1"
 binaryCompatibilityValidator = "0.17.0"
+coreSplashscreen = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 junrar = { group = "com.github.junrar", name = "junrar", version.ref = "junrar" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commons-compress" }

@@ -158,7 +158,9 @@ internal fun SettingsContent(
     ) {
         Text(
             text = stringResource(R.string.settings_title),
-            style = MoriEmphasized.displaySmall,
+            // Screen-title role shared with onboarding + licenses:
+            // emphasized headline, never display scale.
+            style = MoriEmphasized.headlineMedium,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
 
@@ -439,7 +441,7 @@ private fun PlaceholderRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = subtitle,

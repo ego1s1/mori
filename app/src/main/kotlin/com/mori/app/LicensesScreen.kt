@@ -84,7 +84,7 @@ private fun LicensesRouteContent(
                 title = {
                     Text(
                         text = stringResource(R.string.licenses_title),
-                        style = MoriEmphasized.headlineSmall,
+                        style = MoriEmphasized.headlineMedium,
                         maxLines = 1,
                     )
                 },

@@ -6,14 +6,25 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    // Shared with the MoriApp composition: the splash stays on its black bed
+    // until prefs resolve, so first paint already carries the right theme
+    // instead of flashing fallback colors.
+    private val appViewModel: MoriAppViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installSplashScreen().setKeepOnScreenCondition {
+            appViewModel.onboardingCompleted.value == null ||
+                appViewModel.themePreferences.value == null
+        }
         enableEdgeToEdge()
         setContent {
             MoriApp()
