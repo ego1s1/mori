@@ -34,7 +34,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -72,6 +71,7 @@ import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
@@ -259,7 +259,7 @@ private fun LibraryContent(
             // so large rescans never read as a stuck spinner.
             val progress = indexProgress
             if (refreshing && progress != null && progress.total > 0) {
-                LinearProgressIndicator(
+                MoriProgressBar(
                     progress = { (progress.done.coerceAtMost(progress.total)).toFloat() / progress.total },
                     modifier = Modifier.fillMaxWidth(),
                 )

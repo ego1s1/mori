@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriScrimPill
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
@@ -115,9 +115,11 @@ internal fun ComicCard(
                             .padding(6.dp),
                     )
                 } else if (comic.bookmarked) {
+                    // Same scrim language as the pages-left pill: tonal
+                    // containers wash out on bright covers, black does not.
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.92f),
+                        color = Color.Black.copy(alpha = 0.6f),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp),
@@ -125,7 +127,7 @@ internal fun ComicCard(
                         Icon(
                             imageVector = MoriIcons.Bookmark,
                             contentDescription = stringResource(R.string.library_card_favorite),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            tint = Color.White,
                             modifier = Modifier
                                 .padding(6.dp)
                                 .size(16.dp),
@@ -146,10 +148,8 @@ internal fun ComicCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (comic.isInProgress || comic.isFinished) {
-                    LinearProgressIndicator(
+                    MoriProgressBar(
                         progress = { comic.progress },
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 6.dp)

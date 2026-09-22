@@ -27,7 +27,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
@@ -64,6 +63,7 @@ import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
@@ -317,7 +317,7 @@ private fun DetailContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (comic.isInProgress || comic.isFinished) {
-                    LinearProgressIndicator(
+                    MoriProgressBar(
                         progress = { comic.progress },
                         modifier = Modifier
                             .fillMaxWidth()
