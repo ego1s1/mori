@@ -210,19 +210,13 @@ private fun HistoryDays(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // One-shot arrival fade; static visibility never replays it.
-    AnimatedVisibility(
-        visible = true,
-        enter = MoriMotion.enter(MoriEnterKind.FADE),
-        exit = MoriMotion.exit(MoriEnterKind.FADE),
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = FloatingChromeBottomReserve),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(HistoryTestTags.List),
     ) {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = FloatingChromeBottomReserve),
-            modifier = modifier
-                .fillMaxSize()
-                .testTag(HistoryTestTags.List),
-        ) {
             days.forEach { day ->
                 stickyHeader(key = "day-${day.dayStartMillis}", contentType = "dayHeader") {
                     HistoryDayHeader(
@@ -261,7 +255,6 @@ private fun HistoryDays(
                 }
             }
         }
-    }
 }
 
 @Composable

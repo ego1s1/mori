@@ -1,6 +1,5 @@
 package com.mori.feature.detail.impl
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,13 +58,9 @@ import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
-import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
-import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriProgressBar
-import com.mori.core.designsystem.enter
-import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
@@ -165,34 +160,21 @@ internal fun DetailScreen(
             when (uiState) {
                 DetailUiState.Loading -> MoriLoading()
 
-                DetailUiState.Missing -> AnimatedVisibility(
-                    visible = true,
-                    enter = MoriMotion.enter(MoriEnterKind.FADE),
-                    exit = MoriMotion.exit(MoriEnterKind.FADE),
-                ) {
-                    MoriEmptyState(
-                        icon = MoriIcons.MenuBook,
-                        title = stringResource(R.string.detail_removed_title),
-                        body = stringResource(R.string.detail_removed_body),
-                        actionLabel = stringResource(R.string.detail_back_to_library),
-                        onAction = onBackClick,
-                    )
-                }
+                DetailUiState.Missing -> MoriEmptyState(
+                    icon = MoriIcons.MenuBook,
+                    title = stringResource(R.string.detail_removed_title),
+                    body = stringResource(R.string.detail_removed_body),
+                    actionLabel = stringResource(R.string.detail_back_to_library),
+                    onAction = onBackClick,
+                )
 
                 is DetailUiState.Ready -> {
-                    // One-shot arrival fade; static visibility never replays it.
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = MoriMotion.enter(MoriEnterKind.FADE_THROUGH),
-                        exit = MoriMotion.exit(MoriEnterKind.FADE_THROUGH),
-                    ) {
                     DetailContent(
                         comic = uiState.comic,
                         refreshing = uiState.refreshing,
                         onAction = onAction,
                         onReadClick = onReadClick,
                     )
-                    }
                     if (uiState.confirmRemove) {
                         RemoveDialog(
                             title = uiState.comic.title,

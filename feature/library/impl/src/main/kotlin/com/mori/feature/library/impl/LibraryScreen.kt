@@ -423,34 +423,21 @@ private fun LibraryBody(
         modifier = modifier.fillMaxSize(),
     ) {
         if (comics.isEmpty()) {
-            // One-shot arrival fade; static visibility never replays it.
-            AnimatedVisibility(
-                visible = true,
-                enter = MoriMotion.enter(MoriEnterKind.FADE),
-                exit = MoriMotion.exit(MoriEnterKind.FADE),
-            ) {
-                LibraryEmptyState(
-                    searching = queryText.isNotBlank(),
-                    linked = linked,
-                    onRefresh = { onAction(LibraryAction.Refresh) },
-                    onChooseFolder = onChooseFolder,
-                )
-            }
+            LibraryEmptyState(
+                searching = queryText.isNotBlank(),
+                linked = linked,
+                onRefresh = { onAction(LibraryAction.Refresh) },
+                onChooseFolder = onChooseFolder,
+            )
         } else {
-            // One-shot arrival fade; static visibility never replays it.
-            AnimatedVisibility(
-                visible = true,
-                enter = MoriMotion.enter(MoriEnterKind.FADE),
-                exit = MoriMotion.exit(MoriEnterKind.FADE),
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(GRID_CELL_MIN),
-                    contentPadding = gridPadding,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(LibraryTestTags.Grid),
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(GRID_CELL_MIN),
+                contentPadding = gridPadding,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(LibraryTestTags.Grid),
             ) {
                 // Continue shelf rides above the grid when anything is in
                 // progress; hidden entirely otherwise (no empty header).
@@ -482,20 +469,20 @@ private fun LibraryBody(
                             onRead = onCardRead,
                             onDetails = onCardDetails,
                             sharedCover = launchingId == comic.id,
-                            modifier = Modifier,
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
             }
         }
     }
-}
 
 /**
  * Horizontal continue-reading shelf: compact cards for in-progress books by
  * recency. Same information as the grid cards, denser; tapping continues at
  * the saved page.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ContinueShelf(
     comics: List<Comic>,
@@ -538,6 +525,7 @@ private fun ContinueShelf(
                     onDetails = null,
                     compact = true,
                     cardTag = LibraryTestTags.shelfCardFor(comic.id),
+                    modifier = Modifier.animateItem(),
                 )
             }
         }
