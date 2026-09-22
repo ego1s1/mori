@@ -180,8 +180,15 @@ private fun NavDestination(
                 } else {
                     fadeIn(animationSpec = MoriMotion.calmFade())
                 },
-                exit = fadeOut(animationSpec = MoriMotion.calmFade()) +
-                    shrinkHorizontally(animationSpec = MoriMotion.calmFade()),
+                // Mirrors the enter pair (same specs, reversed): rapid tab
+                // hops retarget enter and exit identically instead of
+                // springing open and tweening shut.
+                exit = if (expressiveMotion) {
+                    fadeOut(animationSpec = MoriMotion.defaultEffectsSpec()) +
+                        shrinkHorizontally(animationSpec = MoriMotion.defaultSpatialSpec())
+                } else {
+                    fadeOut(animationSpec = MoriMotion.calmFade())
+                },
             ) {
                 Text(
                     text = label,
