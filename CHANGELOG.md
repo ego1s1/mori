@@ -1,11 +1,25 @@
 # Changelog
 
+## 0.1.25
+
+Full M3 Expressive UI audit, built in phases:
+
+- Motion foundation: centralized screen specs, calm setting threaded through
+  every nav transition, symmetric enter/exit pairs, overshoot-free progress
+- Theme: complete container/error/surface roles for every scheme, AMOLED
+  deepens instead of flattening, splash holds a black bed until prefs load
+- Library, history, detail: unified bar titles, tablet content well, list
+  animations, history clear-search, chip and error-card accessibility fixes
+- Reader chrome: safe-area insets, slimmer centered chrome, live slider
+  preview with continuous scrubbing, overview numbers + retry, honest
+  zone preview, predictive-back shrink, wizard completion fades home
+
 ## 0.1.24
 
-Reader experience pass, verified against Mihon's pager viewer:
+Reader experience pass:
 
-- Volume keys are invertible (volume up forward / down back), matching
-  Mihon's `readWithVolumeKeysInverted` pref in both reader and system settings
+- Volume keys are invertible (volume up forward / down back) in both
+  reader and system settings
 - Zoomed panning is hard-stop 1:1 with no mid-gesture page turns; a fresh
   second swipe pushing past the clamped edge turns the page from anywhere,
   like an unzoomed swipe — tap hop-to-edge kept
