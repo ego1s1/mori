@@ -48,7 +48,7 @@ increments from here (0.1.1, …). Highlights since the reset point:
 
 - Unified onboarding storage choice (custom folders link in place with zero
   copies; app storage copies), transient Done beat into the library
-- Reader gesture overhaul to Mihon parity: hold-to-confirm taps, double-tap
+- Reader gesture overhaul: hold-to-confirm taps, double-tap
   zoom on second contact, instant rhythm skipping, pager-first swipe routing,
   long-press guard
 - App-wide expressive motion standards (gated fade-through/fade transitions,
