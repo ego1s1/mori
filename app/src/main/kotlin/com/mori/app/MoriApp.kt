@@ -14,6 +14,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.mori.core.designsystem.wizardEnter
+import com.mori.core.designsystem.wizardExit
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.screenEnter
 import com.mori.core.designsystem.screenExit
@@ -92,8 +94,22 @@ fun MoriApp(
                     NavHost(
                         navController = navController,
                         startDestination = if (completed == true) MainRoute else OnboardingRoute,
-                        enterTransition = { screenEnter(expressiveMotion) },
-                        exitTransition = { screenExit(expressiveMotion) },
+                        enterTransition = {
+                            // Wizard completion arrives with a fade; every
+                            // other push slides laterally.
+                            if (initialState.destination.isOnboarding()) {
+                                wizardEnter(expressiveMotion)
+                            } else {
+                                screenEnter(expressiveMotion)
+                            }
+                        },
+                        exitTransition = {
+                            if (targetState.destination.isMain()) {
+                                wizardExit(expressiveMotion)
+                            } else {
+                                screenExit(expressiveMotion)
+                            }
+                        },
                         popEnterTransition = { screenPopEnter(expressiveMotion) },
                         popExitTransition = { screenPopExit(expressiveMotion) },
                     ) {
@@ -127,3 +143,13 @@ fun MoriApp(
     }
 }
 }
+
+/**
+ * Type-safe route matching without the hasRoute API: destinations carry the
+ * simple class name as their route suffix.
+ */
+private fun androidx.navigation.NavDestination.isOnboarding(): Boolean =
+    route?.substringAfterLast('.') == "OnboardingRoute"
+
+private fun androidx.navigation.NavDestination.isMain(): Boolean =
+    route?.substringAfterLast('.') == "MainRoute"

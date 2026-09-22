@@ -55,3 +55,27 @@ fun AnimatedContentTransitionScope<*>.screenPopExit(expressive: Boolean = true):
             towards = AnimatedContentTransitionScope.SlideDirection.End,
         )
     }
+
+/**
+ * Wizard-handoff enter: completing onboarding lands on Main with a fade, not
+ * a lateral push — a forward completion reads as arrival, matching the
+ * reader's "different bed = different transition" precedent.
+ */
+fun AnimatedContentTransitionScope<*>.wizardEnter(expressive: Boolean = true): EnterTransition =
+    fadeIn(
+        animationSpec = if (expressive) {
+            MoriMotion.screenEnterSpec()
+        } else {
+            MoriMotion.calmFade()
+        },
+    )
+
+/** Wizard-handoff exit: the onboarding screen dissolves as Main arrives. */
+fun AnimatedContentTransitionScope<*>.wizardExit(expressive: Boolean = true): ExitTransition =
+    fadeOut(
+        animationSpec = if (expressive) {
+            MoriMotion.screenExitSpec()
+        } else {
+            MoriMotion.calmFade()
+        },
+    )
