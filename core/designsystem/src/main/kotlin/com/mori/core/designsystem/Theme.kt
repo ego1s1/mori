@@ -19,7 +19,15 @@ private val LightColors = lightColorScheme(
     primaryContainer = MoriSeedContainerLight,
     onPrimaryContainer = MoriOnSeedContainerLight,
     secondary = MoriSecondaryLight,
+    secondaryContainer = containerFor(MoriSecondaryLight, darkTheme = false).container,
+    onSecondaryContainer = containerFor(MoriSecondaryLight, darkTheme = false).onContainer,
     tertiary = MoriTertiaryLight,
+    tertiaryContainer = containerFor(MoriTertiaryLight, darkTheme = false).container,
+    onTertiaryContainer = containerFor(MoriTertiaryLight, darkTheme = false).onContainer,
+    error = ErrorLight,
+    onError = OnErrorLight,
+    errorContainer = ErrorContainerLight,
+    onErrorContainer = OnErrorContainerLight,
 )
 
 private val DarkColors = darkColorScheme(
@@ -28,30 +36,101 @@ private val DarkColors = darkColorScheme(
     primaryContainer = MoriSeedContainerDark,
     onPrimaryContainer = MoriOnSeedContainerDark,
     secondary = MoriSecondaryDark,
+    secondaryContainer = containerFor(MoriSecondaryDark, darkTheme = true).container,
+    onSecondaryContainer = containerFor(MoriSecondaryDark, darkTheme = true).onContainer,
     tertiary = MoriTertiaryDark,
+    tertiaryContainer = containerFor(MoriTertiaryDark, darkTheme = true).container,
+    onTertiaryContainer = containerFor(MoriTertiaryDark, darkTheme = true).onContainer,
+    error = ErrorDark,
+    onError = OnErrorDark,
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = OnErrorContainerDark,
+    surfaceContainerLowest = darkSurfaceRamp(MoriSeedLight).lowest,
+    surfaceContainerLow = darkSurfaceRamp(MoriSeedLight).low,
+    surfaceContainer = darkSurfaceRamp(MoriSeedLight).container,
+    surfaceContainerHigh = darkSurfaceRamp(MoriSeedLight).high,
+    surfaceContainerHighest = darkSurfaceRamp(MoriSeedLight).highest,
 )
 
 /**
- * True-black override for dark mode: backgrounds go pure black for OLED power savings
- * while containers keep a whisper of tone so scrims and sheets stay legible.
+ * True-black override for dark mode: backgrounds go pure black for OLED power
+ * savings while containers deepen toward black instead of flattening to gray,
+ * so the scheme's tint and the full on* hierarchy survive.
  */
 private fun ColorScheme.amoled(): ColorScheme = copy(
     background = Color.Black,
-    onBackground = Color.White,
     surface = Color.Black,
-    onSurface = Color.White,
     surfaceContainerLowest = Color.Black,
-    surfaceContainerLow = Color(0xFF0C0C0C),
-    surfaceContainer = Color(0xFF131313),
-    surfaceContainerHigh = Color(0xFF1B1B1B),
-    surfaceContainerHighest = Color(0xFF232323),
+    surfaceContainerLow = surfaceContainerLow.darkened(0.45f),
+    surfaceContainer = surfaceContainer.darkened(0.35f),
+    surfaceContainerHigh = surfaceContainerHigh.darkened(0.25f),
+    surfaceContainerHighest = surfaceContainerHighest.darkened(0.12f),
+    surfaceVariant = surfaceVariant.darkened(0.35f),
+)
+
+/** Full dark preset from accents: containers + error ramp derived, never baseline. */
+private fun presetDarkScheme(
+    primary: Color,
+    onPrimary: Color,
+    primaryContainer: Color,
+    onPrimaryContainer: Color,
+    secondary: Color,
+    tertiary: Color,
+): ColorScheme {
+    val ramp = darkSurfaceRamp(primary)
+    return darkColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = secondary,
+        secondaryContainer = containerFor(secondary, darkTheme = true).container,
+        onSecondaryContainer = containerFor(secondary, darkTheme = true).onContainer,
+        tertiary = tertiary,
+        tertiaryContainer = containerFor(tertiary, darkTheme = true).container,
+        onTertiaryContainer = containerFor(tertiary, darkTheme = true).onContainer,
+        error = ErrorDark,
+        onError = OnErrorDark,
+        errorContainer = ErrorContainerDark,
+        onErrorContainer = OnErrorContainerDark,
+        surfaceContainerLowest = ramp.lowest,
+        surfaceContainerLow = ramp.low,
+        surfaceContainer = ramp.container,
+        surfaceContainerHigh = ramp.high,
+        surfaceContainerHighest = ramp.highest,
+    )
+}
+
+/** Full light preset from accents: containers + error ramp derived, never baseline. */
+private fun presetLightScheme(
+    primary: Color,
+    onPrimary: Color,
+    primaryContainer: Color,
+    onPrimaryContainer: Color,
+    secondary: Color,
+    tertiary: Color,
+): ColorScheme = lightColorScheme(
+    primary = primary,
+    onPrimary = onPrimary,
+    primaryContainer = primaryContainer,
+    onPrimaryContainer = onPrimaryContainer,
+    secondary = secondary,
+    secondaryContainer = containerFor(secondary, darkTheme = false).container,
+    onSecondaryContainer = containerFor(secondary, darkTheme = false).onContainer,
+    tertiary = tertiary,
+    tertiaryContainer = containerFor(tertiary, darkTheme = false).container,
+    onTertiaryContainer = containerFor(tertiary, darkTheme = false).onContainer,
+    error = ErrorLight,
+    onError = OnErrorLight,
+    errorContainer = ErrorContainerLight,
+    onErrorContainer = OnErrorContainerLight,
 )
 
 private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorScheme {
     if (darkTheme) {
         return when (choice) {
             ColorSchemeChoice.MORI -> DarkColors
-            ColorSchemeChoice.OCEAN -> darkColorScheme(
+            ColorSchemeChoice.OCEAN -> presetDarkScheme(
                 primary = OceanColors.PrimaryDark,
                 onPrimary = OceanColors.OnPrimaryDark,
                 primaryContainer = OceanColors.ContainerDark,
@@ -59,7 +138,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = OceanColors.SecondaryDark,
                 tertiary = OceanColors.TertiaryDark,
             )
-            ColorSchemeChoice.FOREST -> darkColorScheme(
+            ColorSchemeChoice.FOREST -> presetDarkScheme(
                 primary = ForestColors.PrimaryDark,
                 onPrimary = ForestColors.OnPrimaryDark,
                 primaryContainer = ForestColors.ContainerDark,
@@ -67,7 +146,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = ForestColors.SecondaryDark,
                 tertiary = ForestColors.TertiaryDark,
             )
-            ColorSchemeChoice.SUNSET -> darkColorScheme(
+            ColorSchemeChoice.SUNSET -> presetDarkScheme(
                 primary = SunsetColors.PrimaryDark,
                 onPrimary = SunsetColors.OnPrimaryDark,
                 primaryContainer = SunsetColors.ContainerDark,
@@ -79,7 +158,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
     }
     return when (choice) {
         ColorSchemeChoice.MORI -> LightColors
-        ColorSchemeChoice.OCEAN -> lightColorScheme(
+        ColorSchemeChoice.OCEAN -> presetLightScheme(
             primary = OceanColors.PrimaryLight,
             onPrimary = OceanColors.OnPrimaryLight,
             primaryContainer = OceanColors.ContainerLight,
@@ -87,7 +166,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = OceanColors.SecondaryLight,
             tertiary = OceanColors.TertiaryLight,
         )
-        ColorSchemeChoice.FOREST -> lightColorScheme(
+        ColorSchemeChoice.FOREST -> presetLightScheme(
             primary = ForestColors.PrimaryLight,
             onPrimary = ForestColors.OnPrimaryLight,
             primaryContainer = ForestColors.ContainerLight,
@@ -95,7 +174,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = ForestColors.SecondaryLight,
             tertiary = ForestColors.TertiaryLight,
         )
-        ColorSchemeChoice.SUNSET -> lightColorScheme(
+        ColorSchemeChoice.SUNSET -> presetLightScheme(
             primary = SunsetColors.PrimaryLight,
             onPrimary = SunsetColors.OnPrimaryLight,
             primaryContainer = SunsetColors.ContainerLight,

@@ -168,12 +168,16 @@ internal fun SettingsContent(
                 checked = theme.dynamicColor,
                 onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
             )
-            MoriSettingSwitch(
-                title = stringResource(R.string.settings_amoled_title),
-                subtitle = stringResource(R.string.settings_amoled_subtitle),
-                checked = theme.amoled,
-                onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
-            )
+            // True-black only applies in dark mode; hide it under explicit
+            // light so the toggle never reads as broken.
+            if (theme.mode != ThemeMode.LIGHT) {
+                MoriSettingSwitch(
+                    title = stringResource(R.string.settings_amoled_title),
+                    subtitle = stringResource(R.string.settings_amoled_subtitle),
+                    checked = theme.amoled,
+                    onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
+                )
+            }
             OptionLabel(stringResource(R.string.settings_motion))
             SegmentedChoiceRow(
                 options = listOf(
