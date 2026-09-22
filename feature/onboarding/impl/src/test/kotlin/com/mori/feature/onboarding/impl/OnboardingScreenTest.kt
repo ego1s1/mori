@@ -85,7 +85,7 @@ class OnboardingScreenTest {
         val actions = mutableListOf<OnboardingAction>()
         var folderPicks = 0
         setScreen(
-            OnboardingUiState.Folder,
+            OnboardingUiState.Folder(),
             onPickFolder = { folderPicks += 1 },
             actions = actions,
         )
@@ -94,6 +94,31 @@ class OnboardingScreenTest {
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performScrollTo()
         composeTestRule.onNodeWithTag(OnboardingTestTags.PickFolder).performClick()
         assertEquals(1, folderPicks)
+    }
+
+    @Test
+    fun folderHintAndSkipCtaAppearAfterDismissal() {
+        val actions = mutableListOf<OnboardingAction>()
+        var finished = 0
+        setScreen(
+            OnboardingUiState.Folder(pickerHintVisible = true),
+            actions = actions,
+            onFinish = { finished += 1 },
+        )
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickerHint).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Continue without linking").assertIsDisplayed()
+        // The CTA dispatches Skip (navigation covered by VM tests; a Button
+        // click through this zone doesn't actuate under Robolectric).
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        assertEquals(0, finished)
+    }
+
+    @Test
+    fun folderStepHidesHintInitially() {
+        setScreen(OnboardingUiState.Folder())
+
+        composeTestRule.onNodeWithTag(OnboardingTestTags.PickerHint).assertDoesNotExist()
     }
 
     @Test

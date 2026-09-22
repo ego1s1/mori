@@ -42,7 +42,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.GetStarted)
-            assertEquals(OnboardingUiState.Folder, awaitItem())
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -53,7 +53,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.GetStarted)
-            assertEquals(OnboardingUiState.Folder, awaitItem())
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
             assertTrue(awaitItem() is OnboardingUiState.Appearance)
             cancelAndIgnoreRemainingEvents()
@@ -64,16 +64,29 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun pickerDismissalSurfacesHintWithoutAdvancing() = runTest {
+        val (viewModel, _) = viewModel()
+        viewModel.uiState.test {
+            assertEquals(OnboardingUiState.Welcome, awaitItem())
+            viewModel.onAction(OnboardingAction.GetStarted)
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
+            viewModel.onAction(OnboardingAction.FolderPickerDismissed)
+            assertEquals(OnboardingUiState.Folder(pickerHintVisible = true), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun backStepWalksBackwards() = runTest {
         val (viewModel, _) = viewModel()
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.GetStarted)
-            assertEquals(OnboardingUiState.Folder, awaitItem())
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
             assertTrue(awaitItem() is OnboardingUiState.Appearance)
             viewModel.onAction(OnboardingAction.BackStep)
-            assertEquals(OnboardingUiState.Folder, awaitItem())
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -116,7 +129,7 @@ class OnboardingViewModelTest {
         viewModel.uiState.test {
             assertEquals(OnboardingUiState.Welcome, awaitItem())
             viewModel.onAction(OnboardingAction.GetStarted)
-            assertEquals(OnboardingUiState.Folder, awaitItem())
+            assertEquals(OnboardingUiState.Folder(), awaitItem())
             viewModel.onAction(OnboardingAction.FolderSelected(treeUri()))
             assertTrue(awaitItem() is OnboardingUiState.Appearance)
         }

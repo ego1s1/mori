@@ -27,10 +27,12 @@ internal class OnboardingViewModel @Inject constructor(
     private enum class Step { WELCOME, FOLDER, APPEARANCE }
 
     private val step = MutableStateFlow(Step.WELCOME)
+    private val folderHintVisible = MutableStateFlow(false)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         preferences.themePreferences,
+        folderHintVisible,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -38,12 +40,15 @@ internal class OnboardingViewModel @Inject constructor(
         initialValue = OnboardingUiState.Welcome,
     )
 
-    private fun toUiState(step: Step, theme: ThemePreferences): OnboardingUiState =
-        when (step) {
-            Step.WELCOME -> OnboardingUiState.Welcome
-            Step.FOLDER -> OnboardingUiState.Folder
-            Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
-        }
+    private fun toUiState(
+        step: Step,
+        theme: ThemePreferences,
+        folderHintVisible: Boolean,
+    ): OnboardingUiState = when (step) {
+        Step.WELCOME -> OnboardingUiState.Welcome
+        Step.FOLDER -> OnboardingUiState.Folder(pickerHintVisible = folderHintVisible)
+        Step.APPEARANCE -> OnboardingUiState.Appearance(theme)
+    }
 
     fun onAction(action: OnboardingAction) {
         when (action) {
@@ -58,7 +63,11 @@ internal class OnboardingViewModel @Inject constructor(
                 viewModelScope.launch {
                     preferences.setSourceTreeUri(action.uri.toString())
                 }
+                folderHintVisible.value = false
                 step.value = Step.APPEARANCE
+            }
+            OnboardingAction.FolderPickerDismissed -> {
+                folderHintVisible.value = true
             }
             is OnboardingAction.SetThemeMode -> updateTheme { it.copy(mode = action.mode) }
             is OnboardingAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }

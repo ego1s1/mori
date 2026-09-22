@@ -105,14 +105,20 @@ internal fun OnboardingRoute(
     val folderLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
-        if (uri != null) {
-            runCatching {
+        if (uri == null) {
+            viewModel.onAction(OnboardingAction.FolderPickerDismissed)
+        } else {
+            val granted = runCatching {
                 context.contentResolver.takePersistableUriPermission(
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
+            }.isSuccess
+            if (granted) {
+                viewModel.onAction(OnboardingAction.FolderSelected(uri))
+            } else {
+                viewModel.onAction(OnboardingAction.FolderPickerDismissed)
             }
-            viewModel.onAction(OnboardingAction.FolderSelected(uri))
         }
     }
     OnboardingScreen(
@@ -174,10 +180,19 @@ internal fun OnboardingScreen(
                     onAction(OnboardingAction.Skip)
                     onOnboardingComplete()
                 },
-                continueLabel = "",
+                // An in-composition way forward that never depends on the
+                // system picker returning: linking stays optional.
+                onContinue = {
+                    onAction(OnboardingAction.Skip)
+                    onOnboardingComplete()
+                },
+                continueLabel = stringResource(R.string.onboarding_continue_without_linking),
                 continueCaption = "",
             ) {
-                FolderOptions(onPickFolder = onPickFolder)
+                FolderOptions(
+                    onPickFolder = onPickFolder,
+                    pickerHintVisible = uiState.pickerHintVisible,
+                )
             }
             is OnboardingUiState.Appearance -> WizardStep(
                 modifier = Modifier.testTag(OnboardingTestTags.AppearanceStep),
@@ -354,10 +369,12 @@ private fun WelcomeContent(
 private const val WELCOME_STEPS = 3
 
 /** Folder step: the single question. The picker button launches SAF; the
- * surrounding card explains nothing is copied. */
+ * surrounding card explains nothing is copied. A dismiss/deny surfaces an
+ * inline hint instead of stalling the step. */
 @Composable
 private fun FolderOptions(
     onPickFolder: () -> Unit,
+    pickerHintVisible: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -372,6 +389,21 @@ private fun FolderOptions(
                 .testTag(OnboardingTestTags.PickFolder),
         ) {
             Text(stringResource(R.string.onboarding_pick_folder))
+        }
+        AnimatedVisibility(
+            visible = pickerHintVisible,
+            enter = MoriMotion.enter(MoriEnterKind.FADE),
+            exit = MoriMotion.exit(MoriEnterKind.FADE),
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_folder_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(OnboardingTestTags.PickerHint),
+            )
         }
         Text(
             text = stringResource(R.string.onboarding_folder_note),

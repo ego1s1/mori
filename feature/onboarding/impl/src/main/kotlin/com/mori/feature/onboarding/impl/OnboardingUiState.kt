@@ -14,7 +14,13 @@ import com.mori.core.model.ThemePreferences
 sealed interface OnboardingUiState {
     data object Welcome : OnboardingUiState
 
-    data object Folder : OnboardingUiState
+    /**
+     * Folder step: [pickerHintVisible] turns on after a dismissed picker or
+     * denied grant, so the step explains itself instead of sitting silent.
+     */
+    data class Folder(
+        val pickerHintVisible: Boolean = false,
+    ) : OnboardingUiState
 
     data class Appearance(
         val theme: ThemePreferences,
@@ -33,6 +39,9 @@ sealed interface OnboardingAction {
 
     /** The user picked the folder to read from. */
     data class FolderSelected(val uri: Uri) : OnboardingAction
+
+    /** The folder picker was dismissed or its grant denied: explain, don't stall. */
+    data object FolderPickerDismissed : OnboardingAction
 
     data class SetThemeMode(val mode: ThemeMode) : OnboardingAction
 

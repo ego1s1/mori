@@ -15,6 +15,8 @@
     <string name="onboarding_folder_body">Mori reads where your files live — nothing is copied, and rescans stay fresh.</string>
     <string name="onboarding_folder_note">Your files stay yours, organized your way.</string>
     <string name="onboarding_pick_folder">Choose folder</string>
+    <string name="onboarding_folder_hint">No folder chosen — pick one above, or continue without linking.</string>
+    <string name="onboarding_continue_without_linking">Continue without linking</string>
     <string name="onboarding_appearance_title">Make it yours</string>
     <string name="onboarding_appearance_body">Theme and color follow you everywhere in Mori.</string>
     <string name="onboarding_appearance_caption">Everything stays changeable in Settings.</string>

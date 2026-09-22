@@ -7,4 +7,5 @@ object OnboardingTestTags {
     const val FolderStep = "onboardingFolderStep"
     const val AppearanceStep = "onboardingAppearanceStep"
     const val StepContinue = "onboardingStepContinue"
+    const val PickerHint = "onboardingPickerHint"
 }
