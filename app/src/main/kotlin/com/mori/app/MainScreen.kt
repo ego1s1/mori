@@ -107,7 +107,7 @@ fun NavGraphBuilder.mainScreen(
  * under one floating navigator — no swipe pager. Tabs switch with a smooth
  * directional glide and each keeps its state (grid scroll position survives
  * a settings visit), so the heavy settings page never composes mid-gesture.
- * The system back gesture steps back one adjacent tab instead of leaving.
+ * The system back gesture jumps home to the library instead of leaving.
  */
 @Composable
 internal fun MainScreen(
@@ -119,16 +119,16 @@ internal fun MainScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabStateHolder = rememberSaveableStateHolder()
 
-    // Predictive-back preview for stepping back one tab: the content leans
+    // Predictive-back preview for leaving to the library: the content leans
     // with the gesture (subtle pull + settle) instead of snapping on
-    // release. Commit swaps tabs (the directional transition carries the
-    // arrival); cancel glides back to rest.
+    // release. Commit jumps straight home (one gesture exits settings);
+    // cancel glides back to rest.
     val expressiveMotion = LocalExpressiveMotionEnabled.current
     val backPreview = remember { Animatable(0f) }
     PredictiveBackHandler(enabled = selectedTab != LIBRARY_TAB) { progress ->
         try {
             progress.collect { backPreview.snapTo(it.progress) }
-            selectedTab -= 1
+            selectedTab = LIBRARY_TAB
             backPreview.snapTo(0f)
         } catch (e: CancellationException) {
             // Settle on the motion setting: spring back expressively,
