@@ -22,10 +22,10 @@ import kotlinx.coroutines.launch
  * content rebase their local tap position into viewport space, so the same
  * physical x always lands in the same zone.
  *
- * Mihon-parity dispatch: every tap holds a small double-tap window before it
- * fires (single-tap-confirmed). A second contact landing in-window pairs into
- * a zoom immediately — on second down, like Mihon's `onDoubleTap` — so pairs
- * never dispatch and there is nothing to undo or compensate. Held edge taps
+ * Single-tap-confirmed dispatch: every tap holds a small double-tap
+ * window before it fires. A second contact landing in-window pairs into
+ * a zoom immediately — on second down, like the platform `onDoubleTap` —
+ * so pairs never dispatch and there is nothing to undo or compensate. Held edge taps
  * open a short rhythm window of instant turns for fast skipping; center taps
  * always hold, so double-tap-to-zoom works from any state; a press that drifts
  * into a scroll or pinch stands the hold down silently.
@@ -90,7 +90,7 @@ internal fun Modifier.zoneTaps(
     }
 
     /**
-     * Pairs a fresh down with a held tap-up (Mihon `onDoubleTap` timing):
+     * Pairs a fresh down with a held tap-up (double-tap timing):
      * the zoom fires on second contact, so the pair never dispatches and the
      * trailing up is swallowed via [consumedIds].
      */
@@ -131,7 +131,7 @@ internal fun Modifier.zoneTaps(
         if (zone == ReaderZone.MENU || lastRhythmZone != zone ||
             !isRhythmActive(lastRhythmEdgeMs, nowMs)
         ) {
-            // Hold for a possible double-tap (Mihon single-tap-confirmed).
+            // Hold for a possible double-tap (single-tap-confirmed).
             // Center taps always take this path, so double-tap-to-zoom works
             // from any state. The hold stamps the detector epoch: a
             // direction flip mid-hold moves it, and the stale fire drops.
@@ -182,7 +182,7 @@ internal fun Modifier.zoneTaps(
                         downPositions[change.id] = change.position
                         downTimes[change.id] = change.uptimeMillis
                         // Second contact pairs a held tap-up into a zoom
-                        // immediately (Mihon onDoubleTap timing).
+                        // immediately (double-tap timing).
                         if (change.id in sequentialDowns) {
                             val (rebased, center, _) = rebase(change.position)
                             pairOnDown(change.id, rebased, center, change.uptimeMillis)
@@ -221,7 +221,7 @@ internal fun Modifier.zoneTaps(
                         (current - startPos).getDistance() <= touchSlop
                     }
                     // Presses held past the long-press timeout are long
-                    // presses, not taps (Mihon/AOSP parity) — a two-second
+                    // presses, not taps (AOSP parity) — a two-second
                     // touch must never turn a page on release.
                     val quickTap = downMs?.let { isTapDurationValid(it, change.uptimeMillis) } == true
                     if (ownDrift != null && ownDrift <= touchSlop && othersStill &&

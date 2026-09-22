@@ -23,8 +23,8 @@ import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
 
 /**
- * Tab-less Filter/Sort/Display sheet in the Mihon settings-dialog spirit, restyled as a
- * single scrolling M3 sheet: filter chips, sort chips, and display switches.
+ * Tab-less Filter/Sort/Display sheet as a single scrolling M3 sheet:
+ * filter chips, sort chips, and display switches.
  */
 @Composable
 internal fun LibrarySortFilterSheet(

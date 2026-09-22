@@ -240,7 +240,7 @@ internal class ReaderViewModel @Inject constructor(
             return ReaderUiState.Error(ReaderErrorCause.Failed(ComicError.EMPTY))
         }
         val archivePageCount = comic.pageCount.coerceAtLeast(1)
-        // Expanded pager positions (Mihon's InsertPage model): wide pages
+        // Expanded pager positions (insert model): wide pages
         // become two halves when the split is on, identity otherwise. The
         // scan arrives asynchronously; until then whole pages render.
         val wide = if (prefs.dualPageSplit) wideByComic[comic.id].orEmpty() else emptySet()

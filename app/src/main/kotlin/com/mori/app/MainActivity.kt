@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Reader-owned keys (volume paging) are consumed before the system sees
-     * them, so handled presses never move the system volume (Mihon parity).
+     * them, so handled presses never move the system volume.
      * The super call is the documented dispatch chain for this override.
      *
      * RestrictedApi is suppressed only for this override: dispatchKeyEvent

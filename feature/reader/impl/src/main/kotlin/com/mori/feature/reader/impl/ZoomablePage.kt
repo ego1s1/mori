@@ -60,7 +60,7 @@ import kotlinx.coroutines.launch
  * rounded corners, no tonal fillers — so portrait and landscape art alike blend into
  * the reader chrome. Single taps resolve to [ReaderZone] outcomes via [zoneForTap]
  * instead of bubbling to a parent click handler. Taps hold a small
- * double-tap window before firing (Mihon single-tap-confirmed): a second
+ * double-tap window before firing (single-tap-confirmed): a second
  * contact in-window pairs into a zoom on the way down and neither tap
  * dispatches, so double-taps never deal surprise page turns; held edge taps
  * open a short rhythm window of instant turns for fast skipping. Artwork
@@ -94,9 +94,9 @@ internal fun ZoomablePage(
         onZoomedChange(scale > 1f)
     }
     // Aspect of the DECODED art (post-crop, post-split). Fit is computed from
-    // these bounds — Mihon's model, where SubsamplingScaleImageView derives
-    // its minimum scale from the image, never from a fixed slot. Reset per
-    // page identity; the 2:3 placeholder holds layout until decode lands.
+    // these bounds — the minimum scale derives from the image itself, never
+    // from a fixed slot. Reset per page identity; the 2:3 placeholder holds
+    // layout until decode lands.
     // Without this, decode-side crop would be invisible: Fit normalizes any
     // same-aspect art to the same size inside a fixed box.
     var artAspect by remember(comicId, pageIndex, cropMargins, half) {
@@ -211,7 +211,7 @@ internal fun ZoomablePage(
                     onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
                     consumeUp = true,
                 )
-                // Pan/zoom routing (Mihon PhotoView parity): single-finger
+                // Pan/zoom routing: single-finger
                 // drags at fit pass straight through to the pager; pinches
                 // always zoom; pans act only while zoomed and release to the
                 // pager at the pan limits (edge handoff).
@@ -333,7 +333,7 @@ private fun PageArt(
  * aspect — so a cropped page refits larger instead of sitting at its old
  * scale inside a fixed slot. Art taller than the viewport is capped at the
  * viewport height (whole art stays reachable: scale-1 never pans, so true
- * overflow would strand content, unlike Mihon's pannable view). HEIGHT
+ * overflow would strand content). HEIGHT
  * keeps the viewport box: Fit already maximizes there either way.
  */
 private fun Modifier.pageFit(

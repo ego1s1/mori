@@ -19,7 +19,7 @@ data class ReaderPreferences(
     val pageFit: PageFit = PageFit.WIDTH,
     val cropMargins: Boolean = false,
     val volumeKeys: Boolean = false,
-    /** Volume-down goes to previous page instead of next (Mihon's inverted pref). */
+    /** Volume-down goes to previous page instead of next. */
     val volumeKeysInverted: Boolean = false,
     val keepScreenOn: Boolean = true,
     val showPageCounter: Boolean = true,
@@ -28,11 +28,11 @@ data class ReaderPreferences(
     /** Zone overlay preview; persisted like the other reader defaults. */
     val showTapZones: Boolean = false,
     /**
-     * Dual-page split (Mihon's `dualPageSplitPaged`): wide pages are divided
+     * Dual-page split: wide pages are divided
      * into halves that read as consecutive pager positions instead of one
      * squeezed page. Off by default — it rescans page dimensions on enable.
      */
     val dualPageSplit: Boolean = false,
-    /** Read the second half before the first (Mihon's `dualPageInvertPaged`). */
+    /** Read the second half before the first. */
     val dualPageInvert: Boolean = false,
 )

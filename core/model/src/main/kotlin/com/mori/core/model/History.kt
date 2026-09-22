@@ -4,7 +4,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 /**
- * Reading history, Mihon-style but chapter-free: Mori tracks whole comics,
+ * Reading history: Mori tracks whole comics,
  * so one entry per touched book, ordered by recency and bucketed by local
  * day (Today / Yesterday / date headers in the UI).
  *

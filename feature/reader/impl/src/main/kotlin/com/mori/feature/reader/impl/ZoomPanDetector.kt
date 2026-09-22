@@ -9,8 +9,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import com.mori.core.model.ReadingDirection
 
 /**
- * Pan/zoom routing for reader pages, mirroring Mihon's PhotoView contract
- * with its pager:
+ * Pan/zoom routing for reader pages and its pager:
  *
  * - single-finger drags at fit (`scale <= 1`) are never touched, so the
  *   pager owns swipes outright instead of fighting over every delta;

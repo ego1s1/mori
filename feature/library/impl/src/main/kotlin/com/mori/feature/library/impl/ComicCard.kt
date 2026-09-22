@@ -33,7 +33,7 @@ import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
 
 /**
- * Compact grid cell in the Mihon tradition: full-bleed 2:3 cover with the
+ * Compact grid cell: full-bleed 2:3 cover with the
  * title set below it in normal flow — no scrim gradient, no text blended
  * over the image — plus a progress bar for started comics and an error pill
  * for failed rows.

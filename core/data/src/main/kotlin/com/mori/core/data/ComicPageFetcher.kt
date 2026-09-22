@@ -71,7 +71,7 @@ class ComicPageFetcher internal constructor(
         val decoded = if (data.half == PageHalf.FULL) {
             decoder.decode(bytes, page.mediaType, options)
         } else {
-            // Dual-page split (Mihon's splitInHalf): region-decode one side so
+            // Dual-page split: region-decode one side so
             // the full wide bitmap is never materialized. Halves meet at the
             // middle column with no overlap and no gap.
             val dimensions = decoder.readDimensions(bytes, page.mediaType)

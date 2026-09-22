@@ -70,7 +70,7 @@ private const val PAN_STEP_FRACTION = 0.4f
 
 /**
  * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). Every tap
- * holds this window before firing (Mihon single-tap-confirmed); a second tap
+ * holds this window before firing (single-tap-confirmed); a second tap
  * inside it pairs into a zoom instead.
  */
 internal const val DOUBLE_TAP_TIMEOUT_MS = 300L

@@ -9,7 +9,7 @@ import com.mori.core.model.ReadingDirection
  * With the dual-page split off this is the identity mapping (one entry per
  * archive page, [half] = [PageHalf.FULL]). With the split on, every wide
  * (landscape) archive page expands into two consecutive entries, one per
- * half — Mihon's `InsertPage` model, where the split half is inserted after
+ * half — an insert model, where the split half is inserted after
  * the original page instead of shifting anything before it.
  */
 data class ReaderViewerPage(
@@ -22,9 +22,9 @@ data class ReaderViewerPage(
 /**
  * Expands archive pages into pager positions.
  *
- * Ordering mirrors Mihon's `splitInHalf` sides: left-to-right reads LEFT
- * then RIGHT; right-to-left reads RIGHT then LEFT; [invert] (Mihon's
- * `dualPageInvertPaged`) swaps the halves. Out-of-range entries in [wide]
+ * Ordering follows reading direction: left-to-right reads LEFT
+ * then RIGHT; right-to-left reads RIGHT then LEFT; [invert]
+ * swaps the halves. Out-of-range entries in [wide]
  * are ignored so a stale scan can never crash the pager.
  */
 fun buildViewerPages(

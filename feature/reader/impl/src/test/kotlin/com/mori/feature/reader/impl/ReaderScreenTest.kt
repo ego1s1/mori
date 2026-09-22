@@ -736,7 +736,7 @@ class ReaderScreenTest {
     @Test
     fun swipeWhileZoomedPansInsteadOfTurning() {
         // Double-tap zooms in; a following swipe must pan inside the zoomed
-        // page (Mihon edge-handoff), never turn the page outright. Zooming
+        // page (edge handoff), never turn the page outright. Zooming
         // back out restores turning, proving gestures still flow.
         composeTestRule.mainClock.autoAdvance = false
         val actions = mutableListOf<ReaderAction>()

@@ -16,7 +16,7 @@ import java.util.Locale
 import javax.inject.Inject
 
 /**
- * Reading history, Mihon-style but chapter-free: one entry per touched
+ * Reading history: one entry per touched
  * comic, ordered by recency and bucketed by local day. Progress saves are
  * the tracking event — opening past the cover lands a book here — so no
  * separate history writes exist. Taps route through the same error gate as

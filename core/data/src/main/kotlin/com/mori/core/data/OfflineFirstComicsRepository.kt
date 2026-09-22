@@ -186,7 +186,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     }
 
     /**
-     * Wide-page scan for the dual-page split (Mihon's `isWideImage` gate).
+     * Wide-page scan for the dual-page split (wide-image gate).
      *
      * One inspect plus one bounds decode per page, all on IO. Encrypted or
      * unreadable archives yield empty — the reader then shows whole pages,

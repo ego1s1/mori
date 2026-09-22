@@ -220,7 +220,7 @@ private fun ReaderContent(
         }
     }
     // Pager -> ViewModel (swipes).
-    // Zoom/pan ownership (Mihon edge-handoff): while a page reports zoomed
+    // Zoom/pan ownership (edge handoff): while a page reports zoomed
     // or pinching, swipes belong to the page — the pager stands down so it
     // can never steal the gesture, and turns happen only through the
     // explicit edge dispatch below. A settled page is always at fit, so any
@@ -514,7 +514,7 @@ private fun ReaderContent(
             )
         }
 
-        // Mini page counter while the chrome is away (Mihon's show-page-number):
+        // Mini page counter while the chrome is away:
         // the one orientation cue readers keep when controls hide.
         AnimatedVisibility(
             visible = !state.chromeVisible && !state.settingsOpen && !state.overviewOpen && state.showPageCounter,
