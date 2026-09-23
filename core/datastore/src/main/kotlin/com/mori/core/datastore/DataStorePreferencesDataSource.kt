@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
@@ -50,6 +51,12 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 showTapZones = prefs[SHOW_TAP_ZONES] ?: false,
                 dualPageSplit = prefs[DUAL_PAGE_SPLIT] ?: false,
                 dualPageInvert = prefs[DUAL_PAGE_INVERT] ?: false,
+                displayFilter = com.mori.core.model.DisplayFilter(
+                    brightness = prefs[FILTER_BRIGHTNESS] ?: 0f,
+                    grayscale = prefs[FILTER_GRAYSCALE] ?: false,
+                    invert = prefs[FILTER_INVERT] ?: false,
+                    nightTint = prefs[FILTER_NIGHT_TINT] ?: 0f,
+                ),
             )
         }
 
@@ -77,6 +84,10 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[SHOW_TAP_ZONES] = updated.showTapZones
             it[DUAL_PAGE_SPLIT] = updated.dualPageSplit
             it[DUAL_PAGE_INVERT] = updated.dualPageInvert
+            it[FILTER_BRIGHTNESS] = updated.displayFilter.brightness
+            it[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
+            it[FILTER_INVERT] = updated.displayFilter.invert
+            it[FILTER_NIGHT_TINT] = updated.displayFilter.nightTint
         }
     }
 
@@ -158,6 +169,10 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val SHOW_TAP_ZONES = booleanPreferencesKey("show_tap_zones")
         val DUAL_PAGE_SPLIT = booleanPreferencesKey("dual_page_split")
         val DUAL_PAGE_INVERT = booleanPreferencesKey("dual_page_invert")
+        val FILTER_BRIGHTNESS = floatPreferencesKey("display_filter_brightness")
+        val FILTER_GRAYSCALE = booleanPreferencesKey("display_filter_grayscale")
+        val FILTER_INVERT = booleanPreferencesKey("display_filter_invert")
+        val FILTER_NIGHT_TINT = floatPreferencesKey("display_filter_night_tint")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

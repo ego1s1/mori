@@ -6,6 +6,7 @@ import com.mori.core.data.applyQuery
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
@@ -110,6 +111,24 @@ class FakeComicsRepository(
         comics.value = comics.value.mapValues { (_, comic) ->
             if (comic.id == id) comic.copy(bookmarked = !comic.bookmarked) else comic
         }
+    }
+
+    val displayFilters = mutableMapOf<String, DisplayFilter?>()
+    private val filterVersions = MutableStateFlow(0)
+
+    override fun observeDisplayFilter(id: String): Flow<DisplayFilter?> =
+        filterVersions.map { displayFilters[id] }
+
+    override suspend fun getDisplayFilter(id: String): DisplayFilter? = displayFilters[id]
+
+    override suspend fun setDisplayFilter(id: String, filter: DisplayFilter) {
+        displayFilters[id] = filter.coerce().takeUnless { it.isNeutral }
+        filterVersions.value += 1
+    }
+
+    override suspend fun clearDisplayFilter(id: String) {
+        displayFilters.remove(id)
+        filterVersions.value += 1
     }
 
     override suspend fun clearThumbnailCache() {

@@ -6,9 +6,12 @@ import com.mori.comic.PasswordRequiredException
 import com.mori.comic.UnsupportedFormatException
 import com.mori.core.database.ComicDao
 import com.mori.core.database.ComicEntity
+import com.mori.core.database.DisplayFilterDao
+import com.mori.core.database.DisplayFilterOverrideEntity
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus
@@ -33,6 +36,7 @@ import android.net.Uri
 @Singleton
 internal class OfflineFirstComicsRepository @Inject constructor(
     private val dao: ComicDao,
+    private val filterDao: DisplayFilterDao,
     private val backend: ComicBackendDataSource,
     private val covers: CoverGenerator,
     private val linkedCache: LinkedArchiveCache,
@@ -184,6 +188,44 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         val row = dao.getById(id) ?: return
         dao.updateBookmark(id, !row.bookmarked, System.currentTimeMillis())
     }
+
+    override fun observeDisplayFilter(id: String): Flow<DisplayFilter?> =
+        filterDao.observeByComic(id)
+            .map { it?.toModel() }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
+    override suspend fun getDisplayFilter(id: String): DisplayFilter? =
+        withContext(Dispatchers.IO) { filterDao.getByComic(id)?.toModel() }
+
+    override suspend fun setDisplayFilter(id: String, filter: DisplayFilter) =
+        withContext(Dispatchers.IO) {
+            val coerced = filter.coerce()
+            if (coerced.isNeutral) {
+                filterDao.deleteByComic(id)
+            } else {
+                filterDao.upsert(
+                    DisplayFilterOverrideEntity(
+                        comicId = id,
+                        brightness = coerced.brightness,
+                        grayscale = coerced.grayscale,
+                        invert = coerced.invert,
+                        nightTint = coerced.nightTint,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+        }
+
+    override suspend fun clearDisplayFilter(id: String) =
+        withContext(Dispatchers.IO) { filterDao.deleteByComic(id) }
+
+    private fun DisplayFilterOverrideEntity.toModel(): DisplayFilter = DisplayFilter(
+        brightness = brightness,
+        grayscale = grayscale,
+        invert = invert,
+        nightTint = nightTint,
+    )
 
     /**
      * Wide-page scan for the dual-page split (wide-image gate).

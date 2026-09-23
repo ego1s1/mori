@@ -1,6 +1,7 @@
 package com.mori.core.data
 
 import com.mori.core.model.Comic
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.StorageUsage
@@ -39,6 +40,21 @@ interface ComicsRepository {
     suspend fun saveProgress(id: String, pageIndex: Int)
 
     suspend fun toggleBookmark(id: String)
+
+    /**
+     * Per-comic display-filter override: suspending read plus a reactive
+     * stream for the reader. Null means "no override, use the global
+     * default from reader preferences".
+     */
+    fun observeDisplayFilter(id: String): Flow<DisplayFilter?>
+
+    suspend fun getDisplayFilter(id: String): DisplayFilter?
+
+    /** Upserts the override; a neutral filter deletes the row (reset). */
+    suspend fun setDisplayFilter(id: String, filter: DisplayFilter)
+
+    /** Deletes the override, restoring the global default. */
+    suspend fun clearDisplayFilter(id: String)
 
     /**
      * Archive indices of wide (landscape) pages, for the dual-page split.

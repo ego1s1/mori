@@ -25,4 +25,9 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideComicDao(database: MoriDatabase): ComicDao = database.comicDao()
+
+    @Provides
+    @Singleton
+    fun provideDisplayFilterDao(database: MoriDatabase): DisplayFilterDao =
+        database.displayFilterDao()
 }

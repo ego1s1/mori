@@ -35,4 +35,9 @@ data class ReaderPreferences(
     val dualPageSplit: Boolean = false,
     /** Read the second half before the first. */
     val dualPageInvert: Boolean = false,
+    /**
+     * Display filters for page art. This is the global default; a per-comic
+     * override (when present) replaces it wholesale.
+     */
+    val displayFilter: DisplayFilter = DisplayFilter.Neutral,
 )
