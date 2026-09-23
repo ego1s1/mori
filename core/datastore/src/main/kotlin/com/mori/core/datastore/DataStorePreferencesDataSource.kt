@@ -157,6 +157,13 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[READER_OVERVIEW_SEEN] = true }
     }
 
+    override val appLockEnabled: Flow<Boolean> =
+        dataStore.data.map { it[APP_LOCK_ENABLED] ?: false }
+
+    override suspend fun setAppLockEnabled(enabled: Boolean) {
+        dataStore.edit { it[APP_LOCK_ENABLED] = enabled }
+    }
+
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val SOURCE_TREE_URI = stringPreferencesKey("source_tree_uri")
@@ -185,5 +192,6 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val LIBRARY_FILTER = stringPreferencesKey("library_filter")
         val LIBRARY_HIDE_ERRORS = booleanPreferencesKey("library_hide_errors")
         val READER_OVERVIEW_SEEN = booleanPreferencesKey("reader_overview_seen")
+        val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     }
 }

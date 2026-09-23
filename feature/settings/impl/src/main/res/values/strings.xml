@@ -46,6 +46,9 @@
     <string name="settings_filter_invert_title">Invert colors</string>
     <string name="settings_filter_invert_subtitle">Print-negative look for night reading</string>
     <string name="settings_filter_reset">Reset to defaults</string>
+    <string name="settings_card_privacy">Privacy</string>
+    <string name="settings_applock_title">App lock</string>
+    <string name="settings_applock_subtitle">Require biometric or device credential on launch</string>
     <string name="settings_card_stats">Reading stats</string>
     <string name="settings_stats_time">Time reading</string>
     <string name="settings_stats_pages">Pages turned</string>

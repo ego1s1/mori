@@ -19,6 +19,7 @@ sealed interface SettingsUiState {
         val motion: MotionStyle,
         val storage: StorageUsage?,
         val stats: ReadingStats = ReadingStats(),
+        val appLock: Boolean = false,
     ) : SettingsUiState
 }
 
@@ -45,6 +46,8 @@ sealed interface SettingsAction {
 
     /** Pause progress, history, and stats recording while on. */
     data object ToggleIncognito : SettingsAction
+
+    data object ToggleAppLock : SettingsAction
 
     data object ToggleCropMargins : SettingsAction
 

@@ -133,6 +133,7 @@ internal fun SettingsScreen(
                     motion = uiState.motion,
                     storage = uiState.storage,
                     stats = uiState.stats,
+                    appLock = uiState.appLock,
                     onAction = onAction,
                     onLicensesClick = onLicensesClick,
                     appVersion = appVersion,
@@ -149,6 +150,7 @@ internal fun SettingsContent(
     motion: MotionStyle,
     storage: StorageUsage?,
     stats: ReadingStats,
+    appLock: Boolean = false,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
@@ -407,6 +409,15 @@ internal fun SettingsContent(
             StatRow(
                 label = stringResource(R.string.settings_stats_sessions),
                 value = stats.totalSessions.toString(),
+            )
+        }
+
+        MoriSectionCard(title = stringResource(R.string.settings_card_privacy)) {
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_applock_title),
+                subtitle = stringResource(R.string.settings_applock_subtitle),
+                checked = appLock,
+                onCheckedChange = { onAction(SettingsAction.ToggleAppLock) },
             )
         }
 

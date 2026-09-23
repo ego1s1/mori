@@ -70,4 +70,11 @@ class FakePreferencesDataSource(
     override suspend fun setReaderOverviewSeen() {
         overviewSeenFlow.value = true
     }
+
+    private val appLockFlow = MutableStateFlow(false)
+    override val appLockEnabled: Flow<Boolean> = appLockFlow.asStateFlow()
+
+    override suspend fun setAppLockEnabled(enabled: Boolean) {
+        appLockFlow.value = enabled
+    }
 }

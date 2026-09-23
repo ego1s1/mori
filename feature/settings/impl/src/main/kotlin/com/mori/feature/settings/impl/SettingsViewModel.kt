@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,11 +36,16 @@ internal class SettingsViewModel @Inject constructor(
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        preferences.themePreferences,
-        preferences.readerPreferences,
-        preferences.motionStyle,
-        storageInfo,
-        repository.observeReadingStats(),
+        combine(
+            preferences.themePreferences,
+            preferences.readerPreferences,
+            preferences.motionStyle,
+            storageInfo,
+            repository.observeReadingStats(),
+        ) { theme, reader, motion, storage, stats ->
+            ThemeReaderState(theme, reader, motion, storage, stats)
+        },
+        preferences.appLockEnabled,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -56,17 +62,24 @@ internal class SettingsViewModel @Inject constructor(
     }
 
     private fun toUiState(
-        theme: ThemePreferences,
-        reader: ReaderPreferences,
-        motion: MotionStyle,
-        storage: StorageUsage?,
-        stats: ReadingStats,
+        combined: ThemeReaderState,
+        appLock: Boolean,
     ): SettingsUiState = SettingsUiState.Ready(
-        theme = theme,
-        reader = reader,
-        motion = motion,
-        storage = storage,
-        stats = stats,
+        theme = combined.theme,
+        reader = combined.reader,
+        motion = combined.motion,
+        storage = combined.storage,
+        stats = combined.stats,
+        appLock = appLock,
+    )
+
+    /** Five-flow combine carrier (fixed-arity combine caps at five). */
+    private data class ThemeReaderState(
+        val theme: ThemePreferences,
+        val reader: ReaderPreferences,
+        val motion: MotionStyle,
+        val storage: StorageUsage?,
+        val stats: ReadingStats,
     )
 
     fun onAction(action: SettingsAction) {
@@ -84,6 +97,7 @@ internal class SettingsViewModel @Inject constructor(
             SettingsAction.ToggleVolumeKeysInverted -> updateReader { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
             SettingsAction.ToggleKeepScreenOn -> updateReader { it.copy(keepScreenOn = !it.keepScreenOn) }
             SettingsAction.ToggleIncognito -> updateReader { it.copy(incognito = !it.incognito) }
+            SettingsAction.ToggleAppLock -> toggleAppLock()
             SettingsAction.ToggleCropMargins -> updateReader { it.copy(cropMargins = !it.cropMargins) }
             SettingsAction.TogglePageCounter -> updateReader { it.copy(showPageCounter = !it.showPageCounter) }
             SettingsAction.ToggleSwipeToTurn -> updateReader { it.copy(swipeToTurn = !it.swipeToTurn) }
@@ -133,6 +147,13 @@ internal class SettingsViewModel @Inject constructor(
             } else {
                 _events.emit(SettingsEvent.CacheClearFailed)
             }
+        }
+    }
+
+    private fun toggleAppLock() {
+        viewModelScope.launch {
+            val current = preferences.appLockEnabled.first()
+            preferences.setAppLockEnabled(!current)
         }
     }
 }

@@ -55,6 +55,18 @@ class DataStorePreferencesDataSourceTest {
     }
 
     @Test
+    fun appLockDefaultsOffThenPersists() = runTest {
+        val dataSource = dataSource()
+        dataSource.appLockEnabled.test {
+            assertEquals(false, awaitItem())
+            dataSource.setAppLockEnabled(true)
+            assertEquals(true, awaitItem())
+            dataSource.setAppLockEnabled(false)
+            assertEquals(false, awaitItem())
+        }
+    }
+
+    @Test
     fun libraryDisplayRoundTrips() = runTest {
         val dataSource = dataSource()
         dataSource.libraryDisplay.test {

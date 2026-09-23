@@ -31,7 +31,12 @@ interface MoriPreferencesDataSource {
     /** True once the reader's first-launch overview has faded (chrome shown 2s). */
     val readerOverviewSeen: Flow<Boolean>
 
+    /** App lock (biometric/device credential gate) enabled. */
+    val appLockEnabled: Flow<Boolean>
+
     suspend fun setOnboardingCompleted(completed: Boolean)
+
+    suspend fun setAppLockEnabled(enabled: Boolean)
 
     suspend fun setSourceTreeUri(uri: String?)
 

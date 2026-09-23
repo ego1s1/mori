@@ -3,16 +3,16 @@ package com.mori.app
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.fragment.app.FragmentActivity
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     // Shared with the MoriApp composition: the splash stays on its black bed
     // until prefs resolve, so first paint already carries the right theme

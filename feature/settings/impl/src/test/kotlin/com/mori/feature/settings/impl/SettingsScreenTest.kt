@@ -160,6 +160,7 @@ class SettingsScreenTest {
                     motion = MotionStyle.EXPRESSIVE,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
                     stats = ReadingStats(),
+                    appLock = false,
                     onAction = {},
                     onLicensesClick = { opened = true },
                 )
@@ -241,6 +242,14 @@ class SettingsScreenTest {
         assertEquals("12m", formatReadingDuration(750_000L))
         assertEquals("1h 2m", formatReadingDuration(3_720_000L))
         assertEquals("0s", formatReadingDuration(-5_000L))
+    }
+
+    @Test
+    fun privacySectionShowsAppLock() {
+        setFullScreen()
+
+        composeTestRule.onNodeWithText("Privacy").assertExists()
+        composeTestRule.onNodeWithText("App lock").assertExists()
     }
 
     private fun setFullScreen() {

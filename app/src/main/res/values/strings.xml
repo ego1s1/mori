@@ -7,4 +7,11 @@
     <string name="licenses_retry">Retry</string>
     <string name="licenses_empty_title">No licenses listed</string>
     <string name="licenses_empty_body">This build shipped without license metadata.</string>
+    <string name="applock_title">Mori is locked</string>
+    <string name="applock_body">Authenticate to open your library.</string>
+    <string name="applock_unlock">Unlock</string>
+    <string name="applock_prompt_title">Unlock Mori</string>
+    <string name="applock_prompt_subtitle">Use your biometric or device credential</string>
+    <string name="applock_no_secure_lock">This device has no biometric or PIN set up.</string>
+    <string name="applock_turn_off">Turn lock off</string>
 </resources>

@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -16,7 +17,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MoriAppViewModel @Inject constructor(
-    preferences: MoriPreferencesDataSource,
+    private val preferences: MoriPreferencesDataSource,
 ) : ViewModel() {
 
     val onboardingCompleted: StateFlow<Boolean?> = preferences.onboardingCompleted
@@ -39,4 +40,17 @@ class MoriAppViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = null,
         )
+
+    val appLockEnabled: StateFlow<Boolean?> = preferences.appLockEnabled
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    fun setAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setAppLockEnabled(enabled)
+        }
+    }
 }

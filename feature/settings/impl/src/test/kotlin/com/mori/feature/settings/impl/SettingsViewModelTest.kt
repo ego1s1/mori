@@ -87,6 +87,20 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun toggleAppLockPersists() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
+        viewModel.uiState.test {
+            val initial = awaitReady()
+            assertEquals(false, initial.appLock)
+            viewModel.onAction(SettingsAction.ToggleAppLock)
+            val settled = awaitReadyWhere { it.appLock }
+            assertEquals(true, settled.appLock)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun displayFilterActionsPersist() = runTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())

@@ -76,6 +76,13 @@ fun MoriApp(
                 return@Surface
             }
 
+            // App lock gates everything (including onboarding): unauthenticated
+            // eyes never reach content. Unlock is process-scoped.
+            val appLockEnabled by viewModel.appLockEnabled.collectAsStateWithLifecycle()
+            AppLockGate(
+                appLockEnabled = appLockEnabled == true,
+                onDisableLock = { viewModel.setAppLockEnabled(false) },
+            ) {
             val navController = rememberNavController()
 
             // Single entry path: onboarding completion navigates explicitly via
@@ -139,6 +146,7 @@ fun MoriApp(
                     }
                 }
             }
+            } // AppLockGate
         }
     }
 }

@@ -30,10 +30,12 @@ javapoet = "1.13.0"
 documentfile = "1.0.1"
 binaryCompatibilityValidator = "0.17.0"
 coreSplashscreen = "1.0.1"
+biometric = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 junrar = { group = "com.github.junrar", name = "junrar", version.ref = "junrar" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commons-compress" }
