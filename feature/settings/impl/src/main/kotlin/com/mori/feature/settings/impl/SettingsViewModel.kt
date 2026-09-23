@@ -6,6 +6,7 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +39,7 @@ internal class SettingsViewModel @Inject constructor(
         preferences.readerPreferences,
         preferences.motionStyle,
         storageInfo,
+        repository.observeReadingStats(),
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -58,11 +60,13 @@ internal class SettingsViewModel @Inject constructor(
         reader: ReaderPreferences,
         motion: MotionStyle,
         storage: StorageUsage?,
+        stats: ReadingStats,
     ): SettingsUiState = SettingsUiState.Ready(
         theme = theme,
         reader = reader,
         motion = motion,
         storage = storage,
+        stats = stats,
     )
 
     fun onAction(action: SettingsAction) {

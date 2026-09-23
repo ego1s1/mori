@@ -58,6 +58,7 @@ class OfflineFirstComicsRepositoryTest {
     ) = OfflineFirstComicsRepository(
         dao = dao,
         filterDao = database.displayFilterDao(),
+        sessionDao = database.readingSessionDao(),
         backend = backend,
         covers = CoverGenerator(context, backend),
         linkedCache = LinkedArchiveCache(context),
@@ -479,6 +480,25 @@ class OfflineFirstComicsRepositoryTest {
         repository.setDisplayFilter(id, DisplayFilter(grayscale = true))
         repository.clearDisplayFilter(id)
         assertEquals(null, repository.getDisplayFilter(id))
+    }
+
+    @Test
+    fun readingStatsAggregateSessions() = runTest {
+        val repository = repository(backendFor())
+
+        repository.observeReadingStats().test {
+            assertEquals(
+                com.mori.core.model.ReadingStats(),
+                awaitItem(),
+            )
+            repository.recordSession("a", 1_000L, 61_000L, 5)
+            repository.recordSession("b", 2_000L, 3_662_000L, 12)
+            val stats = awaitItem()
+            assertEquals(2, stats.totalSessions)
+            assertEquals(60_000L + 3_660_000L, stats.totalDurationMs)
+            assertEquals(17, stats.totalPagesTurned)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
 

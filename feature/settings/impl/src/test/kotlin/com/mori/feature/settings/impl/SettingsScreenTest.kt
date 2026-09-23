@@ -17,8 +17,10 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.PageFit
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ReaderPreferences
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +47,12 @@ class SettingsScreenTest {
                     reader = reader,
                     motion = motion,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                    stats = ReadingStats(
+                        totalSessions = 3,
+                        totalDurationMs = 3_720_000L,
+                        totalPagesTurned = 42,
+                        booksFinished = 2,
+                    ),
                     onAction = actions::add,
                     appVersion = "9.9.9",
                 )
@@ -151,6 +159,7 @@ class SettingsScreenTest {
                     reader = ReaderPreferences(),
                     motion = MotionStyle.EXPRESSIVE,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                    stats = ReadingStats(),
                     onAction = {},
                     onLicensesClick = { opened = true },
                 )
@@ -181,6 +190,12 @@ class SettingsScreenTest {
                     reader = ReaderPreferences(),
                     motion = MotionStyle.EXPRESSIVE,
                     storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                    stats = ReadingStats(
+                        totalSessions = 3,
+                        totalDurationMs = 3_720_000L,
+                        totalPagesTurned = 42,
+                        booksFinished = 2,
+                    ),
                     onAction = actions::add,
                 )
             }
@@ -194,6 +209,40 @@ class SettingsScreenTest {
         assert(actions.contains(SettingsAction.ClearThumbnailCache))
     }
 
+    @Test
+    fun statsSectionShowsAggregates() {
+        composeTestRule.setContent {
+            MoriTheme {
+                SettingsContent(
+                    theme = ThemePreferences(),
+                    reader = ReaderPreferences(),
+                    motion = MotionStyle.EXPRESSIVE,
+                    storage = null,
+                    stats = ReadingStats(
+                        totalSessions = 3,
+                        totalDurationMs = 3_720_000L,
+                        totalPagesTurned = 42,
+                        booksFinished = 2,
+                    ),
+                    onAction = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Reading stats").assertExists()
+        composeTestRule.onNodeWithText("1h 2m").assertExists()
+        composeTestRule.onNodeWithText("42").assertExists()
+    }
+
+    @Test
+    fun formatReadingDurationCompacts() {
+        assertEquals("0s", formatReadingDuration(0L))
+        assertEquals("45s", formatReadingDuration(45_000L))
+        assertEquals("12m", formatReadingDuration(750_000L))
+        assertEquals("1h 2m", formatReadingDuration(3_720_000L))
+        assertEquals("0s", formatReadingDuration(-5_000L))
+    }
+
     private fun setFullScreen() {
         composeTestRule.setContent {
             MoriTheme {
@@ -203,6 +252,7 @@ class SettingsScreenTest {
                         reader = ReaderPreferences(),
                         motion = MotionStyle.EXPRESSIVE,
                         storage = StorageUsage(comicCount = 2, libraryBytes = 2048L, coversBytes = 512L),
+                        stats = ReadingStats(),
                     ),
                     onAction = {},
                 )

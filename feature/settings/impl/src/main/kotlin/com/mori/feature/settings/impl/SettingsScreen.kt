@@ -43,13 +43,15 @@ import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSliderRow
+import com.mori.core.designsystem.MoriSliderRow
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
+import com.mori.core.common.formatBytes
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
-import com.mori.core.common.formatBytes
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
@@ -130,6 +132,7 @@ internal fun SettingsScreen(
                     reader = uiState.reader,
                     motion = uiState.motion,
                     storage = uiState.storage,
+                    stats = uiState.stats,
                     onAction = onAction,
                     onLicensesClick = onLicensesClick,
                     appVersion = appVersion,
@@ -145,6 +148,7 @@ internal fun SettingsContent(
     reader: ReaderPreferences,
     motion: MotionStyle,
     storage: StorageUsage?,
+    stats: ReadingStats,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
@@ -381,6 +385,25 @@ internal fun SettingsContent(
             )
         }
 
+        MoriSectionCard(title = stringResource(R.string.settings_card_stats)) {
+            StatRow(
+                label = stringResource(R.string.settings_stats_time),
+                value = formatReadingDuration(stats.totalDurationMs),
+            )
+            StatRow(
+                label = stringResource(R.string.settings_stats_pages),
+                value = stats.totalPagesTurned.toString(),
+            )
+            StatRow(
+                label = stringResource(R.string.settings_stats_finished),
+                value = stats.booksFinished.toString(),
+            )
+            StatRow(
+                label = stringResource(R.string.settings_stats_sessions),
+                value = stats.totalSessions.toString(),
+            )
+        }
+
         MoriSectionCard(title = stringResource(R.string.settings_card_soon)) {
             PlaceholderRow(
                 title = stringResource(R.string.settings_soon_sync),
@@ -459,6 +482,45 @@ private fun SegmentedChoiceRow(
                 modifier = Modifier.testTag(SettingsTestTags.segmentFor(label)),
             )
         }
+    }
+}
+
+@Composable
+private fun StatRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = value,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** Compact duration: 45s, 12m, 3h 20m. Pure for testability. */
+internal fun formatReadingDuration(totalMs: Long): String {
+    val totalSeconds = (totalMs.coerceAtLeast(0L) / 1000L)
+    val hours = totalSeconds / 3600L
+    val minutes = (totalSeconds % 3600L) / 60L
+    val seconds = totalSeconds % 60L
+    return when {
+        hours > 0L -> "${hours}h ${minutes}m"
+        minutes > 0L -> "${minutes}m"
+        else -> "${seconds}s"
     }
 }
 
