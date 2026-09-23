@@ -40,4 +40,9 @@ data class ReaderPreferences(
      * override (when present) replaces it wholesale.
      */
     val displayFilter: DisplayFilter = DisplayFilter.Neutral,
+    /**
+     * Incognito reading: progress, history, and session stats are not
+     * recorded while on. The reader still works normally otherwise.
+     */
+    val incognito: Boolean = false,
 )

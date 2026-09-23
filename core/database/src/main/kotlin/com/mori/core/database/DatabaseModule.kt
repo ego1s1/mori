@@ -30,4 +30,9 @@ internal object DatabaseModule {
     @Singleton
     fun provideDisplayFilterDao(database: MoriDatabase): DisplayFilterDao =
         database.displayFilterDao()
+
+    @Provides
+    @Singleton
+    fun provideReadingSessionDao(database: MoriDatabase): ReadingSessionDao =
+        database.readingSessionDao()
 }

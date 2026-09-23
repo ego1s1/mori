@@ -83,6 +83,27 @@ internal class FakeComicsRepository(
         filterVersions.value += 1
     }
 
+    val sessions = mutableListOf<Triple<String, Long, Int>>()
+
+    override suspend fun recordSession(
+        comicId: String,
+        startedAt: Long,
+        endedAt: Long,
+        pagesTurned: Int,
+    ) {
+        sessions += Triple(comicId, maxOf(endedAt - startedAt, 0L), pagesTurned)
+    }
+
+    override fun observeReadingStats(): Flow<com.mori.core.model.ReadingStats> =
+        kotlinx.coroutines.flow.flowOf(
+            com.mori.core.model.ReadingStats(
+                totalSessions = sessions.size,
+                totalDurationMs = sessions.sumOf { it.second },
+                totalPagesTurned = sessions.sumOf { it.third },
+                booksFinished = 0,
+            ),
+        )
+
     override suspend fun clearThumbnailCache() {
     }
 

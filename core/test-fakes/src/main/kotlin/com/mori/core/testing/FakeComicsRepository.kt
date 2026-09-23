@@ -9,6 +9,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -130,6 +131,37 @@ class FakeComicsRepository(
         displayFilters.remove(id)
         filterVersions.value += 1
     }
+
+    val sessions = mutableListOf<SessionRecord>()
+    private val snapshotSessions = MutableStateFlow(emptyList<SessionRecord>())
+
+    override suspend fun recordSession(
+        comicId: String,
+        startedAt: Long,
+        endedAt: Long,
+        pagesTurned: Int,
+    ) {
+        val record = SessionRecord(comicId, startedAt, endedAt, pagesTurned)
+        sessions += record
+        snapshotSessions.value += record
+    }
+
+    override fun observeReadingStats(): Flow<ReadingStats> =
+        snapshotSessions.map { list ->
+            ReadingStats(
+                totalSessions = list.size,
+                totalDurationMs = list.sumOf { maxOf(it.endedAt - it.startedAt, 0L) },
+                totalPagesTurned = list.sumOf { it.pagesTurned },
+                booksFinished = 0,
+            )
+        }
+
+    data class SessionRecord(
+        val comicId: String,
+        val startedAt: Long,
+        val endedAt: Long,
+        val pagesTurned: Int,
+    )
 
     override suspend fun clearThumbnailCache() {
         clearCacheCalls += 1

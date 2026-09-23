@@ -8,6 +8,8 @@ import com.mori.core.database.ComicDao
 import com.mori.core.database.ComicEntity
 import com.mori.core.database.DisplayFilterDao
 import com.mori.core.database.DisplayFilterOverrideEntity
+import com.mori.core.database.ReadingSessionDao
+import com.mori.core.database.ReadingSessionEntity
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
@@ -16,12 +18,14 @@ import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -37,6 +41,7 @@ import android.net.Uri
 internal class OfflineFirstComicsRepository @Inject constructor(
     private val dao: ComicDao,
     private val filterDao: DisplayFilterDao,
+    private val sessionDao: ReadingSessionDao,
     private val backend: ComicBackendDataSource,
     private val covers: CoverGenerator,
     private val linkedCache: LinkedArchiveCache,
@@ -219,6 +224,38 @@ internal class OfflineFirstComicsRepository @Inject constructor(
 
     override suspend fun clearDisplayFilter(id: String) =
         withContext(Dispatchers.IO) { filterDao.deleteByComic(id) }
+
+    override suspend fun recordSession(
+        comicId: String,
+        startedAt: Long,
+        endedAt: Long,
+        pagesTurned: Int,
+    ) = withContext(Dispatchers.IO) {
+        // Zero-length visits (opened and closed without settling) still
+        // count as sessions; negative clocks clamp to zero duration.
+        sessionDao.insert(
+            ReadingSessionEntity(
+                comicId = comicId,
+                startedAt = startedAt,
+                endedAt = maxOf(endedAt, startedAt),
+                pagesTurned = pagesTurned.coerceAtLeast(0),
+            ),
+        )
+    }
+
+    override fun observeReadingStats(): Flow<ReadingStats> =
+        combine(
+            sessionDao.observeAll(),
+            sessionDao.observeFinishedCount(),
+        ) { sessions, finished ->
+            ReadingStats(
+                totalSessions = sessions.size,
+                totalDurationMs = sessions.sumOf { it.endedAt - it.startedAt },
+                totalPagesTurned = sessions.sumOf { it.pagesTurned },
+                booksFinished = finished,
+            )
+        }.distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
 
     private fun DisplayFilterOverrideEntity.toModel(): DisplayFilter = DisplayFilter(
         brightness = brightness,

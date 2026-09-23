@@ -51,6 +51,8 @@ sealed interface ReaderUiState {
         val displayFilter: DisplayFilter = DisplayFilter.Neutral,
         /** True when this book carries its own override (reset available). */
         val hasFilterOverride: Boolean = false,
+        /** Incognito: progress, history, and stats skip recording. */
+        val incognito: Boolean = false,
     ) : ReaderUiState {
         /** 1-based page number shown in the UI. */
         val currentPage: Int get() = pageIndex + 1

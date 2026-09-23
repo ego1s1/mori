@@ -4,6 +4,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import kotlinx.coroutines.flow.Flow
 
@@ -55,6 +56,16 @@ interface ComicsRepository {
 
     /** Deletes the override, restoring the global default. */
     suspend fun clearDisplayFilter(id: String)
+
+    /**
+     * Records one reader visit. Called once per reader close with the
+     * session's wall time and settled turns; a no-op for empty visits is
+     * fine, callers decide.
+     */
+    suspend fun recordSession(comicId: String, startedAt: Long, endedAt: Long, pagesTurned: Int)
+
+    /** Reactive reading aggregates for stats surfaces. */
+    fun observeReadingStats(): Flow<ReadingStats>
 
     /**
      * Archive indices of wide (landscape) pages, for the dual-page split.

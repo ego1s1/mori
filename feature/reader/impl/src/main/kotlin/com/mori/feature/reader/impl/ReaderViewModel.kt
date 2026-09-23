@@ -120,6 +120,10 @@ internal class ReaderViewModel @Inject constructor(
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
 
+    /** Session tracking: opened once, closed once in [onCleared]. */
+    private val sessionStartedAt = System.currentTimeMillis()
+    private var sessionPagesTurned = 0
+
     /**
      * Flushes the last progress write even as the scope dies. The job is
      * cancelled once the flush lands (or immediately when nothing is
@@ -129,8 +133,10 @@ internal class ReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         saveJob?.cancel()
+        recordSession()
         val index = pendingSave
-        if (index != null) {
+        // Incognito closes leave no trace: no progress flush either.
+        if (index != null && !isIncognito()) {
             flushScope.launch {
                 try {
                     // Bounded: a hung database must not pin an IO thread and
@@ -286,6 +292,7 @@ internal class ReaderViewModel @Inject constructor(
             dualPageInvert = prefs.dualPageInvert,
             displayFilter = filterOverride ?: prefs.displayFilter,
             hasFilterOverride = filterOverride != null,
+            incognito = prefs.incognito,
         )
     }
 
@@ -304,6 +311,12 @@ internal class ReaderViewModel @Inject constructor(
                 // enqueue saves for books the reader has rejected.
                 val ready = uiState.value as? ReaderUiState.Ready ?: return
                 val clamped = action.index.coerceIn(0, ready.pageCount - 1)
+                // Count settled turns (null navigation is the initial
+                // settle, not a turn; programmatic moves already wrote
+                // navigation synchronously, so they never double-count).
+                if (navigation.value != null && clamped != navigation.value) {
+                    sessionPagesTurned++
+                }
                 setNavigation(clamped)
                 // Swiping to a new page dismisses chrome, like a page turn —
                 // but never from under an open sheet.
@@ -484,9 +497,35 @@ internal class ReaderViewModel @Inject constructor(
         saveJob = viewModelScope.launch {
             delay(PROGRESS_SAVE_DEBOUNCE_MS)
             pendingSave = null
-            repository.saveProgress(args.comicId, index)
+            if (!isIncognito()) {
+                repository.saveProgress(args.comicId, index)
+            }
         }
     }
+
+    /**
+     * Closes the reading session: wall time plus settled turns, skipped
+     * wholesale in incognito. Runs on the IO flush scope (not the VM scope,
+     * which is already cancelled) beside the progress flush.
+     */
+    private fun recordSession() {
+        if (isIncognito()) return
+        val id = args.comicId
+        val started = sessionStartedAt
+        val turns = sessionPagesTurned
+        flushScope.launch {
+            try {
+                withTimeout(FLUSH_TIMEOUT_MS) {
+                    repository.recordSession(id, started, System.currentTimeMillis(), turns)
+                }
+            } catch (e: Exception) {
+                // Stats are best-effort: losing one visit never corrupts.
+            }
+        }
+    }
+
+    private fun isIncognito(): Boolean =
+        (uiState.value as? ReaderUiState.Ready)?.incognito == true
 
     private fun updatePrefs(transform: (ReaderPreferences) -> ReaderPreferences) {
         viewModelScope.launch {

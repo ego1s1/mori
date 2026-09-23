@@ -57,6 +57,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                     invert = prefs[FILTER_INVERT] ?: false,
                     nightTint = prefs[FILTER_NIGHT_TINT] ?: 0f,
                 ),
+                incognito = prefs[INCOGNITO] ?: false,
             )
         }
 
@@ -88,6 +89,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
             it[FILTER_INVERT] = updated.displayFilter.invert
             it[FILTER_NIGHT_TINT] = updated.displayFilter.nightTint
+            it[INCOGNITO] = updated.incognito
         }
     }
 
@@ -173,6 +175,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val FILTER_GRAYSCALE = booleanPreferencesKey("display_filter_grayscale")
         val FILTER_INVERT = booleanPreferencesKey("display_filter_invert")
         val FILTER_NIGHT_TINT = floatPreferencesKey("display_filter_night_tint")
+        val INCOGNITO = booleanPreferencesKey("incognito")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
