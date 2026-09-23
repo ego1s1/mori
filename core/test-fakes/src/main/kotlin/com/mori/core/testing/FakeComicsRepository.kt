@@ -149,6 +149,11 @@ class FakeComicsRepository(
             memberships.filterValues { comicId in it }.keys.toSet()
         }
 
+    override fun observeMemberships(): Flow<Map<Long, Set<String>>> =
+        collectionsFlow.map { _ ->
+            memberships.mapValues { (_, ids) -> ids.toSet() }
+        }
+
     override suspend fun createCollection(name: String): Long {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty())

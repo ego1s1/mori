@@ -288,6 +288,15 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.Default)
 
+    override fun observeMemberships(): Flow<Map<Long, Set<String>>> =
+        collectionDao.observeAllMembers()
+            .map { rows ->
+                rows.groupBy({ it.collectionId }, { it.comicId })
+                    .mapValues { (_, ids) -> ids.toSet() }
+            }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
     override suspend fun createCollection(name: String): Long =
         withContext(Dispatchers.IO) {
             val trimmed = name.trim()

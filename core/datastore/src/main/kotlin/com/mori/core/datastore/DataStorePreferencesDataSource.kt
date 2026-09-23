@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
@@ -138,6 +139,9 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                     runCatching { LibraryFilter.valueOf(it) }.getOrDefault(LibraryFilter.ALL)
                 } ?: LibraryFilter.ALL,
                 hideErrors = prefs[LIBRARY_HIDE_ERRORS] ?: false,
+                collapsedShelfIds = prefs[LIBRARY_COLLAPSED_SHELVES]?.mapNotNull {
+                    it.toLongOrNull()
+                }.orEmpty().toSet(),
             )
         }
 
@@ -147,6 +151,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             it[LIBRARY_SORT] = updated.sortOrder.name
             it[LIBRARY_FILTER] = updated.filter.name
             it[LIBRARY_HIDE_ERRORS] = updated.hideErrors
+            it[LIBRARY_COLLAPSED_SHELVES] = updated.collapsedShelfIds.map { id -> id.toString() }.toSet()
         }
     }
 
@@ -191,6 +196,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
         val LIBRARY_FILTER = stringPreferencesKey("library_filter")
         val LIBRARY_HIDE_ERRORS = booleanPreferencesKey("library_hide_errors")
+        val LIBRARY_COLLAPSED_SHELVES = stringSetPreferencesKey("library_collapsed_shelves")
         val READER_OVERVIEW_SEEN = booleanPreferencesKey("reader_overview_seen")
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     }

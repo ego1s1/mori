@@ -77,6 +77,12 @@ interface ComicsRepository {
     /** Shelf ids containing one comic, for the detail dialog. */
     fun observeComicCollections(comicId: String): Flow<Set<Long>>
 
+    /**
+     * Full membership map (shelf id to member comic ids) for sectioned
+     * library views. One observer instead of one per shelf.
+     */
+    fun observeMemberships(): Flow<Map<Long, Set<String>>>
+
     /** Creates a shelf, returning its id. Blank names are rejected. */
     suspend fun createCollection(name: String): Long
 

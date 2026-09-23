@@ -79,4 +79,7 @@ interface CollectionDao {
 
     @Query("SELECT collectionId FROM collection_members WHERE comicId = :comicId")
     fun observeCollectionsForComic(comicId: String): Flow<List<Long>>
+
+    @Query("SELECT * FROM collection_members")
+    fun observeAllMembers(): Flow<List<CollectionMemberEntity>>
 }
