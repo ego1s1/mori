@@ -43,6 +43,15 @@
     <string name="reader_dual_subtitle">Show each half of a landscape page on its own screen</string>
     <string name="reader_dual_invert_title">Invert split halves</string>
     <string name="reader_dual_invert_subtitle">Read the right half before the left half</string>
+    <string name="reader_sheet_display">Display filters</string>
+    <string name="reader_display_scope">Applies to this book only. Defaults live in Settings.</string>
+    <string name="reader_filter_brightness">Brightness</string>
+    <string name="reader_filter_night">Night warmth</string>
+    <string name="reader_filter_grayscale_title">Grayscale</string>
+    <string name="reader_filter_grayscale_subtitle">Remove all color from page art</string>
+    <string name="reader_filter_invert_title">Invert colors</string>
+    <string name="reader_filter_invert_subtitle">Print-negative look for night reading</string>
+    <string name="reader_filter_reset">Reset to defaults</string>
     <string name="reader_zone_previous">Previous</string>
     <string name="reader_zone_menu">Menu</string>
     <string name="reader_zone_next">Next</string>

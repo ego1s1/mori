@@ -51,4 +51,16 @@ sealed interface ReaderAction {
     data object ToggleDualSplit : ReaderAction
 
     data object ToggleDualInvert : ReaderAction
+
+    /** Display-filter edits apply to this book as a per-comic override. */
+    data class SetFilterBrightness(val brightness: Float) : ReaderAction
+
+    data class SetFilterNightTint(val nightTint: Float) : ReaderAction
+
+    data object ToggleFilterGrayscale : ReaderAction
+
+    data object ToggleFilterInvert : ReaderAction
+
+    /** Deletes the override, restoring the global default. */
+    data object ResetDisplayFilter : ReaderAction
 }

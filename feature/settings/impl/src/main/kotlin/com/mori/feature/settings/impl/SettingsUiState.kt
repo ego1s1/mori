@@ -47,6 +47,16 @@ sealed interface SettingsAction {
 
     data object ToggleSwipeToTurn : SettingsAction
 
+    data class SetDisplayBrightness(val brightness: Float) : SettingsAction
+
+    data class SetDisplayNightTint(val nightTint: Float) : SettingsAction
+
+    data object ToggleDisplayGrayscale : SettingsAction
+
+    data object ToggleDisplayInvert : SettingsAction
+
+    data object ResetDisplayFilter : SettingsAction
+
     data object ClearThumbnailCache : SettingsAction
 }
 

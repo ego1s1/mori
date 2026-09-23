@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import com.mori.core.model.DisplayFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -81,6 +83,7 @@ internal fun ZoomablePage(
     onEdgeTurn: (forward: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     half: PageHalf = PageHalf.FULL,
+    displayFilter: DisplayFilter = DisplayFilter.Neutral,
 ) {
     // Zoom/pan state is keyed to the page identity: the pager reuses compositions
     // for neighboring pages, and stale zoom must never leak into a recycled page.
@@ -244,6 +247,7 @@ internal fun ZoomablePage(
                 pageNumber = pageNumber,
                 cropMargins = cropMargins,
                 half = half,
+                displayFilter = displayFilter,
                 onArtSize = { artWidth, artHeight -> artAspect = artAspectFor(artWidth, artHeight) },
                 onLoadedChange = { artLoaded = it },
             )
@@ -263,6 +267,7 @@ private fun PageArt(
     pageNumber: Int,
     cropMargins: Boolean,
     half: PageHalf,
+    displayFilter: DisplayFilter,
     onArtSize: (widthPx: Float, heightPx: Float) -> Unit,
     onLoadedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -293,8 +298,37 @@ private fun PageArt(
             Image(
                 painter = painter,
                 contentDescription = stringResource(R.string.reader_page_art, pageNumber),
+                colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
                 modifier = Modifier.fillMaxSize(),
             )
+            // Filter overlays ride above the art (inside the zoom transform):
+            // dim, lift, then night warmth. Skipped entirely when neutral.
+            if (!displayFilter.isNeutral) {
+                val dim = dimAlphaFor(displayFilter.brightness)
+                if (dim > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = dim)),
+                    )
+                }
+                val lift = liftAlphaFor(displayFilter.brightness)
+                if (lift > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White.copy(alpha = lift)),
+                    )
+                }
+                val night = nightAlphaFor(displayFilter.nightTint)
+                if (night > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(NightTintColor.copy(alpha = night)),
+                    )
+                }
+            }
             when (painterState) {
                 is AsyncImagePainter.State.Loading -> MoriLoadingIndicator(
                     color = Color.White.copy(alpha = 0.8f),
@@ -384,3 +418,6 @@ internal fun zoomOffsetForTap(tap: Offset, center: Offset, targetScale: Float): 
 
 /** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */
 private const val READER_MAX_DIMENSION = 1600
+
+/** Warm overlay hue for the night filter (alpha carries the strength). */
+private val NightTintColor = Color(0xFFFFAB40)

@@ -8,6 +8,7 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderRoute
@@ -99,7 +100,8 @@ internal class ReaderViewModel @Inject constructor(
             ReaderInputs(comic, prefs, chromeState, nav, animated)
         },
         wideCache,
-    ) { inputs, wide ->
+        repository.observeDisplayFilter(args.comicId),
+    ) { inputs, wide, filterOverride ->
         toUiState(
             inputs.comic,
             inputs.prefs,
@@ -107,6 +109,7 @@ internal class ReaderViewModel @Inject constructor(
             inputs.navigation,
             inputs.turnAnimated,
             wide,
+            filterOverride,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -226,6 +229,7 @@ internal class ReaderViewModel @Inject constructor(
         navigation: Int?,
         turnAnimated: Boolean,
         wideByComic: Map<String, Set<Int>>,
+        filterOverride: DisplayFilter?,
     ): ReaderUiState {
         if (comic == null) {
             return ReaderUiState.Error(ReaderErrorCause.Removed)
@@ -280,6 +284,8 @@ internal class ReaderViewModel @Inject constructor(
             expandedForArchive = expandedForArchive,
             dualPageSplit = prefs.dualPageSplit,
             dualPageInvert = prefs.dualPageInvert,
+            displayFilter = filterOverride ?: prefs.displayFilter,
+            hasFilterOverride = filterOverride != null,
         )
     }
 
@@ -390,6 +396,11 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
             ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
             ReaderAction.ToggleVolumeKeysInverted -> updatePrefs { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
+            is ReaderAction.SetFilterBrightness -> writeFilter { it.copy(brightness = action.brightness) }
+            is ReaderAction.SetFilterNightTint -> writeFilter { it.copy(nightTint = action.nightTint) }
+            ReaderAction.ToggleFilterGrayscale -> writeFilter { it.copy(grayscale = !it.grayscale) }
+            ReaderAction.ToggleFilterInvert -> writeFilter { it.copy(invert = !it.invert) }
+            ReaderAction.ResetDisplayFilter -> clearFilter()
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
             ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }
@@ -480,6 +491,28 @@ internal class ReaderViewModel @Inject constructor(
     private fun updatePrefs(transform: (ReaderPreferences) -> ReaderPreferences) {
         viewModelScope.launch {
             preferences.updateReaderPreferences(transform)
+        }
+    }
+
+    /**
+     * Display-filter edits land on this book's override (never the global
+     * default): read the effective filter synchronously so rapid slider
+     * ticks accumulate instead of racing the override flow.
+     */
+    private fun writeFilter(transform: (DisplayFilter) -> DisplayFilter) {
+        val ready = uiState.value as? ReaderUiState.Ready ?: return
+        val id = ready.comicId
+        val next = transform(ready.displayFilter)
+        viewModelScope.launch {
+            repository.setDisplayFilter(id, next)
+        }
+    }
+
+    private fun clearFilter() {
+        val ready = uiState.value as? ReaderUiState.Ready ?: return
+        val id = ready.comicId
+        viewModelScope.launch {
+            repository.clearDisplayFilter(id)
         }
     }
 

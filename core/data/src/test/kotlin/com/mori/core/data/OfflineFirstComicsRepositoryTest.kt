@@ -10,6 +10,7 @@ import com.mori.comic.model.MediaType
 import com.mori.core.database.ComicDao
 import com.mori.core.database.MoriDatabase
 import com.mori.core.model.ComicError
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.LibraryQuery
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -56,6 +57,7 @@ class OfflineFirstComicsRepositoryTest {
         lister: LinkedTreeLister = FakeLinkedTreeLister(),
     ) = OfflineFirstComicsRepository(
         dao = dao,
+        filterDao = database.displayFilterDao(),
         backend = backend,
         covers = CoverGenerator(context, backend),
         linkedCache = LinkedArchiveCache(context),
@@ -449,6 +451,34 @@ class OfflineFirstComicsRepositoryTest {
                 com.mori.comic.model.PageDimensions(200, 100, mediaType, 1)
         }
         assertEquals(setOf(0), repository(flaky, lister).widePageIndices(id))
+    }
+
+    @Test
+    fun displayFilterOverrideRoundTripsAndNeutralDeletes() = runTest {
+        val repository = repository(backendFor())
+        val id = "book"
+
+        assertEquals(null, repository.getDisplayFilter(id))
+
+        repository.setDisplayFilter(id, DisplayFilter(brightness = -0.5f, invert = true))
+        assertEquals(
+            DisplayFilter(brightness = -0.5f, invert = true),
+            repository.getDisplayFilter(id),
+        )
+        repository.observeDisplayFilter(id).test {
+            assertEquals(
+                DisplayFilter(brightness = -0.5f, invert = true),
+                awaitItem(),
+            )
+        }
+
+        // Writing neutral deletes the row: the global default takes over.
+        repository.setDisplayFilter(id, DisplayFilter.Neutral)
+        assertEquals(null, repository.getDisplayFilter(id))
+
+        repository.setDisplayFilter(id, DisplayFilter(grayscale = true))
+        repository.clearDisplayFilter(id)
+        assertEquals(null, repository.getDisplayFilter(id))
     }
 }
 

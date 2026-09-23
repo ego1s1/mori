@@ -2,6 +2,7 @@ package com.mori.feature.settings.impl
 
 import app.cash.turbine.test
 import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
@@ -69,6 +70,32 @@ class SettingsViewModelTest {
                     !it.reader.keepScreenOn
             }
             assertEquals(ReadingDirection.RIGHT_TO_LEFT, settled.reader.direction)
+        }
+    }
+
+    @Test
+    fun displayFilterActionsPersist() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(SettingsAction.SetDisplayBrightness(-0.5f))
+            viewModel.onAction(SettingsAction.SetDisplayNightTint(0.5f))
+            viewModel.onAction(SettingsAction.ToggleDisplayGrayscale)
+            viewModel.onAction(SettingsAction.ToggleDisplayInvert)
+            val settled = awaitReadyWhere {
+                it.reader.displayFilter == DisplayFilter(
+                    brightness = -0.5f,
+                    grayscale = true,
+                    invert = true,
+                    nightTint = 0.5f,
+                )
+            }
+            assertEquals(-0.5f, settled.reader.displayFilter.brightness)
+            viewModel.onAction(SettingsAction.ResetDisplayFilter)
+            val reset = awaitReadyWhere { it.reader.displayFilter.isNeutral }
+            assertEquals(DisplayFilter.Neutral, reset.reader.displayFilter)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

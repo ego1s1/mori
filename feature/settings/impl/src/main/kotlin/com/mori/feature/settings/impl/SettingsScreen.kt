@@ -23,6 +23,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +42,7 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
+import com.mori.core.designsystem.MoriSliderRow
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
@@ -315,6 +317,41 @@ internal fun SettingsContent(
                 checked = reader.swipeToTurn,
                 onCheckedChange = { onAction(SettingsAction.ToggleSwipeToTurn) },
             )
+            OptionLabel(stringResource(R.string.settings_display_title))
+            Text(
+                text = stringResource(R.string.settings_display_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            MoriSliderRow(
+                label = stringResource(R.string.settings_filter_brightness),
+                value = reader.displayFilter.brightness,
+                valueRange = -1f..1f,
+                onValueChange = { onAction(SettingsAction.SetDisplayBrightness(it)) },
+            )
+            MoriSliderRow(
+                label = stringResource(R.string.settings_filter_night),
+                value = reader.displayFilter.nightTint,
+                valueRange = 0f..1f,
+                onValueChange = { onAction(SettingsAction.SetDisplayNightTint(it)) },
+            )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_filter_grayscale_title),
+                subtitle = stringResource(R.string.settings_filter_grayscale_subtitle),
+                checked = reader.displayFilter.grayscale,
+                onCheckedChange = { onAction(SettingsAction.ToggleDisplayGrayscale) },
+            )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_filter_invert_title),
+                subtitle = stringResource(R.string.settings_filter_invert_subtitle),
+                checked = reader.displayFilter.invert,
+                onCheckedChange = { onAction(SettingsAction.ToggleDisplayInvert) },
+            )
+            if (!reader.displayFilter.isNeutral) {
+                TextButton(onClick = { onAction(SettingsAction.ResetDisplayFilter) }) {
+                    Text(stringResource(R.string.settings_filter_reset))
+                }
+            }
         }
 
         MoriSectionCard(title = stringResource(R.string.settings_card_storage)) {

@@ -35,6 +35,15 @@
     <string name="settings_counter_subtitle">Show the current page number when controls hide</string>
     <string name="settings_swipe_title">Swipe to turn pages</string>
     <string name="settings_swipe_subtitle">Drag sideways to move between pages, alongside taps</string>
+    <string name="settings_display_title">Display filters</string>
+    <string name="settings_display_subtitle">Default look for every book; the reader can override per book.</string>
+    <string name="settings_filter_brightness">Brightness</string>
+    <string name="settings_filter_night">Night warmth</string>
+    <string name="settings_filter_grayscale_title">Grayscale</string>
+    <string name="settings_filter_grayscale_subtitle">Remove all color from page art</string>
+    <string name="settings_filter_invert_title">Invert colors</string>
+    <string name="settings_filter_invert_subtitle">Print-negative look for night reading</string>
+    <string name="settings_filter_reset">Reset to defaults</string>
     <string name="settings_card_storage">Storage</string>
     <string name="settings_storage_summary">%1$d comics • %2$s library • %3$s covers</string>
     <string name="settings_clear_cache">Clear thumbnail cache</string>

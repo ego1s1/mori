@@ -1,6 +1,7 @@
 package com.mori.feature.reader.impl
 
 import com.mori.core.model.ComicError
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
@@ -46,6 +47,10 @@ sealed interface ReaderUiState {
         val expandedForArchive: List<Int> = List(pageCount) { it },
         val dualPageSplit: Boolean = false,
         val dualPageInvert: Boolean = false,
+        /** Effective art filter: per-comic override, else the global default. */
+        val displayFilter: DisplayFilter = DisplayFilter.Neutral,
+        /** True when this book carries its own override (reset available). */
+        val hasFilterOverride: Boolean = false,
     ) : ReaderUiState {
         /** 1-based page number shown in the UI. */
         val currentPage: Int get() = pageIndex + 1

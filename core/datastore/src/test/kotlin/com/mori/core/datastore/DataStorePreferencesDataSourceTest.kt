@@ -2,6 +2,7 @@ package com.mori.core.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import app.cash.turbine.test
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
@@ -98,6 +99,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(false, defaults.showTapZones)
             assertEquals(false, defaults.dualPageSplit)
             assertEquals(false, defaults.dualPageInvert)
+            assertEquals(DisplayFilter.Neutral, defaults.displayFilter)
 
             dataSource.updateReaderPreferences {
                 it.copy(
@@ -111,6 +113,12 @@ class DataStorePreferencesDataSourceTest {
                     showTapZones = true,
                     dualPageSplit = true,
                     dualPageInvert = true,
+                    displayFilter = DisplayFilter(
+                        brightness = -0.5f,
+                        grayscale = true,
+                        invert = true,
+                        nightTint = 0.5f,
+                    ),
                 )
             }
             val updated = awaitItem()
@@ -124,6 +132,15 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(true, updated.showTapZones)
             assertEquals(true, updated.dualPageSplit)
             assertEquals(true, updated.dualPageInvert)
+            assertEquals(
+                DisplayFilter(
+                    brightness = -0.5f,
+                    grayscale = true,
+                    invert = true,
+                    nightTint = 0.5f,
+                ),
+                updated.displayFilter,
+            )
         }
     }
 

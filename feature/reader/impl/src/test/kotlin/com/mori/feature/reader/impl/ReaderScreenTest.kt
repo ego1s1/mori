@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
@@ -241,6 +242,8 @@ class ReaderScreenTest {
                     swipeToTurn = true,
                     dualPageSplit = false,
                     dualPageInvert = false,
+                    displayFilter = DisplayFilter.Neutral,
+                    hasFilterOverride = false,
                     onAction = {},
                 )
             }
@@ -276,6 +279,8 @@ class ReaderScreenTest {
                     swipeToTurn = true,
                     dualPageSplit = false,
                     dualPageInvert = false,
+                    displayFilter = DisplayFilter.Neutral,
+                    hasFilterOverride = false,
                     onAction = {},
                 )
             }
@@ -299,11 +304,73 @@ class ReaderScreenTest {
                     swipeToTurn = true,
                     dualPageSplit = true,
                     dualPageInvert = false,
+                    displayFilter = DisplayFilter.Neutral,
+                    hasFilterOverride = false,
                     onAction = {},
                 )
             }
         }
         composeTestRule.onNodeWithText("Invert split halves").assertExists()
+    }
+
+    @Test
+    fun displaySectionShowsResetOnlyWithOverride() {
+        val actions = mutableListOf<ReaderAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderSettingsSheetContent(
+                    direction = ReadingDirection.LEFT_TO_RIGHT,
+                    pageFit = PageFit.WIDTH,
+                    cropMargins = false,
+                    volumeKeys = false,
+                    volumeKeysInverted = false,
+                    keepScreenOn = true,
+                    showTapZones = false,
+                    showPageCounter = true,
+                    swipeToTurn = true,
+                    dualPageSplit = false,
+                    dualPageInvert = false,
+                    displayFilter = DisplayFilter.Neutral,
+                    hasFilterOverride = true,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Display filters").assertExists()
+        composeTestRule.onNodeWithText("Brightness").assertExists()
+        composeTestRule.onNodeWithText("Night warmth").assertExists()
+        composeTestRule.onNodeWithText("Grayscale").assertExists()
+        composeTestRule.onNodeWithText("Invert colors").assertExists()
+        // Switch/button dispatch is covered by ViewModel tests; clicks on
+        // sheet rows don't actuate under Robolectric.
+        composeTestRule.onNodeWithText("Reset to defaults").assertExists()
+    }
+
+    @Test
+    fun displayResetHiddenWithoutOverride() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderSettingsSheetContent(
+                    direction = ReadingDirection.LEFT_TO_RIGHT,
+                    pageFit = PageFit.WIDTH,
+                    cropMargins = false,
+                    volumeKeys = false,
+                    volumeKeysInverted = false,
+                    keepScreenOn = true,
+                    showTapZones = false,
+                    showPageCounter = true,
+                    swipeToTurn = true,
+                    dualPageSplit = false,
+                    dualPageInvert = false,
+                    displayFilter = DisplayFilter.Neutral,
+                    hasFilterOverride = false,
+                    onAction = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Reset to defaults").assertDoesNotExist()
     }
 
     @OptIn(ExperimentalTestApi::class)

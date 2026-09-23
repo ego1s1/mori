@@ -82,6 +82,21 @@ internal class SettingsViewModel @Inject constructor(
             SettingsAction.ToggleCropMargins -> updateReader { it.copy(cropMargins = !it.cropMargins) }
             SettingsAction.TogglePageCounter -> updateReader { it.copy(showPageCounter = !it.showPageCounter) }
             SettingsAction.ToggleSwipeToTurn -> updateReader { it.copy(swipeToTurn = !it.swipeToTurn) }
+            is SettingsAction.SetDisplayBrightness -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(brightness = action.brightness).coerce())
+            }
+            is SettingsAction.SetDisplayNightTint -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(nightTint = action.nightTint).coerce())
+            }
+            SettingsAction.ToggleDisplayGrayscale -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(grayscale = !it.displayFilter.grayscale))
+            }
+            SettingsAction.ToggleDisplayInvert -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(invert = !it.displayFilter.invert))
+            }
+            SettingsAction.ResetDisplayFilter -> updateReader {
+                it.copy(displayFilter = com.mori.core.model.DisplayFilter.Neutral)
+            }
             SettingsAction.ClearThumbnailCache -> clearCache()
         }
     }

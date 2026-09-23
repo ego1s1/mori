@@ -11,7 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
+import com.mori.core.designsystem.MoriSliderRow
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 
@@ -36,6 +40,8 @@ internal fun ReaderSettingsSheet(
     cropMargins: Boolean,
     volumeKeys: Boolean,
     volumeKeysInverted: Boolean,
+    displayFilter: DisplayFilter,
+    hasFilterOverride: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
@@ -55,6 +61,8 @@ internal fun ReaderSettingsSheet(
             cropMargins = cropMargins,
             volumeKeys = volumeKeys,
             volumeKeysInverted = volumeKeysInverted,
+            displayFilter = displayFilter,
+            hasFilterOverride = hasFilterOverride,
             keepScreenOn = keepScreenOn,
             showTapZones = showTapZones,
             showPageCounter = showPageCounter,
@@ -74,6 +82,8 @@ internal fun ReaderSettingsSheetContent(
     cropMargins: Boolean,
     volumeKeys: Boolean,
     volumeKeysInverted: Boolean,
+    displayFilter: DisplayFilter,
+    hasFilterOverride: Boolean,
     keepScreenOn: Boolean,
     showTapZones: Boolean,
     showPageCounter: Boolean,
@@ -208,6 +218,45 @@ internal fun ReaderSettingsSheetContent(
                 checked = dualPageInvert,
                 onCheckedChange = { onAction(ReaderAction.ToggleDualInvert) },
             )
+        }
+
+        Text(
+            text = stringResource(R.string.reader_sheet_display),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.reader_display_scope),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        MoriSliderRow(
+            label = stringResource(R.string.reader_filter_brightness),
+            value = displayFilter.brightness,
+            valueRange = -1f..1f,
+            onValueChange = { onAction(ReaderAction.SetFilterBrightness(it)) },
+        )
+        MoriSliderRow(
+            label = stringResource(R.string.reader_filter_night),
+            value = displayFilter.nightTint,
+            valueRange = 0f..1f,
+            onValueChange = { onAction(ReaderAction.SetFilterNightTint(it)) },
+        )
+        MoriSettingSwitch(
+            title = stringResource(R.string.reader_filter_grayscale_title),
+            subtitle = stringResource(R.string.reader_filter_grayscale_subtitle),
+            checked = displayFilter.grayscale,
+            onCheckedChange = { onAction(ReaderAction.ToggleFilterGrayscale) },
+        )
+        MoriSettingSwitch(
+            title = stringResource(R.string.reader_filter_invert_title),
+            subtitle = stringResource(R.string.reader_filter_invert_subtitle),
+            checked = displayFilter.invert,
+            onCheckedChange = { onAction(ReaderAction.ToggleFilterInvert) },
+        )
+        if (hasFilterOverride) {
+            TextButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
+                Text(stringResource(R.string.reader_filter_reset))
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

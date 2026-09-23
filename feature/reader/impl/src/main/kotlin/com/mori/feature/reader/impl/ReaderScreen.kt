@@ -428,6 +428,7 @@ private fun ReaderContent(
                         direction = state.direction,
                         cropMargins = state.cropMargins,
                         half = viewerPage.half,
+                        displayFilter = state.displayFilter,
                         onZoomedChange = { zoomed = it },
                         onPinchingChange = { pinching = it },
                         onEdgeTurn = { forward ->
@@ -491,6 +492,8 @@ private fun ReaderContent(
                 cropMargins = state.cropMargins,
                 volumeKeys = state.volumeKeys,
                 volumeKeysInverted = state.volumeKeysInverted,
+                displayFilter = state.displayFilter,
+                hasFilterOverride = state.hasFilterOverride,
                 keepScreenOn = state.keepScreenOn,
                 showTapZones = state.showTapZones,
                 showPageCounter = state.showPageCounter,

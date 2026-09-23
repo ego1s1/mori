@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.mori.core.model.ComicError
+import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReaderPreferences
@@ -668,8 +669,59 @@ class ReaderViewModelTest {
         assertEquals(true, preferences.isOverviewSeen())
     }
 
-    private fun Offset.assertOffset(x: Float, y: Float) {
-        // Delta comparison: zoom math can yield -0.0f, which boxed-equals rejects
+    @Test
+    fun filterOverrideBeatsGlobalDefault() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val viewModel = viewModel(repository = repository)
+        viewModel.uiState.test {
+            assertEquals(DisplayFilter.Neutral, awaitReady().displayFilter)
+            viewModel.onAction(ReaderAction.ToggleFilterGrayscale)
+            val overridden = awaitReadyWhere { it.hasFilterOverride }
+            assertEquals(DisplayFilter(grayscale = true), overridden.displayFilter)
+            assertEquals(
+                DisplayFilter(grayscale = true),
+                repository.getDisplayFilter("c"),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun neutralFilterWriteDeletesOverride() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        repository.setDisplayFilter("c", DisplayFilter(grayscale = true))
+        val viewModel = viewModel(repository = repository)
+        viewModel.uiState.test {
+            awaitReadyWhere { it.hasFilterOverride }
+            viewModel.onAction(ReaderAction.ToggleFilterGrayscale)
+            awaitReadyWhere { !it.hasFilterOverride }
+            assertEquals(null, repository.getDisplayFilter("c"))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun resetDisplayFilterClearsOverride() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val viewModel = viewModel(repository = repository)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.SetFilterBrightness(-0.5f))
+            awaitReadyWhere { it.hasFilterOverride }
+            viewModel.onAction(ReaderAction.ResetDisplayFilter)
+            val reset = awaitReadyWhere { !it.hasFilterOverride }
+            assertEquals(DisplayFilter.Neutral, reset.displayFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private fun Offset.assertOffset(x: Float, y: Float) {        // Delta comparison: zoom math can yield -0.0f, which boxed-equals rejects
         // against 0.0f despite rendering identically.
         assertEquals(x, this.x, 0.001f)
         assertEquals(y, this.y, 0.001f)
