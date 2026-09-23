@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ScreenRotation
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
@@ -50,6 +51,7 @@ object MoriIcons {
     val Search = Icons.Rounded.Search
     val Settings = Icons.Rounded.Settings
     val Share = Icons.Rounded.Share
+    val Incognito = Icons.Rounded.VisibilityOff
     val Tune = Icons.Rounded.Tune
     val SkipNext = Icons.Rounded.SkipNext
     val SkipPrevious = Icons.Rounded.SkipPrevious

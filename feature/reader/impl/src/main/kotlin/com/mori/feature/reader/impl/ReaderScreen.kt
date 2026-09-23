@@ -464,6 +464,7 @@ private fun ReaderContent(
                 title = state.title,
                 subtitle = state.subtitle,
                 bookmarked = state.bookmarked,
+                incognito = state.incognito,
                 onBackClick = onBackClick,
                 onBookmarkClick = { onAction(ReaderAction.ToggleBookmark) },
             )
@@ -492,6 +493,7 @@ private fun ReaderContent(
                 cropMargins = state.cropMargins,
                 volumeKeys = state.volumeKeys,
                 volumeKeysInverted = state.volumeKeysInverted,
+                incognito = state.incognito,
                 displayFilter = state.displayFilter,
                 hasFilterOverride = state.hasFilterOverride,
                 keepScreenOn = state.keepScreenOn,
@@ -546,6 +548,7 @@ private fun ReaderTopBar(
     title: String,
     subtitle: String,
     bookmarked: Boolean,
+    incognito: Boolean,
     onBackClick: () -> Unit,
     onBookmarkClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -618,6 +621,19 @@ private fun ReaderTopBar(
                     imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
                     contentDescription = if (bookmarked) stringResource(R.string.reader_bookmark_remove) else stringResource(R.string.reader_bookmark),
                     tint = Color.White,
+                )
+            }
+            // Incognito indicator: decorative badge, announced once for
+            // TalkBack so private reading is never ambiguous.
+            if (incognito) {
+                Icon(
+                    imageVector = MoriIcons.Incognito,
+                    contentDescription = stringResource(R.string.reader_incognito_on),
+                    tint = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(24.dp)
+                        .testTag(ReaderTestTags.IncognitoBadge),
                 )
             }
         }

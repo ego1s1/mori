@@ -415,6 +415,7 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleFilterInvert -> writeFilter { it.copy(invert = !it.invert) }
             ReaderAction.ResetDisplayFilter -> clearFilter()
             ReaderAction.ToggleKeepScreenOn -> updatePrefs { it.copy(keepScreenOn = !it.keepScreenOn) }
+            ReaderAction.ToggleIncognito -> updatePrefs { it.copy(incognito = !it.incognito) }
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
             ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }
             ReaderAction.ToggleTapZones -> updatePrefs { it.copy(showTapZones = !it.showTapZones) }

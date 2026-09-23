@@ -304,6 +304,12 @@ internal fun SettingsContent(
                 onCheckedChange = { onAction(SettingsAction.ToggleKeepScreenOn) },
             )
             MoriSettingSwitch(
+                title = stringResource(R.string.settings_incognito_title),
+                subtitle = stringResource(R.string.settings_incognito_subtitle),
+                checked = reader.incognito,
+                onCheckedChange = { onAction(SettingsAction.ToggleIncognito) },
+            )
+            MoriSettingSwitch(
                 title = stringResource(R.string.settings_crop_title),
                 subtitle = stringResource(R.string.settings_crop_subtitle),
                 checked = reader.cropMargins,

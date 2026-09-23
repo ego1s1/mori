@@ -11,6 +11,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.swipeLeft
@@ -41,6 +42,7 @@ class ReaderScreenTest {
     private fun ready(
         pageIndex: Int = 12,
         settingsOpen: Boolean = false,
+        incognito: Boolean = false,
     ) = ReaderUiState.Ready(
         comicId = "batman",
         title = "Batman",
@@ -56,11 +58,50 @@ class ReaderScreenTest {
         overviewOpen = false,
         volumeKeys = false,
         volumeKeysInverted = false,
+        incognito = incognito,
         keepScreenOn = true,
         showTapZones = false,
         showPageCounter = true,
         swipeToTurn = true,
     )
+
+    @Test
+    fun incognitoBadgeShowsOnlyWhenOn() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(incognito = true),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(
+            ReaderTestTags.IncognitoBadge,
+            useUnmergedTree = true,
+        ).assertExists()
+        composeTestRule.onNodeWithContentDescription(
+            "Incognito is on",
+            substring = true,
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    @Test
+    fun incognitoBadgeHiddenByDefault() {
+        composeTestRule.setContent {
+            MoriTheme {
+                ReaderScreen(
+                    uiState = ready(),
+                    onAction = {},
+                    onBackClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ReaderTestTags.IncognitoBadge).assertDoesNotExist()
+    }
 
     @Test
     fun readyStateShowsTitleAndPageNumbers() {
@@ -236,6 +277,7 @@ class ReaderScreenTest {
                     cropMargins = false,
                     volumeKeys = false,
                     volumeKeysInverted = false,
+                    incognito = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -273,6 +315,7 @@ class ReaderScreenTest {
                     cropMargins = false,
                     volumeKeys = false,
                     volumeKeysInverted = false,
+                    incognito = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -298,6 +341,7 @@ class ReaderScreenTest {
                     cropMargins = false,
                     volumeKeys = false,
                     volumeKeysInverted = false,
+                    incognito = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -324,6 +368,7 @@ class ReaderScreenTest {
                     cropMargins = false,
                     volumeKeys = false,
                     volumeKeysInverted = false,
+                    incognito = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,
@@ -357,6 +402,7 @@ class ReaderScreenTest {
                     cropMargins = false,
                     volumeKeys = false,
                     volumeKeysInverted = false,
+                    incognito = false,
                     keepScreenOn = true,
                     showTapZones = false,
                     showPageCounter = true,

@@ -99,6 +99,7 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(false, defaults.showTapZones)
             assertEquals(false, defaults.dualPageSplit)
             assertEquals(false, defaults.dualPageInvert)
+            assertEquals(false, defaults.incognito)
             assertEquals(DisplayFilter.Neutral, defaults.displayFilter)
 
             dataSource.updateReaderPreferences {

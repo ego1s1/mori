@@ -721,6 +721,35 @@ class ReaderViewModelTest {
         }
     }
 
+    @Test
+    fun toggleIncognitoFlipsFlag() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            assertEquals(false, awaitReady().incognito)
+            viewModel.onAction(ReaderAction.ToggleIncognito)
+            assertEquals(true, awaitReadyWhere { it.incognito }.incognito)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun incognitoSuppressesProgressSaves() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val preferences = FakePreferencesDataSource(
+            initialReader = ReaderPreferences(incognito = true),
+        )
+        val viewModel = viewModel(repository = repository, preferences = preferences)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(1_000L)
+            assertTrue(repository.progressSaves.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun Offset.assertOffset(x: Float, y: Float) {        // Delta comparison: zoom math can yield -0.0f, which boxed-equals rejects
         // against 0.0f despite rendering identically.
         assertEquals(x, this.x, 0.001f)

@@ -44,6 +44,9 @@ sealed interface ReaderAction {
 
     data object ToggleTapZones : ReaderAction
 
+    /** Pause progress, history, and stats recording while on. */
+    data object ToggleIncognito : ReaderAction
+
     data object TogglePageCounter : ReaderAction
 
     data object ToggleSwipeToTurn : ReaderAction

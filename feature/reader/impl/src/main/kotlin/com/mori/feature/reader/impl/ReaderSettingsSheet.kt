@@ -40,6 +40,7 @@ internal fun ReaderSettingsSheet(
     cropMargins: Boolean,
     volumeKeys: Boolean,
     volumeKeysInverted: Boolean,
+    incognito: Boolean,
     displayFilter: DisplayFilter,
     hasFilterOverride: Boolean,
     keepScreenOn: Boolean,
@@ -61,6 +62,7 @@ internal fun ReaderSettingsSheet(
             cropMargins = cropMargins,
             volumeKeys = volumeKeys,
             volumeKeysInverted = volumeKeysInverted,
+            incognito = incognito,
             displayFilter = displayFilter,
             hasFilterOverride = hasFilterOverride,
             keepScreenOn = keepScreenOn,
@@ -82,6 +84,7 @@ internal fun ReaderSettingsSheetContent(
     cropMargins: Boolean,
     volumeKeys: Boolean,
     volumeKeysInverted: Boolean,
+    incognito: Boolean,
     displayFilter: DisplayFilter,
     hasFilterOverride: Boolean,
     keepScreenOn: Boolean,
@@ -187,6 +190,12 @@ internal fun ReaderSettingsSheetContent(
             subtitle = stringResource(R.string.reader_keep_on_subtitle),
             checked = keepScreenOn,
             onCheckedChange = { onAction(ReaderAction.ToggleKeepScreenOn) },
+        )
+        MoriSettingSwitch(
+            title = stringResource(R.string.reader_incognito_title),
+            subtitle = stringResource(R.string.reader_incognito_subtitle),
+            checked = incognito,
+            onCheckedChange = { onAction(ReaderAction.ToggleIncognito) },
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_counter_title),

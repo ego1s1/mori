@@ -74,6 +74,19 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun toggleIncognitoPersists() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(SettingsAction.ToggleIncognito)
+            val settled = awaitReadyWhere { it.reader.incognito }
+            assertEquals(true, settled.reader.incognito)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun displayFilterActionsPersist() = runTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())

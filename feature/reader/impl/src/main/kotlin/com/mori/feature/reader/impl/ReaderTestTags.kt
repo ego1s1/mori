@@ -17,6 +17,7 @@ object ReaderTestTags {
     const val FitButton = "readerFitButton"
     const val CropButton = "readerCropButton"
     const val PageCounter = "readerPageCounter"
+    const val IncognitoBadge = "readerIncognitoBadge"
 
     fun thumbFor(pageIndex: Int): String = "readerThumb:$pageIndex"
 }

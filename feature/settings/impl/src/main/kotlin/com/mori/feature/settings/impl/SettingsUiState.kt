@@ -43,6 +43,9 @@ sealed interface SettingsAction {
 
     data object ToggleKeepScreenOn : SettingsAction
 
+    /** Pause progress, history, and stats recording while on. */
+    data object ToggleIncognito : SettingsAction
+
     data object ToggleCropMargins : SettingsAction
 
     data object TogglePageCounter : SettingsAction

@@ -34,6 +34,9 @@
     <string name="reader_volume_invert_subtitle">Volume up goes forward, volume down goes back</string>
     <string name="reader_keep_on_title">Keep screen on</string>
     <string name="reader_keep_on_subtitle">Prevent the display from sleeping while reading</string>
+    <string name="reader_incognito_title">Incognito</string>
+    <string name="reader_incognito_subtitle">Don’t record progress, history, or stats</string>
+    <string name="reader_incognito_on">Incognito is on: nothing is recorded</string>
     <string name="reader_counter_title">Page counter</string>
     <string name="reader_counter_subtitle">Show the current page number when controls hide</string>
     <string name="reader_swipe_title">Swipe to turn pages</string>

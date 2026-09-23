@@ -29,6 +29,8 @@
     <string name="settings_volume_invert_subtitle">Volume up goes forward, volume down goes back</string>
     <string name="settings_keep_on_title">Keep screen on</string>
     <string name="settings_keep_on_subtitle">Prevent the display from sleeping while reading</string>
+    <string name="settings_incognito_title">Incognito</string>
+    <string name="settings_incognito_subtitle">Don’t record progress, history, or stats</string>
     <string name="settings_crop_title">Crop page margins</string>
     <string name="settings_crop_subtitle">Trim uniform borders when decoding pages</string>
     <string name="settings_counter_title">Page counter</string>
