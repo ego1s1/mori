@@ -11,6 +11,7 @@ import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
+import com.mori.core.model.UserCollection
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -130,6 +131,64 @@ class FakeComicsRepository(
     override suspend fun clearDisplayFilter(id: String) {
         displayFilters.remove(id)
         filterVersions.value += 1
+    }
+
+    private var nextCollectionId = 1L
+    private val collectionsFlow =
+        MutableStateFlow(emptyList<UserCollection>())
+    private val memberships = mutableMapOf<Long, MutableSet<String>>()
+
+    override fun observeCollections(): Flow<List<UserCollection>> =
+        collectionsFlow.asStateFlow()
+
+    override fun observeCollectionMembers(collectionId: Long): Flow<Set<String>> =
+        collectionsFlow.map { memberships[collectionId].orEmpty().toSet() }
+
+    override fun observeComicCollections(comicId: String): Flow<Set<Long>> =
+        collectionsFlow.map { _ ->
+            memberships.filterValues { comicId in it }.keys.toSet()
+        }
+
+    override suspend fun createCollection(name: String): Long {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty())
+        val id = nextCollectionId++
+        collectionsFlow.value += UserCollection(
+            id = id,
+            name = trimmed,
+            bookCount = 0,
+            createdAt = id,
+        )
+        return id
+    }
+
+    override suspend fun renameCollection(id: Long, name: String) {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty())
+        collectionsFlow.value = collectionsFlow.value.map {
+            if (it.id == id) it.copy(name = trimmed) else it
+        }
+    }
+
+    override suspend fun deleteCollection(id: Long) {
+        collectionsFlow.value = collectionsFlow.value.filterNot { it.id == id }
+        memberships.remove(id)
+    }
+
+    override suspend fun addToCollection(collectionId: Long, comicId: String) {
+        memberships.getOrPut(collectionId) { mutableSetOf() } += comicId
+        refreshCounts()
+    }
+
+    override suspend fun removeFromCollection(collectionId: Long, comicId: String) {
+        memberships[collectionId]?.remove(comicId)
+        refreshCounts()
+    }
+
+    private fun refreshCounts() {
+        collectionsFlow.value = collectionsFlow.value.map {
+            it.copy(bookCount = memberships[it.id].orEmpty().size)
+        }
     }
 
     val sessions = mutableListOf<SessionRecord>()

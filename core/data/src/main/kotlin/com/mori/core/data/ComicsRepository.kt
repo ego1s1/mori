@@ -6,6 +6,7 @@ import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
+import com.mori.core.model.UserCollection
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -66,6 +67,26 @@ interface ComicsRepository {
 
     /** Reactive reading aggregates for stats surfaces. */
     fun observeReadingStats(): Flow<ReadingStats>
+
+    /** User shelves with book counts, ordered by creation. */
+    fun observeCollections(): Flow<List<UserCollection>>
+
+    /** Member ids of one shelf, for library filtering. */
+    fun observeCollectionMembers(collectionId: Long): Flow<Set<String>>
+
+    /** Shelf ids containing one comic, for the detail dialog. */
+    fun observeComicCollections(comicId: String): Flow<Set<Long>>
+
+    /** Creates a shelf, returning its id. Blank names are rejected. */
+    suspend fun createCollection(name: String): Long
+
+    suspend fun renameCollection(id: Long, name: String)
+
+    suspend fun deleteCollection(id: Long)
+
+    suspend fun addToCollection(collectionId: Long, comicId: String)
+
+    suspend fun removeFromCollection(collectionId: Long, comicId: String)
 
     /**
      * Archive indices of wide (landscape) pages, for the dual-page split.

@@ -6,6 +6,8 @@ import com.mori.comic.PasswordRequiredException
 import com.mori.comic.UnsupportedFormatException
 import com.mori.core.database.ComicDao
 import com.mori.core.database.ComicEntity
+import com.mori.core.database.CollectionDao
+import com.mori.core.database.CollectionMemberEntity
 import com.mori.core.database.DisplayFilterDao
 import com.mori.core.database.DisplayFilterOverrideEntity
 import com.mori.core.database.ReadingSessionDao
@@ -20,6 +22,7 @@ import com.mori.core.model.ImportStatus
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
+import com.mori.core.model.UserCollection
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +45,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     private val dao: ComicDao,
     private val filterDao: DisplayFilterDao,
     private val sessionDao: ReadingSessionDao,
+    private val collectionDao: CollectionDao,
     private val backend: ComicBackendDataSource,
     private val covers: CoverGenerator,
     private val linkedCache: LinkedArchiveCache,
@@ -257,6 +261,71 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         }.distinctUntilChanged()
             .flowOn(Dispatchers.Default)
 
+    override fun observeCollections(): Flow<List<UserCollection>> =
+        collectionDao.observeAll()
+            .map { rows ->
+                rows.map { row ->
+                    UserCollection(
+                        id = row.id,
+                        name = row.name,
+                        bookCount = row.bookCount,
+                        createdAt = row.createdAt,
+                    )
+                }
+            }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
+    override fun observeCollectionMembers(collectionId: Long): Flow<Set<String>> =
+        collectionDao.observeMembers(collectionId)
+            .map { it.toSet() }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
+    override fun observeComicCollections(comicId: String): Flow<Set<Long>> =
+        collectionDao.observeCollectionsForComic(comicId)
+            .map { it.toSet() }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
+    override suspend fun createCollection(name: String): Long =
+        withContext(Dispatchers.IO) {
+            val trimmed = name.trim()
+            require(trimmed.isNotEmpty()) { "Collection name must not be blank" }
+            collectionDao.insertCollection(
+                com.mori.core.database.CollectionEntity(
+                    name = trimmed.take(MAX_COLLECTION_NAME),
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+
+    override suspend fun renameCollection(id: Long, name: String) =
+        withContext(Dispatchers.IO) {
+            val trimmed = name.trim()
+            require(trimmed.isNotEmpty()) { "Collection name must not be blank" }
+            collectionDao.renameCollection(id, trimmed.take(MAX_COLLECTION_NAME))
+        }
+
+    override suspend fun deleteCollection(id: Long) =
+        withContext(Dispatchers.IO) { collectionDao.deleteCollection(id) }
+
+    override suspend fun addToCollection(collectionId: Long, comicId: String) =
+        withContext(Dispatchers.IO) {
+            collectionDao.addMember(
+                CollectionMemberEntity(
+                    collectionId = collectionId,
+                    comicId = comicId,
+                    addedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+
+    override suspend fun removeFromCollection(collectionId: Long, comicId: String) =
+        withContext(Dispatchers.IO) {
+            collectionDao.removeMember(collectionId, comicId)
+        }
+
     private fun DisplayFilterOverrideEntity.toModel(): DisplayFilter = DisplayFilter(
         brightness = brightness,
         grayscale = grayscale,
@@ -421,5 +490,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     companion object {
         /** Cover filename prefix for linked documents (see [linkedCoverId]). */
         const val LINKED_COVER_PREFIX = "linked-"
+
+        /** Collection names truncate here; the row is a chip, not a document. */
+        const val MAX_COLLECTION_NAME = 48
     }
 }

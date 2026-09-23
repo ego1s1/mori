@@ -83,6 +83,70 @@ internal class FakeComicsRepository(
         filterVersions.value += 1
     }
 
+    private var nextCollectionId = 1L
+    private val collectionsState =
+        MutableStateFlow(emptyList<com.mori.core.model.UserCollection>())
+    private val memberships = mutableMapOf<Long, MutableSet<String>>()
+
+    override fun observeCollections(): Flow<List<com.mori.core.model.UserCollection>> =
+        collectionsState.asStateFlow()
+
+    override fun observeCollectionMembers(collectionId: Long): Flow<Set<String>> =
+        collectionsState.map { memberships[collectionId].orEmpty().toSet() }
+
+    override fun observeComicCollections(comicId: String): Flow<Set<Long>> =
+        collectionsState.map { _ ->
+            memberships.filterValues { comicId in it }.keys.toSet()
+        }
+
+    override suspend fun createCollection(name: String): Long {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty())
+        val id = nextCollectionId++
+        collectionsState.value += com.mori.core.model.UserCollection(
+            id = id,
+            name = trimmed,
+            bookCount = 0,
+            createdAt = id,
+        )
+        return id
+    }
+
+    override suspend fun renameCollection(id: Long, name: String) {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty())
+        collectionsState.value = collectionsState.value.map {
+            if (it.id == id) it.copy(name = trimmed) else it
+        }
+    }
+
+    override suspend fun deleteCollection(id: Long) {
+        collectionsState.value = collectionsState.value.filterNot { it.id == id }
+        memberships.remove(id)
+    }
+
+    override suspend fun addToCollection(collectionId: Long, comicId: String) {
+        memberships.getOrPut(collectionId) { mutableSetOf() } += comicId
+        collectionsState.value = collectionsState.value.map {
+            if (it.id == collectionId) {
+                it.copy(bookCount = memberships[it.id].orEmpty().size)
+            } else {
+                it
+            }
+        }
+    }
+
+    override suspend fun removeFromCollection(collectionId: Long, comicId: String) {
+        memberships[collectionId]?.remove(comicId)
+        collectionsState.value = collectionsState.value.map {
+            if (it.id == collectionId) {
+                it.copy(bookCount = memberships[it.id].orEmpty().size)
+            } else {
+                it
+            }
+        }
+    }
+
     val sessions = mutableListOf<Triple<String, Long, Int>>()
 
     override suspend fun recordSession(
