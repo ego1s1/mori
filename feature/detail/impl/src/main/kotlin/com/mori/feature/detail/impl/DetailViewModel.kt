@@ -8,11 +8,14 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.model.Comic
 import com.mori.feature.detail.api.DetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -47,11 +50,37 @@ internal class DetailViewModel @Inject constructor(
     private val messageChannel = Channel<DetailMessage>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
 
+    private val shelvesOpen = MutableStateFlow(false)
+
+    /**
+     * Shelves dialog state: emitted only while open so membership streams
+     * don't run for every detail visit.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val shelvesSheet: StateFlow<ShelvesSheet?> = shelvesOpen
+        .flatMapLatest { open ->
+            if (!open) {
+                kotlinx.coroutines.flow.flowOf(null)
+            } else {
+                combine(
+                    repository.observeCollections(),
+                    repository.observeComicCollections(args.comicId),
+                    ::ShelvesSheet,
+                )
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeComic(args.comicId),
         refreshing,
         confirmRemove,
         removed,
+        shelvesSheet,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -64,6 +93,7 @@ internal class DetailViewModel @Inject constructor(
         refreshing: Boolean,
         confirmRemove: Boolean,
         removed: Boolean,
+        shelves: ShelvesSheet?,
     ): DetailUiState {
         if (removed || comic == null) return DetailUiState.Missing
         return DetailUiState.Ready(
@@ -71,6 +101,7 @@ internal class DetailViewModel @Inject constructor(
             refreshing = refreshing,
             confirmRemove = confirmRemove,
             removed = false,
+            shelves = shelves,
         )
     }
 
@@ -98,6 +129,29 @@ internal class DetailViewModel @Inject constructor(
                     )
                 }
             }
+            DetailAction.OpenShelves -> shelvesOpen.value = true
+            DetailAction.CloseShelves -> shelvesOpen.value = false
+            is DetailAction.ToggleShelfMember -> toggleShelfMember(action.collectionId)
+            is DetailAction.CreateShelf -> createShelf(action.name)
+        }
+    }
+
+    private fun toggleShelfMember(collectionId: Long) {
+        viewModelScope.launch {
+            val members = repository.observeComicCollections(args.comicId).first()
+            if (collectionId in members) {
+                repository.removeFromCollection(collectionId, args.comicId)
+            } else {
+                repository.addToCollection(collectionId, args.comicId)
+            }
+        }
+    }
+
+    private fun createShelf(name: String) {
+        viewModelScope.launch {
+            val id = runCatching { repository.createCollection(name) }.getOrNull()
+                ?: return@launch
+            runCatching { repository.addToCollection(id, args.comicId) }
         }
     }
 

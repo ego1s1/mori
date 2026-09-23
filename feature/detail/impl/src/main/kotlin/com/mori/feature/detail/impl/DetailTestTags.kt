@@ -14,6 +14,12 @@ object DetailTestTags {
     const val ConfirmRemove = "detailConfirmRemove"
     const val PageStrip = "detailPages"
     const val ErrorCard = "detailError"
+    const val ShelvesButton = "detailShelves"
+    const val ShelvesDialog = "detailShelvesDialog"
+    const val ShelfCreateField = "detailShelfCreateField"
+    const val ShelfCreateConfirm = "detailShelfCreateConfirm"
 
     fun pageChip(index: Int): String = "detailPage:$index"
+
+    fun shelfRow(collectionId: Long): String = "detailShelf:$collectionId"
 }

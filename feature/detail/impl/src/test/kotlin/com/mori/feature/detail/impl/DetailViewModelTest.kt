@@ -40,6 +40,32 @@ class DetailViewModelTest {
     )
 
     @Test
+    fun shelvesDialogTogglesMembershipAndCreates() = runTest {
+        val (viewModel, repository) = viewModel()
+        val shelfId = repository.createCollection("Picks")
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(DetailAction.OpenShelves)
+            val open = awaitReadyWhere { it.shelves != null }
+            assertEquals(listOf(shelfId), open.shelves!!.collections.map { it.id })
+            assertTrue(shelfId !in open.shelves!!.memberIds)
+
+            viewModel.onAction(DetailAction.ToggleShelfMember(shelfId))
+            val member = awaitReadyWhere { shelfId in (it.shelves?.memberIds.orEmpty()) }
+            assertTrue(shelfId in member.shelves!!.memberIds)
+
+            viewModel.onAction(DetailAction.CreateShelf("New"))
+            awaitReadyWhere { shelves ->
+                shelves.shelves?.collections?.any { it.name == "New" } == true &&
+                    shelves.shelves?.memberIds?.size == 2
+            }
+            viewModel.onAction(DetailAction.CloseShelves)
+            awaitReadyWhere { it.shelves == null }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun loadsComicFromRepository() = runTest {
         val (viewModel, _) = viewModel()
         viewModel.uiState.test {
@@ -200,4 +226,9 @@ class DetailViewModelTest {
             DetailUiState.Loading -> error("unreachable")
         }
     }
+
+    private suspend fun app.cash.turbine.ReceiveTurbine<DetailUiState>.awaitReadyWhere(
+        predicate: (DetailUiState.Ready) -> Boolean,
+    ): DetailUiState.Ready =
+        awaitWhere { it is DetailUiState.Ready && predicate(it) } as DetailUiState.Ready
 }

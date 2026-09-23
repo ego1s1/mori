@@ -4,6 +4,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.UserCollection
 
 sealed interface LibraryUiState {
     data object Loading : LibraryUiState
@@ -19,9 +20,22 @@ sealed interface LibraryUiState {
         val continueReading: List<Comic>,
         /** Determinate rescan progress (done/total); null when idle. */
         val indexProgress: IndexProgress? = null,
+        /** All user shelves for the chips row. */
+        val collections: List<UserCollection> = emptyList(),
+        /** Selected shelf filter; null shows everything. */
+        val selectedCollectionId: Long? = null,
+        /** Open collection dialog, if any. */
+        val collectionDialog: CollectionDialog? = null,
     ) : LibraryUiState {
         val isEmpty: Boolean get() = comics.isEmpty()
     }
+}
+
+/** Collection dialogs: create vs delete-confirm. */
+sealed interface CollectionDialog {
+    data object Create : CollectionDialog
+
+    data class Delete(val collectionId: Long, val name: String) : CollectionDialog
 }
 
 /** Determinate rescan progress forwarded from the index callback. */
@@ -46,6 +60,19 @@ sealed interface LibraryAction {
 
     /** Link a folder straight from the empty shelf (post-onboarding rescue). */
     data class FolderSelected(val uri: android.net.Uri) : LibraryAction
+
+    /** Filter the grid to one shelf; null clears back to everything. */
+    data class SelectCollection(val collectionId: Long?) : LibraryAction
+
+    data object OpenCreateCollection : LibraryAction
+
+    data object CloseCollectionDialog : LibraryAction
+
+    data class CreateCollection(val name: String) : LibraryAction
+
+    data class OpenDeleteCollection(val collectionId: Long, val name: String) : LibraryAction
+
+    data class ConfirmDeleteCollection(val collectionId: Long) : LibraryAction
 }
 
 /** One-shot library messages; the UI maps each to localized copy. */

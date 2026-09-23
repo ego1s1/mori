@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -29,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -185,6 +188,12 @@ internal fun DetailScreen(
                             title = uiState.comic.title,
                             onConfirm = { onAction(DetailAction.ConfirmRemove) },
                             onDismiss = { onAction(DetailAction.CancelRemove) },
+                        )
+                    }
+                    uiState.shelves?.let { shelves ->
+                        ShelvesDialog(
+                            shelves = shelves,
+                            onAction = onAction,
                         )
                     }
                 }
@@ -347,6 +356,14 @@ private fun DetailContent(
                     },
                 )
             }
+            OutlinedButton(
+                onClick = { onAction(DetailAction.OpenShelves) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(DetailTestTags.ShelvesButton),
+            ) {
+                Text(stringResource(R.string.detail_shelves))
+            }
         }
 
         MetadataRows(comic = comic)
@@ -492,6 +509,83 @@ private fun RemoveDialog(
             }
         },
         modifier = modifier.testTag(DetailTestTags.RemoveDialog),
+    )
+}
+
+/** Shelves dialog: toggle this book's membership, or create a shelf for it. */
+@Composable
+private fun ShelvesDialog(
+    shelves: ShelvesSheet,
+    onAction: (DetailAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { onAction(DetailAction.CloseShelves) },
+        title = { Text(stringResource(R.string.detail_shelves_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (shelves.collections.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.detail_shelves_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                shelves.collections.forEach { collection ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onAction(DetailAction.ToggleShelfMember(collection.id)) }
+                            .testTag(DetailTestTags.shelfRow(collection.id)),
+                    ) {
+                        Checkbox(
+                            checked = collection.id in shelves.memberIds,
+                            onCheckedChange = {
+                                onAction(DetailAction.ToggleShelfMember(collection.id))
+                            },
+                        )
+                        Text(
+                            text = collection.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.detail_shelves_new_label)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .testTag(DetailTestTags.ShelfCreateField),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onAction(DetailAction.CreateShelf(name))
+                    name = ""
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(DetailTestTags.ShelfCreateConfirm),
+            ) {
+                Text(stringResource(R.string.detail_shelves_create))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(DetailAction.CloseShelves) }) {
+                Text(stringResource(R.string.detail_shelves_close))
+            }
+        },
+        modifier = modifier.testTag(DetailTestTags.ShelvesDialog),
     )
 }
 

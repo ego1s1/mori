@@ -14,9 +14,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.UserCollection
 import com.mori.core.model.ComicError
 import com.mori.core.testing.FakeComicsRepository
 import org.junit.Rule
@@ -78,11 +80,17 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.Loading).assertIsDisplayed()
     }
 
+
+
     @Test
     fun gridShowsCardsWithTitles() {
         setScreen(success())
 
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
+        // Chips + shelf push cards below the short test viewport fold.
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).assertIsDisplayed()
         composeTestRule.onNodeWithText("Library").assertIsDisplayed()
@@ -93,8 +101,33 @@ class LibraryScreenTest {
         setScreen(success())
 
         // Banana: lastPageIndex 2 of 10 -> 7 pages left. The unified card
-        // badges both copies: grid cell and continue-shelf card.
-        composeTestRule.onAllNodesWithText("7 left").assertCountEquals(2)
+        // badges both copies: grid cell and continue-shelf card. The shelf
+        // copy is visible up front; the grid copy needs a swipe (short
+        // test viewport fold).
+        composeTestRule.onNodeWithTag(LibraryTestTags.shelfCardFor("b")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
+        composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("7 left").assertCountEquals(1)
+    }
+
+
+    @Test
+    fun collectionChipsFilterAndDelete() {
+        val actions = mutableListOf<LibraryAction>()
+        setScreen(
+            success().copy(
+                collections = listOf(
+                    UserCollection(id = 7L, name = "Picks", bookCount = 1, createdAt = 1L),
+                ),
+            ),
+            actions = actions,
+        )
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.CollectionRow).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.collectionChip(7L)).performClick()
+        assert(actions.contains(LibraryAction.SelectCollection(7L)))
     }
 
     @Test
@@ -109,6 +142,9 @@ class LibraryScreenTest {
             actions = actions,
         )
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
         // Unmerged: the clickable card merges badge semantics upward.
         composeTestRule.onNodeWithTag(
@@ -122,6 +158,9 @@ class LibraryScreenTest {
         var opened: Pair<String, Int>? = null
         setScreen(success(), onReadClick = { id, index -> opened = id to index })
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).performClick()
 
         assert(opened == ("b" to 2))
@@ -133,6 +172,9 @@ class LibraryScreenTest {
         val done = FakeComicsRepository.comic("d", title = "Done", pageCount = 10, lastPageIndex = 9)
         setScreen(success().copy(comics = listOf(done)), onReadClick = { id, index -> opened = id to index })
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("d")).performClick()
 
         assert(opened == ("d" to 0))
@@ -149,6 +191,9 @@ class LibraryScreenTest {
             onComicLongClick = { detailed = it },
         )
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("e")).performClick()
 
         assert(opened == null)
@@ -160,6 +205,9 @@ class LibraryScreenTest {
         var detailed: String? = null
         setScreen(success(), onComicLongClick = { detailed = it })
 
+        composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
+            swipeUp()
+        }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).performTouchInput {
             longClick()
         }

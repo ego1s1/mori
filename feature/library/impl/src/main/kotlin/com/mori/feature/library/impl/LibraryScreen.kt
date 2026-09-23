@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -41,6 +43,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -81,6 +84,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ResumeTarget
+import com.mori.core.model.UserCollection
 
 /**
  * Public tab content for the main viewport pager. Route and tab share one
@@ -222,6 +226,9 @@ internal fun LibraryScreen(
                         searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
                         shelf = uiState.continueReading,
+                        collections = uiState.collections,
+                        selectedCollectionId = uiState.selectedCollectionId,
+                        collectionDialog = uiState.collectionDialog,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
@@ -248,6 +255,9 @@ private fun LibraryContent(
     searchOpen: Boolean,
     linked: Boolean,
     shelf: List<Comic>,
+    collections: List<UserCollection>,
+    selectedCollectionId: Long?,
+    collectionDialog: CollectionDialog?,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -311,6 +321,9 @@ private fun LibraryContent(
                 refreshing = refreshing && indexProgress == null,
                 linked = linked,
                 shelf = shelf,
+                collections = collections,
+                selectedCollectionId = selectedCollectionId,
+                collectionDialog = collectionDialog,
                 onAction = onAction,
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
@@ -382,6 +395,9 @@ private fun LibraryBody(
     refreshing: Boolean,
     linked: Boolean,
     shelf: List<Comic>,
+    collections: List<UserCollection>,
+    selectedCollectionId: Long?,
+    collectionDialog: CollectionDialog?,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -419,11 +435,21 @@ private fun LibraryBody(
             bottom = FloatingChromeBottomReserve,
         )
     }
-    PullToRefreshBox(
-        isRefreshing = refreshing,
-        onRefresh = { onAction(LibraryAction.Refresh) },
-        modifier = modifier.fillMaxSize(),
-    ) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Shelf filter rides above the pull area: filtering never triggers
+        // a refresh gesture, and the row stays put while the grid scrolls.
+        CollectionChipsRow(
+            collections = collections,
+            selectedCollectionId = selectedCollectionId,
+            onAction = onAction,
+        )
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = { onAction(LibraryAction.Refresh) },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
                 searching = queryText.isNotBlank(),
@@ -477,7 +503,159 @@ private fun LibraryBody(
                 }
             }
         }
+    when (val dialog = collectionDialog) {
+        CollectionDialog.Create -> CreateCollectionDialog(
+            onDismiss = { onAction(LibraryAction.CloseCollectionDialog) },
+            onConfirm = { onAction(LibraryAction.CreateCollection(it)) },
+        )
+        is CollectionDialog.Delete -> DeleteCollectionDialog(
+            name = dialog.name,
+            onDismiss = { onAction(LibraryAction.CloseCollectionDialog) },
+            onConfirm = { onAction(LibraryAction.ConfirmDeleteCollection(dialog.collectionId)) },
+        )
+        null -> Unit
     }
+    }
+}
+
+/**
+ * Shelf filter chips: All, every user shelf with its count, and a New
+ * action. Long-pressing a shelf asks to delete it (books stay). The row is
+ * always present (even with zero shelves) so the grid below never shifts
+ * when the first shelf is created.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CollectionChipsRow(
+    collections: List<UserCollection>,
+    selectedCollectionId: Long?,
+    onAction: (LibraryAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(LibraryTestTags.CollectionRow),
+    ) {
+        item(key = "all") {
+            FilterChip(
+                selected = selectedCollectionId == null,
+                onClick = { onAction(LibraryAction.SelectCollection(null)) },
+                label = { Text(stringResource(R.string.library_collection_all)) },
+            )
+        }
+        items(collections, key = { "collection-${it.id}" }) { collection ->
+            FilterChip(
+                selected = selectedCollectionId == collection.id,
+                onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
+                label = {
+                    Text(
+                        stringResource(
+                            R.string.library_collection_labeled,
+                            collection.name,
+                            collection.bookCount,
+                        ),
+                    )
+                },
+                modifier = Modifier
+                    .testTag(LibraryTestTags.collectionChip(collection.id))
+                    .combinedClickable(
+                        onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
+                        onLongClick = {
+                            onAction(
+                                LibraryAction.OpenDeleteCollection(
+                                    collection.id,
+                                    collection.name,
+                                ),
+                            )
+                        },
+                    ),
+            )
+        }
+        item(key = "new") {
+            FilterChip(
+                selected = false,
+                onClick = { onAction(LibraryAction.OpenCreateCollection) },
+                label = { Text(stringResource(R.string.library_collection_new)) },
+                modifier = Modifier.testTag(LibraryTestTags.CollectionNew),
+            )
+        }
+    }
+}
+
+/** Name-a-shelf dialog: blank names keep the confirm disabled. */
+@Composable
+private fun CreateCollectionDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.library_collection_create_title)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.library_collection_name_label)) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(LibraryTestTags.CollectionCreateField),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(LibraryTestTags.CollectionCreateConfirm),
+            ) {
+                Text(stringResource(R.string.library_collection_create))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.library_collection_cancel))
+            }
+        },
+        modifier = modifier.testTag(LibraryTestTags.CollectionCreateDialog),
+    )
+}
+
+/** Delete-shelf confirm: the shelf goes, its books stay in the library. */
+@Composable
+private fun DeleteCollectionDialog(
+    name: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.library_collection_delete_title)) },
+        text = { Text(stringResource(R.string.library_collection_delete_body, name)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.testTag(LibraryTestTags.CollectionConfirmDelete),
+            ) {
+                Text(
+                    text = stringResource(R.string.library_collection_delete),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.library_collection_cancel))
+            }
+        },
+        modifier = modifier.testTag(LibraryTestTags.CollectionDeleteDialog),
+    )
+}
 
 /**
  * Horizontal continue-reading shelf: compact cards for in-progress books by

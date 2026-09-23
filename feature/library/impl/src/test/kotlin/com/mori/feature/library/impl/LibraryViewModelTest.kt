@@ -35,6 +35,45 @@ class LibraryViewModelTest {
     ) = LibraryViewModel(savedStateHandle, repository, preferences)
 
     @Test
+    fun collectionsFilterCreateAndDelete() = runTest {
+        val repository = FakeComicsRepository(
+            listOf(
+                FakeComicsRepository.comic("a", title = "Apple"),
+                FakeComicsRepository.comic("b", title = "Banana"),
+            ),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.uiState.test {
+            awaitSuccess()
+            viewModel.onAction(LibraryAction.OpenCreateCollection)
+            awaitSuccessWhere { it.collectionDialog is CollectionDialog.Create }
+            viewModel.onAction(LibraryAction.CreateCollection("Favorites"))
+            val created = awaitSuccessWhere { it.collections.size == 1 }
+            assertEquals("Favorites", created.collections.single().name)
+            val id = created.collections.single().id
+            // Dialog closes and the new shelf selects itself.
+            assertEquals(null, created.collectionDialog)
+            assertEquals(id, created.selectedCollectionId)
+            // Nothing is a member yet: the grid filters to empty.
+            awaitSuccessWhere { it.selectedCollectionId == id && it.comics.isEmpty() }
+
+            viewModel.onAction(LibraryAction.SelectCollection(null))
+            awaitSuccessWhere { it.selectedCollectionId == null && it.comics.size == 2 }
+
+            viewModel.onAction(
+                LibraryAction.OpenDeleteCollection(id, "Favorites"),
+            )
+            awaitSuccessWhere {
+                it.collectionDialog is CollectionDialog.Delete
+            }
+            viewModel.onAction(LibraryAction.ConfirmDeleteCollection(id))
+            val deleted = awaitSuccessWhere { it.collections.isEmpty() }
+            assertEquals(null, deleted.collectionDialog)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun emitsComicsFromRepository() = runTest {
         val repository = FakeComicsRepository(
             listOf(

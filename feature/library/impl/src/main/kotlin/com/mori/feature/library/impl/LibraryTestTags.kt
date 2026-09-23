@@ -19,4 +19,14 @@ object LibraryTestTags {
     fun shelfCardFor(id: String): String = "libraryShelfCard:$id"
 
     fun bookmarkBadgeFor(id: String): String = "libraryBookmark:$id"
+
+    const val CollectionRow = "libraryCollectionRow"
+    const val CollectionNew = "libraryCollectionNew"
+    const val CollectionCreateDialog = "libraryCollectionCreateDialog"
+    const val CollectionCreateField = "libraryCollectionCreateField"
+    const val CollectionCreateConfirm = "libraryCollectionCreateConfirm"
+    const val CollectionDeleteDialog = "libraryCollectionDeleteDialog"
+    const val CollectionConfirmDelete = "libraryCollectionConfirmDelete"
+
+    fun collectionChip(id: Long): String = "libraryCollection:$id"
 }

@@ -59,6 +59,7 @@ class OfflineFirstComicsRepositoryTest {
         dao = dao,
         filterDao = database.displayFilterDao(),
         sessionDao = database.readingSessionDao(),
+        collectionDao = database.collectionDao(),
         backend = backend,
         covers = CoverGenerator(context, backend),
         linkedCache = LinkedArchiveCache(context),

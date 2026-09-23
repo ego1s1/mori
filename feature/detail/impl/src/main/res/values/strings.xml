@@ -16,6 +16,12 @@
     <string name="detail_section_pages">Pages</string>
     <string name="detail_read_resume">Resume • Page %1$d</string>
     <string name="detail_read_start">Start reading</string>
+    <string name="detail_shelves">Shelves</string>
+    <string name="detail_shelves_title">Add to shelves</string>
+    <string name="detail_shelves_empty">No shelves yet — create one below.</string>
+    <string name="detail_shelves_new_label">New shelf</string>
+    <string name="detail_shelves_create">Create</string>
+    <string name="detail_shelves_close">Done</string>
     <string name="detail_meta_number">Number</string>
     <string name="detail_meta_format">Format</string>
     <string name="detail_meta_file">File</string>
