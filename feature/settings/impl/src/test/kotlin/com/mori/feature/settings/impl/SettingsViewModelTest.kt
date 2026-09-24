@@ -206,6 +206,38 @@ class SettingsViewModelTest {
         }
     }
 
+    @Test
+    fun groupsCreateRenameAndDelete() = runTest {
+        val repository = FakeComicsRepository()
+        val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
+        viewModel.uiState.test {
+            assertEquals(true, awaitReady().groups.isEmpty())
+            viewModel.onAction(SettingsAction.OpenCreateGroup)
+            assertEquals(GroupDialog.Create, awaitReadyWhere { it.groupDialog != null }.groupDialog)
+            viewModel.onAction(SettingsAction.CreateGroup("Favorites"))
+            val created = awaitReadyWhere { it.groups.size == 1 && it.groupDialog == null }
+            assertEquals("Favorites", created.groups.single().name)
+            val id = created.groups.single().id
+
+            viewModel.onAction(SettingsAction.OpenRenameGroup(id, "Favorites"))
+            assertEquals(
+                GroupDialog.Rename(id, "Favorites"),
+                awaitReadyWhere { it.groupDialog != null }.groupDialog,
+            )
+            viewModel.onAction(SettingsAction.RenameGroup(id, "Picks"))
+            assertEquals("Picks", awaitReadyWhere { it.groups.single().name == "Picks" }.groups.single().name)
+
+            viewModel.onAction(SettingsAction.OpenDeleteGroup(id, "Picks"))
+            assertEquals(
+                GroupDialog.Delete(id, "Picks"),
+                awaitReadyWhere { it.groupDialog != null }.groupDialog,
+            )
+            viewModel.onAction(SettingsAction.ConfirmDeleteGroup(id))
+            assertEquals(true, awaitReadyWhere { it.groups.isEmpty() }.groups.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready =
         awaitWhere { it is SettingsUiState.Ready } as SettingsUiState.Ready
 

@@ -110,48 +110,40 @@ class LibraryViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
-    /** Shelf-filter state: shelves, selection, members, and open dialog. */
+    /** Shelf-filter state: shelves, selection, members, and full map. */
     private data class CollectionsState(
         val collections: List<UserCollection>,
         val selectedId: Long?,
         val memberIds: Set<String>?,
-        val dialog: CollectionDialog?,
+        val allMembers: Map<Long, Set<String>>,
     )
 
     /**
      * Selected shelf filter (ephemeral, restored across process death).
-     * Members stream only while a shelf is selected.
+     * Selected members derive from the full membership map (no separate
+     * switched flow): one observer, no switch-timing hazards.
      */
     private val selectedCollection =
         MutableStateFlow(savedStateHandle.get<Long>(KEY_COLLECTION))
 
-    private val collectionDialog = MutableStateFlow<CollectionDialog?>(null)
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val collectionMembers: StateFlow<Set<String>?> = selectedCollection
-        .flatMapLatest { id ->
-            if (id == null) {
-                kotlinx.coroutines.flow.flowOf(null)
-            } else {
-                repository.observeCollectionMembers(id)
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = null,
-        )
-
     private val collectionsState: StateFlow<CollectionsState> = combine(
         repository.observeCollections(),
         selectedCollection,
-        collectionMembers,
-        collectionDialog,
-        ::CollectionsState,
-    ).stateIn(
+        repository.observeMemberships(),
+    ) { collections, selectedId, allMembers ->
+        // Null memberIds means "no shelf selected" (unfiltered); an empty
+        // set means "selected shelf with no members" (empty grid). The
+        // distinction matters: never conflate them.
+        CollectionsState(
+            collections = collections,
+            selectedId = selectedId,
+            memberIds = selectedId?.let { allMembers[it].orEmpty() },
+            allMembers = allMembers,
+        )
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = CollectionsState(emptyList(), null, null, null),
+        initialValue = CollectionsState(emptyList(), null, null, emptyMap()),
     )
 
     val uiState: StateFlow<LibraryUiState> = combine(
@@ -165,8 +157,9 @@ class LibraryViewModel @Inject constructor(
             LibraryBase(comics, query, chrome, treeUri != null, progress)
         },
         collectionsState,
-    ) { base, collections ->
-        toUiState(base, collections)
+        preferences.libraryDisplay.map { it.collapsedShelfIds }.distinctUntilChanged(),
+    ) { base, collections, collapsedIds ->
+        toUiState(base, collections, collapsedIds)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -193,13 +186,26 @@ class LibraryViewModel @Inject constructor(
     private fun toUiState(
         base: LibraryBase,
         collections: CollectionsState,
+        collapsedIds: Set<Long>,
     ): LibraryUiState {
+        // A shelf deleted in Settings while selected falls back to
+        // everything instead of filtering to an empty ghost.
+        val effectiveSelected = collections.selectedId
+            ?.takeIf { id -> collections.collections.any { it.id == id } }
         // Shelf filter applies after the query: a selected collection narrows
         // the already sorted/filtered grid (and its shelf) to members.
-        val visible = if (collections.selectedId != null && collections.memberIds != null) {
+        val visible = if (effectiveSelected != null && collections.memberIds != null) {
             base.comics.filter { it.id in collections.memberIds }
         } else {
             base.comics
+        }
+        // Sectioned grid (only unfiltered, only with shelves): one section
+        // per non-empty shelf in shelf order, then unsorted leftovers. Empty
+        // shelves vanish instead of rendering hollow headers.
+        val sections = if (effectiveSelected == null && collections.collections.isNotEmpty()) {
+            buildShelfSections(visible, collections.collections, collections.allMembers, collapsedIds)
+        } else {
+            emptyList()
         }
         return LibraryUiState.Success(
             comics = visible,
@@ -211,8 +217,8 @@ class LibraryViewModel @Inject constructor(
             continueReading = visible.continueShelf(),
             indexProgress = base.progress,
             collections = collections.collections,
-            selectedCollectionId = collections.selectedId,
-            collectionDialog = collections.dialog,
+            selectedCollectionId = effectiveSelected,
+            sections = sections,
         )
     }
 
@@ -249,35 +255,21 @@ class LibraryViewModel @Inject constructor(
                     savedStateHandle[KEY_COLLECTION] = action.collectionId
                 }
             }
-            LibraryAction.OpenCreateCollection ->
-                collectionDialog.value = CollectionDialog.Create
-            LibraryAction.CloseCollectionDialog -> collectionDialog.value = null
-            is LibraryAction.CreateCollection -> createCollection(action.name)
-            is LibraryAction.OpenDeleteCollection ->
-                collectionDialog.value =
-                    CollectionDialog.Delete(action.collectionId, action.name)
-            is LibraryAction.ConfirmDeleteCollection -> deleteCollection(action.collectionId)
+            is LibraryAction.ToggleShelfCollapsed -> toggleShelfCollapsed(action.collectionId)
         }
     }
 
-    private fun createCollection(name: String) {
-        viewModelScope.launch {
-            val id = runCatching { repository.createCollection(name) }.getOrNull()
-                ?: return@launch
-            collectionDialog.value = null
-            selectedCollection.value = id
-            savedStateHandle[KEY_COLLECTION] = id
-        }
-    }
-
-    private fun deleteCollection(id: Long) {
-        if (selectedCollection.value == id) {
-            selectedCollection.value = null
-            savedStateHandle.remove<Long>(KEY_COLLECTION)
-        }
-        collectionDialog.value = null
-        viewModelScope.launch {
-            runCatching { repository.deleteCollection(id) }
+    /**
+     * Flips one shelf's collapsed bit in persisted display prefs (create and
+     * delete live in Settings; the library only views).
+     */
+    private fun toggleShelfCollapsed(collectionId: Long) {
+        updateDisplay { display ->
+            val collapsed = display.collapsedShelfIds.toMutableSet()
+            if (!collapsed.add(collectionId)) {
+                collapsed.remove(collectionId)
+            }
+            display.copy(collapsedShelfIds = collapsed)
         }
     }
 
@@ -356,4 +348,42 @@ class LibraryViewModel @Inject constructor(
         const val KEY_COLLECTION = "mori_collection"
         const val SEARCH_DEBOUNCE_MS = 250L
     }
+}
+
+/**
+ * Groups visible books into shelf sections. Pure top-level for testability:
+ * order follows shelves, then grid order within each section. Empty shelves
+ * vanish; unsorted leftovers trail only when at least one shelf rendered.
+ */
+internal fun buildShelfSections(
+    visible: List<Comic>,
+    shelves: List<UserCollection>,
+    allMembers: Map<Long, Set<String>>,
+    collapsedIds: Set<Long>,
+): List<ShelfSection> {
+    val covered = mutableSetOf<String>()
+    val sections = mutableListOf<ShelfSection>()
+    shelves.forEach { shelf ->
+        // Grid order wins over membership order: sections inherit the
+        // active sort instead of reshuffling.
+        val members = allMembers[shelf.id].orEmpty()
+        val books = visible.filter { it.id in members }
+        if (books.isNotEmpty()) {
+            covered += books.map { it.id }
+            sections += ShelfSection(
+                collection = shelf,
+                comics = books,
+                collapsed = shelf.id in collapsedIds,
+            )
+        }
+    }
+    val unsorted = visible.filter { it.id !in covered }
+    if (unsorted.isNotEmpty() && sections.isNotEmpty()) {
+        sections += ShelfSection(
+            collection = null,
+            comics = unsorted,
+            collapsed = ShelfSection.UNSORTED_SHELF_ID in collapsedIds,
+        )
+    }
+    return sections
 }

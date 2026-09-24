@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.UserCollection
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
@@ -35,7 +36,34 @@ class LibraryViewModelTest {
     ) = LibraryViewModel(savedStateHandle, repository, preferences)
 
     @Test
-    fun collectionsFilterCreateAndDelete() = runTest {
+    fun buildShelfSectionsSkipsEmptyAndOrders() {
+        val comics = listOf(
+            FakeComicsRepository.comic("a", title = "Apple"),
+            FakeComicsRepository.comic("b", title = "Banana"),
+            FakeComicsRepository.comic("c", title = "Cherry"),
+        )
+        val shelves = listOf(
+            UserCollection(id = 1L, name = "Empty", bookCount = 0, createdAt = 1L),
+            UserCollection(id = 2L, name = "Picks", bookCount = 2, createdAt = 2L),
+        )
+        val sections = buildShelfSections(
+            visible = comics,
+            shelves = shelves,
+            allMembers = mapOf(2L to setOf("b", "a", "ghost")),
+            collapsedIds = setOf(2L),
+        )
+
+        assertEquals(2, sections.size)
+        assertEquals(2L, sections[0].id)
+        assertEquals(listOf("a", "b"), sections[0].comics.map { it.id })
+        assertEquals(true, sections[0].collapsed)
+        assertEquals(ShelfSection.UNSORTED_SHELF_ID, sections[1].id)
+        assertEquals(listOf("c"), sections[1].comics.map { it.id })
+        assertEquals(false, sections[1].collapsed)
+    }
+
+    @Test
+    fun collectionsFilterAndCollapse() = runTest {
         val repository = FakeComicsRepository(
             listOf(
                 FakeComicsRepository.comic("a", title = "Apple"),
@@ -45,30 +73,28 @@ class LibraryViewModelTest {
         val viewModel = viewModel(repository)
         viewModel.uiState.test {
             awaitSuccess()
-            viewModel.onAction(LibraryAction.OpenCreateCollection)
-            awaitSuccessWhere { it.collectionDialog is CollectionDialog.Create }
-            viewModel.onAction(LibraryAction.CreateCollection("Favorites"))
-            val created = awaitSuccessWhere { it.collections.size == 1 }
-            assertEquals("Favorites", created.collections.single().name)
-            val id = created.collections.single().id
-            // Dialog closes and the new shelf selects itself.
-            assertEquals(null, created.collectionDialog)
-            assertEquals(id, created.selectedCollectionId)
-            // Nothing is a member yet: the grid filters to empty.
-            awaitSuccessWhere { it.selectedCollectionId == id && it.comics.isEmpty() }
+            // Management lives in Settings: create directly on the fake.
+            val id = repository.createCollection("Favorites")
+            repository.addToCollection(id, "a")
+            val sectioned = awaitSuccessWhere { it.sections.size == 2 }
+            assertEquals(id, sectioned.sections[0].collection?.id)
+            assertEquals(listOf("a"), sectioned.sections[0].comics.map { it.id })
+            assertEquals(null, sectioned.sections[1].collection)
+            assertEquals(listOf("b"), sectioned.sections[1].comics.map { it.id })
+            assertEquals(false, sectioned.sections[0].collapsed)
 
+            viewModel.onAction(LibraryAction.ToggleShelfCollapsed(id))
+            val collapsed = awaitSuccessWhere {
+                it.sections.firstOrNull { it.id == id }?.collapsed == true
+            }
+            assertEquals(true, collapsed.sections[0].collapsed)
+
+            // Chip filter still narrows to members; clearing restores all.
+            viewModel.onAction(LibraryAction.SelectCollection(id))
+            val selected = awaitSuccessWhere { it.selectedCollectionId == id && it.comics.map { c -> c.id } == listOf("a") }
+            assertEquals(true, selected.sections.isEmpty())
             viewModel.onAction(LibraryAction.SelectCollection(null))
             awaitSuccessWhere { it.selectedCollectionId == null && it.comics.size == 2 }
-
-            viewModel.onAction(
-                LibraryAction.OpenDeleteCollection(id, "Favorites"),
-            )
-            awaitSuccessWhere {
-                it.collectionDialog is CollectionDialog.Delete
-            }
-            viewModel.onAction(LibraryAction.ConfirmDeleteCollection(id))
-            val deleted = awaitSuccessWhere { it.collections.isEmpty() }
-            assertEquals(null, deleted.collectionDialog)
             cancelAndIgnoreRemainingEvents()
         }
     }

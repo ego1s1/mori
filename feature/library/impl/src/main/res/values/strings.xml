@@ -21,6 +21,11 @@
     <string name="library_collection_delete_title">Delete shelf?</string>
     <string name="library_collection_delete_body">“%1$s” will be removed. Its books stay in the library.</string>
     <string name="library_collection_delete">Delete</string>
+    <string name="library_shelf_unsorted">Unsorted</string>
+    <string name="library_shelf_expand">Expand shelf</string>
+    <string name="library_shelf_collapse">Collapse shelf</string>
+    <string name="library_shelf_expanded">Expanded</string>
+    <string name="library_shelf_collapsed">Collapsed</string>
     <string name="library_card_unreadable">Can\'t read</string>
     <string name="library_card_pages_left">%1$d left</string>
     <string name="library_card_read">Read %1$s</string>

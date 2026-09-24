@@ -29,4 +29,6 @@ object LibraryTestTags {
     const val CollectionConfirmDelete = "libraryCollectionConfirmDelete"
 
     fun collectionChip(id: Long): String = "libraryCollection:$id"
+
+    fun shelfHeader(id: Long): String = "libraryShelfHeader:$id"
 }

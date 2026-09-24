@@ -9,6 +9,8 @@ import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
@@ -41,6 +43,8 @@ object MoriIcons {
     val Close = Icons.Rounded.Close
     val Crop = Icons.Rounded.Crop
     val Delete = Icons.Rounded.Delete
+    val Edit = Icons.Rounded.Edit
+    val ExpandMore = Icons.Rounded.ExpandMore
     val FitScreen = Icons.Rounded.FitScreen
     val GridView = Icons.Rounded.GridView
     val History = Icons.Rounded.History

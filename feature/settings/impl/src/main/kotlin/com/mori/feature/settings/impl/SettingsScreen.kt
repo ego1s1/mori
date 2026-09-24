@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -27,7 +30,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,7 +48,6 @@ import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSliderRow
-import com.mori.core.designsystem.MoriSliderRow
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
@@ -52,6 +56,7 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.ReadingStats
+import com.mori.core.model.UserCollection
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
@@ -134,6 +139,8 @@ internal fun SettingsScreen(
                     storage = uiState.storage,
                     stats = uiState.stats,
                     appLock = uiState.appLock,
+                    groups = uiState.groups,
+                    groupDialog = uiState.groupDialog,
                     onAction = onAction,
                     onLicensesClick = onLicensesClick,
                     appVersion = appVersion,
@@ -151,6 +158,8 @@ internal fun SettingsContent(
     storage: StorageUsage?,
     stats: ReadingStats,
     appLock: Boolean = false,
+    groups: List<UserCollection> = emptyList(),
+    groupDialog: GroupDialog? = null,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
@@ -393,6 +402,31 @@ internal fun SettingsContent(
             )
         }
 
+        MoriSectionCard(title = stringResource(R.string.settings_card_groups)) {
+            if (groups.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.settings_groups_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            groups.forEach { group ->
+                GroupRow(
+                    group = group,
+                    onRename = { onAction(SettingsAction.OpenRenameGroup(group.id, group.name)) },
+                    onDelete = { onAction(SettingsAction.OpenDeleteGroup(group.id, group.name)) },
+                )
+            }
+            OutlinedButton(
+                onClick = { onAction(SettingsAction.OpenCreateGroup) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(SettingsTestTags.GroupCreateButton),
+            ) {
+                Text(stringResource(R.string.settings_groups_create))
+            }
+        }
+
         MoriSectionCard(title = stringResource(R.string.settings_card_stats)) {
             StatRow(
                 label = stringResource(R.string.settings_stats_time),
@@ -462,6 +496,11 @@ internal fun SettingsContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        GroupDialogHost(
+            dialog = groupDialog,
+            onAction = onAction,
+        )
     }
 }
 
@@ -500,6 +539,149 @@ private fun SegmentedChoiceRow(
             )
         }
     }
+}
+
+/**
+ * One shelf row: name plus book count, with rename and delete actions.
+ * Books are managed from the library and detail screens; Settings owns
+ * the shelf list itself.
+ */
+@Composable
+private fun GroupRow(
+    group: UserCollection,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag(SettingsTestTags.groupRow(group.id)),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = group.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.settings_groups_count, group.bookCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onRename) {
+            Icon(
+                imageVector = MoriIcons.Edit,
+                contentDescription = stringResource(R.string.settings_group_rename_title),
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = MoriIcons.Delete,
+                contentDescription = stringResource(R.string.settings_group_delete_title),
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+/** Create/rename/delete dialogs for shelves. Null renders nothing. */
+@Composable
+private fun GroupDialogHost(
+    dialog: GroupDialog?,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (dialog) {
+        null -> Unit
+        GroupDialog.Create -> GroupNameDialog(
+            title = stringResource(R.string.settings_group_create_title),
+            label = stringResource(R.string.settings_group_create_label),
+            confirmText = stringResource(R.string.settings_group_create_confirm),
+            initial = "",
+            onConfirm = { onAction(SettingsAction.CreateGroup(it)) },
+            onDismiss = { onAction(SettingsAction.CloseGroupDialog) },
+            modifier = modifier,
+        )
+        is GroupDialog.Rename -> GroupNameDialog(
+            title = stringResource(R.string.settings_group_rename_title),
+            label = stringResource(R.string.settings_group_rename_label),
+            confirmText = stringResource(R.string.settings_group_rename_confirm),
+            initial = dialog.name,
+            onConfirm = { onAction(SettingsAction.RenameGroup(dialog.groupId, it)) },
+            onDismiss = { onAction(SettingsAction.CloseGroupDialog) },
+            modifier = modifier,
+        )
+        is GroupDialog.Delete -> AlertDialog(
+            onDismissRequest = { onAction(SettingsAction.CloseGroupDialog) },
+            title = { Text(stringResource(R.string.settings_group_delete_title)) },
+            text = { Text(stringResource(R.string.settings_group_delete_body, dialog.name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId)) },
+                    modifier = Modifier.testTag(SettingsTestTags.GroupDeleteConfirm),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_group_delete_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(SettingsAction.CloseGroupDialog) }) {
+                    Text(stringResource(R.string.settings_dialog_cancel))
+                }
+            },
+            modifier = modifier.testTag(SettingsTestTags.GroupDialog),
+        )
+    }
+}
+
+/** Shared text-field dialog for shelf create and rename. */
+@Composable
+private fun GroupNameDialog(
+    title: String,
+    label: String,
+    confirmText: String,
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var name by remember(initial) { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(label) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(SettingsTestTags.GroupNameField),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(SettingsTestTags.GroupConfirm),
+            ) {
+                Text(confirmText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_dialog_cancel))
+            }
+        },
+        modifier = modifier.testTag(SettingsTestTags.GroupDialog),
+    )
 }
 
 @Composable

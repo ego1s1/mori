@@ -9,6 +9,7 @@ import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
+import com.mori.core.model.UserCollection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,8 @@ internal class SettingsViewModel @Inject constructor(
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
+    private val groupDialog = MutableStateFlow<GroupDialog?>(null)
+
     val uiState: StateFlow<SettingsUiState> = combine(
         combine(
             preferences.themePreferences,
@@ -46,6 +49,8 @@ internal class SettingsViewModel @Inject constructor(
             ThemeReaderState(theme, reader, motion, storage, stats)
         },
         preferences.appLockEnabled,
+        repository.observeCollections(),
+        groupDialog,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -64,6 +69,8 @@ internal class SettingsViewModel @Inject constructor(
     private fun toUiState(
         combined: ThemeReaderState,
         appLock: Boolean,
+        groups: List<UserCollection>,
+        groupDialog: GroupDialog?,
     ): SettingsUiState = SettingsUiState.Ready(
         theme = combined.theme,
         reader = combined.reader,
@@ -71,6 +78,8 @@ internal class SettingsViewModel @Inject constructor(
         storage = combined.storage,
         stats = combined.stats,
         appLock = appLock,
+        groups = groups,
+        groupDialog = groupDialog,
     )
 
     /** Five-flow combine carrier (fixed-arity combine caps at five). */
@@ -117,6 +126,40 @@ internal class SettingsViewModel @Inject constructor(
                 it.copy(displayFilter = com.mori.core.model.DisplayFilter.Neutral)
             }
             SettingsAction.ClearThumbnailCache -> clearCache()
+            SettingsAction.OpenCreateGroup -> groupDialog.value = GroupDialog.Create
+            SettingsAction.CloseGroupDialog -> groupDialog.value = null
+            is SettingsAction.CreateGroup -> createGroup(action.name)
+            is SettingsAction.OpenRenameGroup -> groupDialog.value = GroupDialog.Rename(action.groupId, action.name)
+            is SettingsAction.RenameGroup -> renameGroup(action.groupId, action.name)
+            is SettingsAction.OpenDeleteGroup -> groupDialog.value = GroupDialog.Delete(action.groupId, action.name)
+            is SettingsAction.ConfirmDeleteGroup -> deleteGroup(action.groupId)
+        }
+    }
+
+    /**
+     * Shelf management lives here (the library only views). Blank names are
+     * dropped; the dialog closes on success so the new shelf is visible.
+     */
+    private fun createGroup(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            runCatching { repository.createCollection(name.trim()) }
+            groupDialog.value = null
+        }
+    }
+
+    private fun renameGroup(groupId: Long, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            runCatching { repository.renameCollection(groupId, name.trim()) }
+            groupDialog.value = null
+        }
+    }
+
+    private fun deleteGroup(groupId: Long) {
+        viewModelScope.launch {
+            runCatching { repository.deleteCollection(groupId) }
+            groupDialog.value = null
         }
     }
 

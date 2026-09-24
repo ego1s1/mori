@@ -4,8 +4,10 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +20,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
@@ -56,10 +60,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +78,7 @@ import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
@@ -228,7 +237,7 @@ internal fun LibraryScreen(
                         shelf = uiState.continueReading,
                         collections = uiState.collections,
                         selectedCollectionId = uiState.selectedCollectionId,
-                        collectionDialog = uiState.collectionDialog,
+                        sections = uiState.sections,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
@@ -257,7 +266,7 @@ private fun LibraryContent(
     shelf: List<Comic>,
     collections: List<UserCollection>,
     selectedCollectionId: Long?,
-    collectionDialog: CollectionDialog?,
+    sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -323,7 +332,7 @@ private fun LibraryContent(
                 shelf = shelf,
                 collections = collections,
                 selectedCollectionId = selectedCollectionId,
-                collectionDialog = collectionDialog,
+                sections = sections,
                 onAction = onAction,
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
@@ -397,7 +406,7 @@ private fun LibraryBody(
     shelf: List<Comic>,
     collections: List<UserCollection>,
     selectedCollectionId: Long?,
-    collectionDialog: CollectionDialog?,
+    sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
@@ -467,54 +476,115 @@ private fun LibraryBody(
                     .fillMaxSize()
                     .testTag(LibraryTestTags.Grid),
             ) {
-                // Continue shelf rides above the grid when anything is in
-                // progress; hidden entirely otherwise (no empty header).
-                if (shelf.isNotEmpty() && queryText.isBlank()) {
-                    item(
-                        span = { GridItemSpan(maxLineSpan) },
-                        contentType = "continueShelf",
-                    ) {
-                        ContinueShelf(
-                            comics = shelf,
-                            onReadClick = onReadClick,
-                            onComicLongClick = onComicLongClick,
+                if (sections.isNotEmpty()) {
+                    // Sectioned grid: one collapsible shelf after another.
+                    // The continue shelf still leads; flat views use the
+                    // legacy path in else below.
+                    if (shelf.isNotEmpty() && queryText.isBlank()) {
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = "continueShelf",
+                        ) {
+                            ContinueShelf(
+                                comics = shelf,
+                                onReadClick = onReadClick,
+                                onComicLongClick = onComicLongClick,
+                            )
+                        }
+                    }
+                    sections.forEach { section ->
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            key = "shelf-header-${section.id}",
+                            contentType = "shelfHeader",
+                        ) {
+                            ShelfSectionHeader(
+                                section = section,
+                                onToggle = {
+                                    onAction(
+                                        LibraryAction.ToggleShelfCollapsed(section.id),
+                                    )
+                                },
+                            )
+                        }
+                        comicItems(
+                            comics = section.comics,
+                            keyPrefix = "shelf-${section.id}",
+                            onCardRead = onCardRead,
+                            onCardDetails = onCardDetails,
+                            launchingId = launchingId,
+                            contentVisible = !section.collapsed,
                         )
                     }
-                }
-                items(
-                        comics,
-                        key = { it.id },
-                        // Bitmask bucket: error/in-progress/finished variants never
-                        // cross-recycle, with no per-item string allocation.
-                        contentType = { comic ->
-                            (if (comic.error != null) 4 else 0) +
-                                (if (comic.isInProgress) 2 else 0) +
-                                (if (comic.isFinished) 1 else 0)
-                        },
-                    ) { comic ->
-                        ComicCard(
-                            comic = comic,
-                            onRead = onCardRead,
-                            onDetails = onCardDetails,
-                            sharedCover = launchingId == comic.id,
-                            modifier = Modifier.animateItem(),
-                        )
+                } else {
+                    // Continue shelf rides above the grid when anything is in
+                    // progress; hidden entirely otherwise (no empty header).
+                    if (shelf.isNotEmpty() && queryText.isBlank()) {
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = "continueShelf",
+                            key = "continueShelf",
+                        ) {
+                            ContinueShelf(
+                                comics = shelf,
+                                onReadClick = onReadClick,
+                                onComicLongClick = onComicLongClick,
+                            )
+                        }
                     }
+                    comicItems(
+                        comics = comics,
+                        keyPrefix = "card",
+                        onCardRead = onCardRead,
+                        onCardDetails = onCardDetails,
+                        launchingId = launchingId,
+                    )
                 }
             }
         }
-    when (val dialog = collectionDialog) {
-        CollectionDialog.Create -> CreateCollectionDialog(
-            onDismiss = { onAction(LibraryAction.CloseCollectionDialog) },
-            onConfirm = { onAction(LibraryAction.CreateCollection(it)) },
-        )
-        is CollectionDialog.Delete -> DeleteCollectionDialog(
-            name = dialog.name,
-            onDismiss = { onAction(LibraryAction.CloseCollectionDialog) },
-            onConfirm = { onAction(LibraryAction.ConfirmDeleteCollection(dialog.collectionId)) },
-        )
-        null -> Unit
     }
+}
+}
+
+/**
+ * Grid book cells shared by flat and sectioned grids: stable keys plus the
+ * variant bitmask bucket, so error/in-progress/finished variants never
+ * cross-recycle.
+ */
+private fun LazyGridScope.comicItems(
+    comics: List<Comic>,
+    keyPrefix: String,
+    onCardRead: (Comic) -> Unit,
+    onCardDetails: (Comic) -> Unit,
+    launchingId: String?,
+    contentVisible: Boolean = true,
+) {
+    items(
+        comics,
+        key = { "$keyPrefix-${it.id}" },
+        // Bitmask bucket: error/in-progress/finished variants never
+        // cross-recycle, with no per-item string allocation.
+        contentType = { comic ->
+            (if (comic.error != null) 4 else 0) +
+                (if (comic.isInProgress) 2 else 0) +
+                (if (comic.isFinished) 1 else 0)
+        },
+    ) { comic ->
+        // Collapse runs through AnimatedVisibility (not item removal) so
+        // cards glide out on the motion setting instead of snapping away.
+        AnimatedVisibility(
+            visible = contentVisible,
+            enter = MoriMotion.enter(MoriEnterKind.SEARCH),
+            exit = MoriMotion.exit(MoriEnterKind.SEARCH),
+        ) {
+            ComicCard(
+                comic = comic,
+                onRead = onCardRead,
+                onDetails = onCardDetails,
+                sharedCover = launchingId == comic.id,
+                modifier = Modifier.animateItem(),
+            )
+        }
     }
 }
 
@@ -547,6 +617,8 @@ private fun CollectionChipsRow(
             )
         }
         items(collections, key = { "collection-${it.id}" }) { collection ->
+            // Single tap filters; management (create/rename/delete) lives
+            // in Settings Groups, so headers stay tap-only too.
             FilterChip(
                 selected = selectedCollectionId == collection.id,
                 onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
@@ -559,102 +631,110 @@ private fun CollectionChipsRow(
                         ),
                     )
                 },
-                modifier = Modifier
-                    .testTag(LibraryTestTags.collectionChip(collection.id))
-                    .combinedClickable(
-                        onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
-                        onLongClick = {
-                            onAction(
-                                LibraryAction.OpenDeleteCollection(
-                                    collection.id,
-                                    collection.name,
-                                ),
-                            )
-                        },
-                    ),
-            )
-        }
-        item(key = "new") {
-            FilterChip(
-                selected = false,
-                onClick = { onAction(LibraryAction.OpenCreateCollection) },
-                label = { Text(stringResource(R.string.library_collection_new)) },
-                modifier = Modifier.testTag(LibraryTestTags.CollectionNew),
+                modifier = Modifier.testTag(LibraryTestTags.collectionChip(collection.id)),
             )
         }
     }
 }
 
-/** Name-a-shelf dialog: blank names keep the confirm disabled. */
-@Composable
-private fun CreateCollectionDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var name by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.library_collection_create_title)) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(stringResource(R.string.library_collection_name_label)) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(LibraryTestTags.CollectionCreateField),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name) },
-                enabled = name.isNotBlank(),
-                modifier = Modifier.testTag(LibraryTestTags.CollectionCreateConfirm),
-            ) {
-                Text(stringResource(R.string.library_collection_create))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.library_collection_cancel))
-            }
-        },
-        modifier = modifier.testTag(LibraryTestTags.CollectionCreateDialog),
-    )
-}
 
-/** Delete-shelf confirm: the shelf goes, its books stay in the library. */
+
+/**
+ * Collapsible shelf header: full-row 48dp touch target (the whole row
+ * toggles, not just the chevron), shelf name in emphasized type, tonal
+ * count pill, and a chevron that rotates with the state.
+ *
+ * M3-expressive motion, setting-aware: spring expand + fade when expressive,
+ * quiet calm fade otherwise (same pair as the SEARCH enter/exit kind).
+ * State is exposed to accessibility as expanded/collapsed, never color-only.
+ */
 @Composable
-private fun DeleteCollectionDialog(
-    name: String,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
+private fun ShelfSectionHeader(
+    section: ShelfSection,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.library_collection_delete_title)) },
-        text = { Text(stringResource(R.string.library_collection_delete_body, name)) },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                modifier = Modifier.testTag(LibraryTestTags.CollectionConfirmDelete),
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
+    val title = section.collection?.name
+        ?: stringResource(R.string.library_shelf_unsorted)
+    val count = section.comics.size
+    val toggleLabel = stringResource(
+        if (section.collapsed) {
+            R.string.library_shelf_expand
+        } else {
+            R.string.library_shelf_collapse
+        },
+    )
+    val stateLabel = stringResource(
+        if (section.collapsed) {
+            R.string.library_shelf_collapsed
+        } else {
+            R.string.library_shelf_expanded
+        },
+    )
+    val chevronAngle by animateFloatAsState(
+        targetValue = if (section.collapsed) 0f else 180f,
+        animationSpec = if (expressiveMotion) {
+            MoriMotion.defaultSpatialSpec()
+        } else {
+            MoriMotion.calmFade()
+        },
+        label = "shelfChevron",
+    )
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(LibraryTestTags.shelfHeader(section.id)),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                // 48dp touch target without the 1.7-missing
+                // minimumInteractiveComponentSize API.
+                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                .clickable(
+                    onClick = onToggle,
+                    role = Role.Button,
+                    onClickLabel = toggleLabel,
+                )
+                .semantics {
+                    stateDescription = stateLabel
+                }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = title,
+                style = MoriEmphasized.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 Text(
-                    text = stringResource(R.string.library_collection_delete),
-                    color = MaterialTheme.colorScheme.error,
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.library_collection_cancel))
-            }
-        },
-        modifier = modifier.testTag(LibraryTestTags.CollectionDeleteDialog),
-    )
+            Icon(
+                imageVector = MoriIcons.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer {
+                    rotationZ = chevronAngle
+                },
+            )
+        }
+    }
 }
 
 /**

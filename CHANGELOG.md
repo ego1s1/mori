@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-alpha.1 (pre-release)
+
+Shelves: group books into named shelves.
+
+- Library: sectioned grid with one collapsible section per shelf plus an
+  unsorted trailer, shelf filter chips, persisted collapse state
+- Detail: per-book shelf membership with inline shelf creation
+- Settings: shelf management (create, rename, delete)
+
 ## 0.1.26
 
 Codebase cleanup: design documentation rewritten in the project's own

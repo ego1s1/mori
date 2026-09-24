@@ -4,6 +4,14 @@ package com.mori.feature.settings.impl
 object SettingsTestTags {
     const val Content = "settingsContent"
     const val Snackbar = "settingsSnackbar"
+    const val GroupsCard = "settingsGroups"
+    const val GroupCreateButton = "settingsGroupCreate"
+    const val GroupNameField = "settingsGroupNameField"
+    const val GroupConfirm = "settingsGroupConfirm"
+    const val GroupDeleteConfirm = "settingsGroupDeleteConfirm"
+    const val GroupDialog = "settingsGroupDialog"
 
     fun segmentFor(label: String) = "settingsSegment_$label"
+
+    fun groupRow(id: Long): String = "settingsGroup:$id"
 }

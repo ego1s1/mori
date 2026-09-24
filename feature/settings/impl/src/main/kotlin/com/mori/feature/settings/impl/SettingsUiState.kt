@@ -4,6 +4,7 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.ReadingStats
+import com.mori.core.model.UserCollection
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
@@ -20,6 +21,8 @@ sealed interface SettingsUiState {
         val storage: StorageUsage?,
         val stats: ReadingStats = ReadingStats(),
         val appLock: Boolean = false,
+        val groups: List<UserCollection> = emptyList(),
+        val groupDialog: GroupDialog? = null,
     ) : SettingsUiState
 }
 
@@ -66,6 +69,29 @@ sealed interface SettingsAction {
     data object ResetDisplayFilter : SettingsAction
 
     data object ClearThumbnailCache : SettingsAction
+
+    data object OpenCreateGroup : SettingsAction
+
+    data object CloseGroupDialog : SettingsAction
+
+    data class CreateGroup(val name: String) : SettingsAction
+
+    data class OpenRenameGroup(val groupId: Long, val name: String) : SettingsAction
+
+    data class RenameGroup(val groupId: Long, val name: String) : SettingsAction
+
+    data class OpenDeleteGroup(val groupId: Long, val name: String) : SettingsAction
+
+    data class ConfirmDeleteGroup(val groupId: Long) : SettingsAction
+}
+
+/** Group management dialog: create, rename (with current name), or delete-confirm. */
+sealed interface GroupDialog {
+    data object Create : GroupDialog
+
+    data class Rename(val groupId: Long, val name: String) : GroupDialog
+
+    data class Delete(val groupId: Long, val name: String) : GroupDialog
 }
 
 /** One-shot settings events (snackbar feedback, not state). */
