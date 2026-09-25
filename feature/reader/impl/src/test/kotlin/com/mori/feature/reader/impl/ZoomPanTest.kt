@@ -44,18 +44,45 @@ class ZoomPanTest {
     }
 
     @Test
-    fun outwardPushOnlyAtClampedEdge() {
-        // 2x on 400px: limits +-200.
-        assertTrue(isOutwardPush(-200f, 2f, 400f, -10f))
-        assertTrue(isOutwardPush(200f, 2f, 400f, 10f))
-        // Pulling back into content is a pan, not a turn.
-        assertFalse(isOutwardPush(-200f, 2f, 400f, 10f))
-        assertFalse(isOutwardPush(200f, 2f, 400f, -10f))
-        // Mid-content swipes never turn, even outward-moving.
-        assertFalse(isOutwardPush(0f, 2f, 400f, -10f))
-        assertFalse(isOutwardPush(0f, 2f, 400f, 10f))
-        // Fit never turns.
-        assertFalse(isOutwardPush(0f, 1f, 400f, -10f))
+    fun edgeOvershootGrowsOnlyOnOutwardHorizontalPush() {
+        // Pinned at +200 pushing right accumulates; 2x on 400px box.
+        assertEquals(
+            30f,
+            accumulateEdgeOvershoot(20f, excessX = 10f, clampedX = 200f, horizontalPush = true),
+            0.001f,
+        )
+        // Pulling back in resets even while still clamped.
+        assertEquals(
+            0f,
+            accumulateEdgeOvershoot(20f, excessX = -10f, clampedX = 200f, horizontalPush = true),
+            0.001f,
+        )
+        // Vertical drift resets.
+        assertEquals(
+            0f,
+            accumulateEdgeOvershoot(20f, excessX = 10f, clampedX = 200f, horizontalPush = false),
+            0.001f,
+        )
+        // Centered content never turns.
+        assertEquals(
+            0f,
+            accumulateEdgeOvershoot(20f, excessX = 10f, clampedX = 0f, horizontalPush = true),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun flingTargetProjectsVelocityThenClamps() {
+        // Quarter-second of velocity inside bounds passes through.
+        assertEquals(
+            Offset(100f, -50f),
+            flingTarget(Offset.Zero, Offset(400f, -200f), scale = 2f, widthPx = 400f, heightPx = 600f),
+        )
+        // 2x on a 400x600 box: limits +-200 x, +-300 y.
+        assertEquals(
+            Offset(200f, 300f),
+            flingTarget(Offset.Zero, Offset(4_000f, 4_000f), scale = 2f, widthPx = 400f, heightPx = 600f),
+        )
     }
 
     @Test

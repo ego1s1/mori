@@ -3,10 +3,8 @@ package com.mori.feature.reader.impl
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -88,9 +86,6 @@ internal fun ZoomablePage(
     half: PageHalf = PageHalf.FULL,
     displayFilter: DisplayFilter = DisplayFilter.Neutral,
 ) {
-    // Zoom/pan state is keyed to the page identity: the pager reuses compositions
-    // for neighboring pages, and stale zoom must never leak into a recycled page.
-    // Split halves are distinct identities — each half zooms on its own.
     var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
     var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
     // Zoom ownership reporting: the pager stands down while any page is
@@ -114,41 +109,16 @@ internal fun ZoomablePage(
     val tapEpoch = remember { mutableIntStateOf(1) }
     LaunchedEffect(direction) { tapEpoch.intValue++ }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
-    // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
-    // cancel each other instead of fighting over scale/offset.
+    // Serialized motion job: edge pan hops and flings cancel each other
+    // instead of fighting over scale/offset. Double-tap zoom runs on its
+    // own job (never touch-cancelled, reference-reader parity); a new
+    // double-tap retargets it.
     var motionJob by remember { mutableStateOf<Job?>(null) }
     fun launchMotion(block: suspend () -> Unit): Job {
         motionJob?.cancel()
         return scope.launch { block() }.also { motionJob = it }
     }
-    // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
-    // so it must read scale through a ref instead of a stale closure. Zooming in
-    // anchors on the tap point (the tapped art stays under the finger); zooming
-    // out always returns to fit. Calm motion shortens the glide to a quiet fade.
-    val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
-        val target = zoomTargetForTap(scale)
-        val targetOffset = zoomOffsetForTap(tap, center, target)
-        val startScale = scale
-        val startOffset = offset
-        val spec = if (expressiveMotion) {
-            MoriMotion.zoomSpec()
-        } else {
-            MoriMotion.calmFade()
-        }
-        launchMotion {
-            animate(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec = spec,
-            ) { fraction, _ ->
-                scale = startScale + (target - startScale) * fraction
-                offset = startOffset + (targetOffset - startOffset) * fraction
-            }
-            if (target <= 1f) {
-                offset = Offset.Zero
-            }
-        }
-    }
+    var zoomJob by remember { mutableStateOf<Job?>(null) }
 
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
@@ -163,6 +133,38 @@ internal fun ZoomablePage(
         val heightPx = remember(density, maxHeight) {
             with(density) { maxHeight.toPx() }.coerceAtLeast(1f)
         }
+        // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
+        // so it must read scale through a ref instead of a stale closure. Zooming in
+        // centers the tap point (reference-reader focus-center) clamped to the pan
+        // bounds; zooming out always returns to fit. Calm motion shortens the glide
+        // to a quiet fade. Lives inside the constraints scope so the clamped
+        // landing can read the live viewport size.
+        val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
+            val target = zoomTargetForTap(scale)
+            val targetOffset = zoomOffsetForTap(tap, center, target, widthPx, heightPx)
+            val startScale = scale
+            val startOffset = offset
+            val spec = if (expressiveMotion) {
+                MoriMotion.zoomSpec()
+            } else {
+                MoriMotion.calmFade()
+            }
+            zoomJob?.cancel()
+            motionJob?.cancel()
+            zoomJob = scope.launch {
+                animate(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = spec,
+                ) { fraction, _ ->
+                    scale = startScale + (target - startScale) * fraction
+                    offset = startOffset + (targetOffset - startOffset) * fraction
+                }
+                if (target <= 1f) {
+                    offset = Offset.Zero
+                }
+            }
+        }
         // Live viewport width: the detector loop reads it through state so it
         // survives rotation without restarting mid-tap.
         val viewportWidth = rememberUpdatedState(widthPx)
@@ -170,12 +172,14 @@ internal fun ZoomablePage(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .pageFit(pageFit, artAspect, maxWidth, maxHeight)
-                .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale,
-                    translationX = offset.x,
-                    translationY = offset.y,
-                )
+                .graphicsLayer {
+                    // Render-thread transform: pan/pinch/fling frames never
+                    // recompose the page (reference-reader frame path).
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
                 // Tap detection precedes pan/zoom: a clean tap resolves to a zone
                 // before the gesture tracker can claim the press, while pinches
                 // (second pointer down) cancel tap tracking and flow below.
@@ -234,33 +238,17 @@ internal fun ZoomablePage(
                     onEdgeTurn = onEdgeTurn,
                     onPinchingChange = onPinchingChange,
                     onFlingEnd = { velocity ->
-                        // Release momentum: the glide decays inside the same
-                        // clamp the finger obeyed, so fast swipes travel
-                        // instead of stopping dead. Serialized with taps and
-                        // pinches — a fresh touch cancels it via onCancelMotion.
+                        // Release momentum: ease out over the
+                        // velocity-projected target inside the same clamp
+                        // the finger obeyed. Serialized with pan hops — a
+                        // fresh touch cancels it via onCancelMotion.
                         if (scale > 1f) {
-                            // Self-cancellable: the decay listener is a plain
-                            // callback (no suspend calls), so a stalled glide
-                            // cancels its own job instead of idling.
-                            var flingJob: Job? = null
-                            flingJob = launchMotion {
-                                val glide = Animatable(offset, Offset.VectorConverter)
-                                var last = offset
-                                var stalls = 0
-                                glide.animateDecay(velocity, exponentialDecay()) {
-                                    val clamped = clampPan(value, scale, widthPx, heightPx)
-                                    offset = clamped
-                                    // The decay converges asymptotically and
-                                    // the clamp pins wall hits: stop once the
-                                    // visible position stops changing so the
-                                    // job never idles against a wall.
-                                    if (clamped == last) {
-                                        if (++stalls >= 2) flingJob?.cancel()
-                                    } else {
-                                        stalls = 0
-                                        last = clamped
-                                    }
-                                }
+                            val target = flingTarget(offset, velocity, scale, widthPx, heightPx)
+                            launchMotion {
+                                Animatable(offset, Offset.VectorConverter).animateTo(
+                                    targetValue = target,
+                                    animationSpec = MoriMotion.flingSpec(),
+                                ) { offset = value }
                             }
                         }
                     },
@@ -429,7 +417,10 @@ internal fun artAspectFor(artWidthPx: Float, artHeightPx: Float): Float =
         PAGE_ASPECT
     }
 
-private const val DOUBLE_TAP_ZOOM = 2.5f
+private const val DOUBLE_TAP_ZOOM = 2f
+
+/** Hysteresis on the double-tap toggle: at or below 90% of the zoom level zooms in. */
+private const val DOUBLE_TAP_HYSTERESIS = 0.9f
 private const val PAGE_ASPECT = 2f / 3f
 
 /** Sanity bounds for decoded-art aspects (guards degenerate intrinsic sizes). */
@@ -437,21 +428,39 @@ private const val MIN_ART_ASPECT = 0.2f
 private const val MAX_ART_ASPECT = 5f
 
 /**
- * Double-tap zoom target: zoomed pages reset to fit, unzoomed pages jump to the
- * fixed double-tap level. Pure for testability; the animation itself runs in the page.
+ * Double-tap zoom target: a 2-state toggle with hysteresis (reference-reader
+ * parity). At or below 90% of the zoom level zooms in; anything above —
+ * including deep pinches — resets to fit. Pure for testability; the
+ * animation itself runs in the page.
  */
 internal fun zoomTargetForTap(currentScale: Float): Float =
-    if (currentScale > 1f) 1f else DOUBLE_TAP_ZOOM
+    if (currentScale <= DOUBLE_TAP_ZOOM * DOUBLE_TAP_HYSTERESIS) DOUBLE_TAP_ZOOM else 1f
 
 /**
- * Translation that keeps the tapped art under the finger while zooming in.
+ * Translation that glides the tapped art to the viewport center while
+ * zooming in (reference-reader focus-center), clamped to the pan bounds so
+ * the landing never overshoots into a snap-back on first touch.
  *
- * The page scales about its center, so without compensation the tap point drifts
- * outward; shifting by `(tap - center) * (1 - scale)` cancels the drift exactly.
+ * The page scales about its center, so a point `tap` lands at
+ * `center + (tap - center) * scale + offset`; solving for the offset that
+ * puts the tap exactly on center gives `(center - tap) * scale`.
  * Zooming out always returns to fit ([Offset.Zero]). Pure for testability.
  */
-internal fun zoomOffsetForTap(tap: Offset, center: Offset, targetScale: Float): Offset =
-    if (targetScale <= 1f) Offset.Zero else (tap - center) * (1f - targetScale)
+internal fun zoomOffsetForTap(
+    tap: Offset,
+    center: Offset,
+    targetScale: Float,
+    widthPx: Float,
+    heightPx: Float,
+): Offset {
+    if (targetScale <= 1f) return Offset.Zero
+    val maxX = widthPx * (targetScale - 1f) / 2f
+    val maxY = heightPx * (targetScale - 1f) / 2f
+    return Offset(
+        ((center.x - tap.x) * targetScale).coerceIn(-maxX, maxX),
+        ((center.y - tap.y) * targetScale).coerceIn(-maxY, maxY),
+    )
+}
 
 /** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */
 private const val READER_MAX_DIMENSION = 1600

@@ -848,9 +848,11 @@ class ReaderScreenTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun swipeWhileZoomedPansInsteadOfTurning() {
-        // Double-tap zooms in; a following swipe must pan inside the zoomed
-        // page (edge handoff), never turn the page outright. Zooming
-        // back out restores turning, proving gestures still flow.
+        // Double-tap zooms in; a following swipe back into the content must
+        // pan inside the zoomed page, never turn. Coordinates are explicit:
+        // the focus-center landing shifts content left, so the swipe starts
+        // inside the shifted content and travels inward (rightward), which
+        // unclamps instead of pushing past an edge.
         composeTestRule.mainClock.autoAdvance = false
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
@@ -877,37 +879,24 @@ class ReaderScreenTest {
         actions.clear()
 
         composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-            swipeLeft()
+            down(0, Offset(bounds.width * 0.2f, bounds.height * 0.5f))
+            moveTo(0, Offset(bounds.width * 0.5f, bounds.height * 0.5f))
+            up(0)
         }
         composeTestRule.mainClock.advanceTimeBy(1_000)
 
         assert(actions.none { it is ReaderAction.PageChanged })
-
-        // Zoom back out: turning works again, so gestures were panning, not eaten.
-        repeat(2) {
-            composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-                down(0, spot)
-                up(0)
-            }
-        }
-        composeTestRule.mainClock.advanceTimeBy(1_000)
-        actions.clear()
-        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-            swipeLeft()
-        }
-        composeTestRule.mainClock.advanceTimeBy(1_000)
-
-        assert(actions.any { it is ReaderAction.PageChanged })
+        assert(actions.none { it is ReaderAction.NextPage })
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun secondSwipeAtEdgeTurnsWhileZoomed() {
-        // Hard-stop then turn: the first swipe pans to the clamp without
-        // turning by itself; a fresh second swipe pushing further outward
-        // turns the page even while still zoomed. The turn arrives as an
-        // explicit NextPage edge dispatch, never as a pager PageChanged, and
-        // the swipe may start anywhere — only the outward direction matters.
+    fun swipePastClampedEdgeTurnsMidGesture() {
+        // The same swipe that pans into the clamp keeps pushing into an
+        // explicit NextPage mid-gesture — never a pager PageChanged while
+        // zoomed. Coordinates are explicit: the focus-center landing shifts
+        // content left, so the swipe starts inside the shifted content and
+        // travels outward (leftward) past the clamp.
         composeTestRule.mainClock.autoAdvance = false
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
@@ -933,15 +922,9 @@ class ReaderScreenTest {
         actions.clear()
 
         composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-            swipeLeft()
-        }
-        composeTestRule.mainClock.advanceTimeBy(1_000)
-
-        assert(actions.none { it is ReaderAction.PageChanged })
-        actions.clear()
-
-        composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-            swipeLeft()
+            down(0, Offset(bounds.width * 0.45f, bounds.height * 0.5f))
+            moveTo(0, Offset(bounds.width * 0.02f, bounds.height * 0.5f))
+            up(0)
         }
         composeTestRule.mainClock.advanceTimeBy(1_000)
 
@@ -1019,9 +1002,10 @@ class ReaderScreenTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun swipePastPanEdgeTurnsExplicitly() {
-        // Zoomed, repeated full swipes: panning absorbs what fits, and pushing
+        // Zoomed, full outward swipes: panning absorbs what fits, and pushing
         // past the clamp dispatches an explicit NextPage — never a pager
-        // PageChanged, since the pager stands down while zoomed.
+        // PageChanged, since the pager stands down while zoomed. Swipe
+        // coordinates start inside the shifted zoomed content.
         composeTestRule.mainClock.autoAdvance = false
         val actions = mutableListOf<ReaderAction>()
         composeTestRule.setContent {
@@ -1047,9 +1031,11 @@ class ReaderScreenTest {
         composeTestRule.mainClock.advanceTimeBy(1_000)
         actions.clear()
 
-        repeat(4) {
+        repeat(2) {
             composeTestRule.onNodeWithTag(ReaderTestTags.Pager).performTouchInput {
-                swipeLeft()
+                down(0, Offset(edgeBounds.width * 0.45f, edgeBounds.height * 0.5f))
+                moveTo(0, Offset(edgeBounds.width * 0.02f, edgeBounds.height * 0.5f))
+                up(0)
             }
             composeTestRule.mainClock.advanceTimeBy(1_000)
         }

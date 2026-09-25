@@ -104,29 +104,46 @@ class ReaderViewModelTest {
     @Test
     fun zoomTargetTogglesBetweenFitAndLevel() {
         assertEquals(1f, zoomTargetForTap(2.5f))
-        assertEquals(1f, zoomTargetForTap(1.5f))
-        assertEquals(2.5f, zoomTargetForTap(1f))
+        assertEquals(1f, zoomTargetForTap(5f))
+        assertEquals(2f, zoomTargetForTap(1f))
+        // 10% hysteresis: at 90% of the level still zooms in, above resets.
+        assertEquals(2f, zoomTargetForTap(1.8f))
+        assertEquals(1f, zoomTargetForTap(1.81f))
     }
 
     @Test
-    fun zoomOffsetKeepsTapPointUnderFinger() {
+    fun zoomOffsetGlidesTapPointToCenter() {
         // Tapping the center needs no compensation.
         zoomOffsetForTap(
             tap = Offset(500f, 800f),
             center = Offset(500f, 800f),
-            targetScale = 2.5f,
+            targetScale = 2f,
+            widthPx = 1_000f,
+            heightPx = 1_600f,
         ).assertOffset(0f, 0f)
-        // Tapping right/below center shifts content left/up so the art stays put.
+        // Tapping right/below center shifts content left/up so the art lands centered.
         zoomOffsetForTap(
             tap = Offset(700f, 1100f),
             center = Offset(500f, 800f),
-            targetScale = 2.5f,
-        ).assertOffset(-300f, -450f)
+            targetScale = 2f,
+            widthPx = 1_000f,
+            heightPx = 1_600f,
+        ).assertOffset(-400f, -600f)
+        // The landing clamps to the pan bounds: no overshoot to snap back from.
+        zoomOffsetForTap(
+            tap = Offset(950f, 1500f),
+            center = Offset(500f, 800f),
+            targetScale = 2f,
+            widthPx = 1_000f,
+            heightPx = 1_600f,
+        ).assertOffset(-500f, -800f)
         // Zooming out always returns to fit, wherever the tap landed.
         zoomOffsetForTap(
             tap = Offset(700f, 1100f),
             center = Offset(500f, 800f),
             targetScale = 1f,
+            widthPx = 1_000f,
+            heightPx = 1_600f,
         ).assertOffset(0f, 0f)
     }
 

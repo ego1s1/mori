@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0
+
+Reader gestures and library polish:
+
+- App lock prompts biometrics instantly; the lock screen stays only as a
+  backdrop and retry path
+- Library and History headers are emphasized and pinned, matching Settings
+- History search collapses behind a top-bar toggle, like the library
+- Shelf filter moves from the grid chips row into the filter sheet; the
+  Tune icon lights while any filter is active
+- Zoomed pans release with momentum fling instead of stopping dead
+- Gesture engagement tightens to 5dp while clean taps still resolve to zones
+- Double-tap toggles 2x/fit with focus-center landing clamped to pan bounds;
+  pinch zooms to 5x
+- Mid-gesture edge-turn handoff: pushing past the clamped edge turns the page
+- Tap hold shortens 300ms to 250ms; the double-tap zoom window is unchanged
+
 ## 0.2.1-alpha.1 (pre-release)
 
 - App lock fires the native biometric prompt immediately; the lock screen

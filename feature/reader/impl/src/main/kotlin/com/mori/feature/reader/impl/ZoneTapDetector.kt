@@ -1,6 +1,5 @@
 package com.mori.feature.reader.impl
 
-import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
@@ -63,6 +62,10 @@ internal fun Modifier.zoneTaps(
     consumeUp: Boolean,
 ): Modifier = pointerInput(direction) {
     val touchSlop = viewConfiguration.touchSlop
+    // Same engage budget as zoomPan: a press that drifts past it is a
+    // gesture, never a tap — the two detectors stay mutually exclusive.
+    // Pair radius keeps full slop so double-taps stay forgiving.
+    val engageSlop = GESTURE_ENGAGE_DP * density
     var pendingTap: TapRecord? = null
     var holdJob: Job? = null
     var lastRhythmEdgeMs = 0L
@@ -194,7 +197,7 @@ internal fun Modifier.zoneTaps(
             // firing a page turn mid-gesture is worse than dropping it.
             val scrolling = currentPositions.any { (id, current) ->
                 val start = downPositions[id] ?: current
-                (current - start).getDistance() > touchSlop
+                (current - start).getDistance() > engageSlop
             }
             if (scrolling) {
                 cancelHold()
@@ -218,13 +221,13 @@ internal fun Modifier.zoneTaps(
                     val ownDrift = start?.let { (change.position - it).getDistance() }
                     val othersStill = downPositions.all { (id, startPos) ->
                         val current = currentPositions[id] ?: startPos
-                        (current - startPos).getDistance() <= touchSlop
+                        (current - startPos).getDistance() <= engageSlop
                     }
                     // Presses held past the long-press timeout are long
                     // presses, not taps (AOSP parity) — a two-second
                     // touch must never turn a page on release.
                     val quickTap = downMs?.let { isTapDurationValid(it, change.uptimeMillis) } == true
-                    if (ownDrift != null && ownDrift <= touchSlop && othersStill &&
+                    if (ownDrift != null && ownDrift <= engageSlop && othersStill &&
                         quickTap && !change.isConsumed
                     ) {
                         if (consumeUp) {

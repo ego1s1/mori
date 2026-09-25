@@ -8,29 +8,28 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import com.mori.core.model.ReadingDirection
+import kotlin.math.abs
 
 /**
- * Pan/zoom routing for reader pages and its pager:
+ * Pan/zoom routing for reader pages and its pager (reference-reader parity):
  *
  * - single-finger drags at fit (`scale <= 1`) are never touched, so the
  *   pager owns swipes outright instead of fighting over every delta;
+ * - engagement is ~5dp of drift (not full touch slop), so content follows
+ *   the finger with no dead zone; taps still resolve below it in [zoneTaps];
  * - pinches always zoom (1x–[maxZoom]), anchored on the centroid so the art
  *   stays under the fingers;
- * - single-finger drags while zoomed pan 1:1 inside content bounds with a
- *   hard stop at the clamp — the same gesture never turns the page;
+ * - single-finger drags while zoomed pan 1:1 inside content bounds. Pushing
+ *   further past a clamped edge turns the page mid-gesture (past a small
+ *   overshoot budget) — the same swipe that pans also pages, anywhere-origin,
+ *   direction-only. Pulling back pans instead;
  * - lifting a fast single-finger pan flings with momentum ([onFlingEnd]
- *   carries the release velocity in px/s): the glide decays inside the
- *   same clamp instead of stopping dead, so swipes feel accelerated
- *   rather than glued to the finger;
- * - a *new* swipe starting while already clamped turns the page: if the
- *   first past-slop movement pushes further past the edge, [onEdgeTurn]
- *   fires once ([forward] in reading direction) and the gesture ends. The
- *   swipe may start anywhere on the page, like an unzoomed pager swipe —
- *   only the direction matters. Pulling back into content pans instead.
+ *   carries the release velocity in px/s): the glide eases out over the
+ *   velocity-projected target inside the same clamp instead of stopping dead.
  *
- * Nothing is consumed before touch slop, so clean taps still resolve to
- * zones in [zoneTaps]. Scale/offset read and write through accessors because
- * the gesture loop outlives recompositions.
+ * Nothing is consumed before the engage threshold, so clean taps still
+ * resolve to zones in [zoneTaps]. Scale/offset read and write through
+ * accessors because the gesture loop outlives recompositions.
  *
  * Ownership notes: the loop reports multi-touch ([onPinchingChange]) so the
  * pager can stand down for the whole pinch — a pager that tracks pinch
@@ -49,52 +48,82 @@ internal fun Modifier.zoomPan(
     maxZoom: Float = MAX_ZOOM,
     onFlingEnd: (velocityPxPerSec: Offset) -> Unit = {},
 ): Modifier = pointerInput(Unit) {
-    val touchSlop = viewConfiguration.touchSlop
+    // Engage budget (~5dp, reference-reader parity): content starts
+    // following well before full touch slop. zoneTaps voids holds on the
+    // same budget, so taps and pans stay mutually exclusive.
+    val engageSlop = GESTURE_ENGAGE_DP * density
+    val edgeTurnExtraPx = EDGE_TURN_EXTRA_DP * density
     awaitEachGesture {
         val downs = mutableMapOf<PointerId, Offset>()
         // Release-velocity tracking for the fling: single-finger only,
         // rebased on every finger-count change like the pan math.
         val tracker = VelocityTracker()
         var singlePanned = false
+        var pinched = false
         var pastSlop = false
         var prevCount = 0
         var prevCentroid = Offset.Zero
         var prevDist = 0f
-        // Gesture-start snapshot for the second-swipe rule. Read on the
-        // first down — NOT at block entry: awaitEachGesture re-arms the
-        // block the moment the previous gesture ends (before clocks advance
-        // and zoom glides settle), so block-entry reads go stale and a later
-        // swipe would turn against pre-animation state.
-        var gestureArmed = false
-        var gestureStartScale = 1f
-        var gestureStartOffset = Offset.Zero
-        var edgeTurnFired = false
+        // Finger travel of the pan portion, for the fling displacement
+        // gate (reference readers require both speed and travel).
+        var flingAnchor: Offset? = null
+        var flingLast: Offset? = null
+        // Overshoot past the clamp this gesture: pushing further outward
+        // past the budget turns the page mid-gesture. Any inward or
+        // vertical drift resets it.
+        var edgeOvershoot = 0f
+        var turned = false
         try {
             while (true) {
                 val event = awaitPointerEvent()
                 for (change in event.changes) {
                     if (change.pressed && !change.previousPressed) {
                         downs[change.id] = change.position
-                        if (!gestureArmed) {
-                            gestureArmed = true
-                            gestureStartScale = getScale()
-                            gestureStartOffset = getOffset()
-                        }
                     }
                 }
                 val pressed = event.changes.filter { it.pressed }
                 event.changes.filter { !it.pressed }.forEach { downs.remove(it.id) }
-                if (pressed.isEmpty()) {
-                    // All fingers up: a fast single-finger pan keeps going
-                    // with momentum instead of stopping dead. Edge-turns and
-                    // pinches never fling; fit-scale has nothing to glide.
-                    if (!edgeTurnFired && singlePanned && getScale() > 1f) {
+                if (pressed.size != prevCount && pressed.isNotEmpty()) {
+                    // Fresh finger(s): snapshot the baseline at contact time so
+                    // the slop-crossing move pans from the down point instead
+                    // of rebasing its travel away. A second finger also arms
+                    // the pinch report so the pager stands down for the whole
+                    // multi-touch gesture. Only a mid-gesture join/leave skips
+                    // panning for one event (stale centroid would jump).
+                    if (pressed.size > 1 && prevCount <= 1) {
+                        onPinchingChange(true)
+                        pinched = true
+                    }
+                    val snapshot = centroidOf(pressed)
+                    prevCentroid = snapshot
+                    prevDist = spreadOf(pressed)
+                    val joined = prevCount
+                    prevCount = pressed.size
+                    tracker.resetTracking()
+                    edgeOvershoot = 0f
+                    flingAnchor = if (pressed.size == 1) snapshot else null
+                    flingLast = null
+                    if (joined != 0) continue
+                }
+                if (pressed.isEmpty()) {                    // All fingers up: a fast single-finger pan keeps going
+                    // with momentum instead of stopping dead. Turns, pinches
+                    // and fit-scale have nothing to glide.
+                    if (!turned && !pinched && singlePanned && getScale() > 1f) {
                         val raw = tracker.calculateVelocity()
                         val velocity = capFlingVelocity(
                             Offset(raw.x, raw.y),
                             MAX_FLING_PX_PER_SEC,
                         )
-                        if (velocity.getDistance() >= MIN_FLING_PX_PER_SEC) {
+                        val anchor = flingAnchor
+                        val last = flingLast
+                        val travel = if (anchor != null && last != null) {
+                            (last - anchor).getDistance()
+                        } else {
+                            0f
+                        }
+                        if (travel >= FLING_MIN_TRAVEL_PX &&
+                            velocity.getDistance() >= FLING_MIN_VELOCITY_PX_PER_SEC
+                        ) {
                             onFlingEnd(velocity)
                         }
                     }
@@ -104,38 +133,14 @@ internal fun Modifier.zoomPan(
                     // Tap-friendly: claim nothing until someone actually drifts.
                     val drifted = pressed.any { change ->
                         val start = downs[change.id] ?: change.position
-                        (change.position - start).getDistance() > touchSlop
+                        (change.position - start).getDistance() > engageSlop
                     }
                     if (!drifted) continue
                     pastSlop = true
                     onCancelMotion()
-                    // Second-swipe rule: a fresh single-finger gesture that
-                    // begins while already clamped turns when its first
-                    // movement pushes further outward — anywhere-origin, like
-                    // an unzoomed pager swipe. Pulling back pans instead.
-                    if (pressed.size == 1 && gestureStartScale > 1f && !edgeTurnFired) {
-                        val first = pressed.first()
-                        val start = downs[first.id] ?: first.position
-                        val dx = first.position.x - start.x
-                        if (isOutwardPush(gestureStartOffset.x, gestureStartScale, size.width.toFloat(), dx)) {
-                            edgeTurnFired = true
-                            onEdgeTurn(edgeTurnForward(dx, direction))
-                            pressed.forEach { it.consume() }
-                            break
-                        }
+                    if (pressed.size == 1) {
+                        flingAnchor = pressed.first().position
                     }
-                }
-                if (pressed.size != prevCount) {
-                    // Fresh finger(s): rebase so counts never jump the content.
-                    // A second finger also arms the pinch report so the pager
-                    // stands down for the whole multi-touch gesture.
-                    if (pressed.size > 1) onPinchingChange(true)
-                    val centroid = centroidOf(pressed)
-                    prevCentroid = centroid
-                    prevDist = spreadOf(pressed)
-                    prevCount = pressed.size
-                    tracker.resetTracking()
-                    continue
                 }
                 val multi = pressed.size > 1
                 val scaleNow = getScale()
@@ -157,7 +162,8 @@ internal fun Modifier.zoomPan(
                 val ratio = targetScale / scaleNow.coerceAtLeast(1e-6f)
                 val rawTarget = f * (1f - ratio) + getOffset() * ratio + (centroid - prevCentroid)
                 val target = clampPan(rawTarget, targetScale, size.width.toFloat(), size.height.toFloat())
-                // Hard stop: mid-gesture clamp excess is dropped, never turned.
+                // Hard stop: mid-gesture clamp excess is dropped, never turned —
+                // unless it keeps pushing outward past the turn budget.
                 val used = target != getOffset() || targetScale != scaleNow
                 if (used) {
                     setScale(targetScale)
@@ -169,7 +175,46 @@ internal fun Modifier.zoomPan(
                         // samples would corrupt the release velocity.
                         val single = pressed.first()
                         tracker.addPosition(single.uptimeMillis, single.position)
+                        flingLast = single.position
                         singlePanned = true
+                        // Edge handoff: the dropped clamp excess accumulates
+                        // only while the push stays horizontal and outward.
+                        // Past the budget the same swipe pages — anywhere
+                        // origin, direction only. Anything else resets.
+                        val travel = centroid - prevCentroid
+                        val horizontal = abs(travel.x) > abs(travel.y)
+                        edgeOvershoot = accumulateEdgeOvershoot(
+                            edgeOvershoot,
+                            excessX = rawTarget.x - target.x,
+                            clampedX = target.x,
+                            horizontalPush = horizontal,
+                        )
+                        if (edgeOvershoot >= edgeTurnExtraPx) {
+                            turned = true
+                            onEdgeTurn(edgeTurnForward(rawTarget.x - target.x, direction))
+                            pressed.forEach { it.consume() }
+                            break
+                        }
+                    } else {
+                        edgeOvershoot = 0f
+                    }
+                } else if (!multi) {
+                    // Fully clamped with no room: still watch the push, so a
+                    // swipe starting pinned at the edge can turn without
+                    // content moving first.
+                    val travel = centroid - prevCentroid
+                    val horizontal = abs(travel.x) > abs(travel.y)
+                    edgeOvershoot = accumulateEdgeOvershoot(
+                        edgeOvershoot,
+                        excessX = rawTarget.x - target.x,
+                        clampedX = target.x,
+                        horizontalPush = horizontal,
+                    )
+                    if (edgeOvershoot >= edgeTurnExtraPx) {
+                        turned = true
+                        onEdgeTurn(edgeTurnForward(rawTarget.x - target.x, direction))
+                        pressed.forEach { it.consume() }
+                        break
                     }
                 }
                 prevCentroid = centroid
@@ -183,7 +228,21 @@ internal fun Modifier.zoomPan(
 }
 
 /** Pinch ceiling shared by manual pan/zoom and the double-tap toggle. */
-internal const val MAX_ZOOM = 4f
+internal const val MAX_ZOOM = 5f
+
+/**
+ * Gesture engage budget in dp (reference-reader parity): content starts
+ * following well before full touch slop. Shared with [zoneTaps], which
+ * voids tap holds on the same budget so taps and pans stay exclusive.
+ */
+internal const val GESTURE_ENGAGE_DP = 5f
+
+/**
+ * Overshoot past the clamp that turns the page mid-gesture, in dp: the
+ * same swipe that pans keeps pushing into a turn. Resets on any inward
+ * or vertical drift.
+ */
+internal const val EDGE_TURN_EXTRA_DP = 8f
 
 /**
  * Release-velocity ceiling for pan flings (px/s): a violent swipe still
@@ -192,11 +251,16 @@ internal const val MAX_ZOOM = 4f
 internal const val MAX_FLING_PX_PER_SEC = 12_000f
 
 /**
- * Minimum release velocity for a fling (px/s, ~50dp/s at high density):
- * slower lifts just settle where the finger left them. Below typical
- * swipe speeds, so only deliberate lifts-off glide.
+ * Minimum release velocity for a fling (px/s, reference-reader parity):
+ * slower lifts just settle where the finger left them.
  */
-internal const val MIN_FLING_PX_PER_SEC = 200f
+internal const val FLING_MIN_VELOCITY_PX_PER_SEC = 500f
+
+/**
+ * Minimum finger travel for a fling (px, reference-reader parity): a fast
+ * flick with no travel is a tap, not a glide.
+ */
+internal const val FLING_MIN_TRAVEL_PX = 50f
 
 /**
  * Clamps a release velocity to [maxPxPerSec] magnitude, preserving
@@ -207,24 +271,38 @@ internal fun capFlingVelocity(velocity: Offset, maxPxPerSec: Float = MAX_FLING_P
     if (speed <= maxPxPerSec || speed <= 0f) return velocity
     return velocity * (maxPxPerSec / speed)
 }
+/**
+ * Grows the edge-turn overshoot budget while a clamped push stays
+ * horizontal and outward; any inward, vertical, or unclamped drift resets
+ * it, so stray wiggles never turn the page. Pure for testability.
+ */
+internal fun accumulateEdgeOvershoot(
+    currentPx: Float,
+    excessX: Float,
+    clampedX: Float,
+    horizontalPush: Boolean,
+): Float =
+    if (horizontalPush && clampedX != 0f && excessX * clampedX > 0f) {
+        currentPx + abs(excessX)
+    } else {
+        0f
+    }
+
+/** Seconds of release velocity folded into the fling target (reference-reader parity). */
+internal const val FLING_GLIDE_SECONDS = 0.25f
 
 /**
- * Whether a fresh swipe pushes further past the already-clamped edge.
- * [offsetX] and [scale] are the gesture-start values; [dx] is the first
- * past-slop horizontal travel. Pure for testability.
+ * Fling landing point: current position plus a quarter-second of release
+ * velocity, inside the same clamp the finger obeyed. The glide animation
+ * eases out over it. Pure for testability.
  */
-internal fun isOutwardPush(offsetX: Float, scale: Float, widthPx: Float, dx: Float): Boolean {
-    if (scale <= 1f || dx == 0f) return false
-    val maxX = widthPx * (scale - 1f) / 2f
-    return when {
-        offsetX <= -maxX + EDGE_EPS_PX && dx < 0f -> true
-        offsetX >= maxX - EDGE_EPS_PX && dx > 0f -> true
-        else -> false
-    }
-}
-
-/** Clamp tolerance: offsets within a pixel of the limit count as at-edge. */
-internal const val EDGE_EPS_PX = 1f
+internal fun flingTarget(
+    start: Offset,
+    velocityPxPerSec: Offset,
+    scale: Float,
+    widthPx: Float,
+    heightPx: Float,
+): Offset = clampPan(start + velocityPxPerSec * FLING_GLIDE_SECONDS, scale, widthPx, heightPx)
 
 /** Maps a horizontal clamp overshoot to reading-direction travel. Pure for testability. */
 internal fun edgeTurnForward(overshootX: Float, direction: ReadingDirection): Boolean =
