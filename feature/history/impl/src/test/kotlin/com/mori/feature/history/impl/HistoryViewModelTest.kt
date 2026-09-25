@@ -72,6 +72,26 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun searchToggleFlipsChrome() = runTest {
+        val viewModel = viewModel()
+        viewModel.uiState.test {
+            val initial = awaitWhere { it is HistoryUiState.Success } as HistoryUiState.Success
+            assertEquals(false, initial.searchOpen)
+            viewModel.onAction(HistoryAction.ToggleSearch)
+            val open = awaitWhere {
+                (it as? HistoryUiState.Success)?.searchOpen == true
+            } as HistoryUiState.Success
+            assertEquals(true, open.searchOpen)
+            viewModel.onAction(HistoryAction.ToggleSearch)
+            val closed = awaitWhere {
+                (it as? HistoryUiState.Success)?.searchOpen == false
+            } as HistoryUiState.Success
+            assertEquals(false, closed.searchOpen)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun searchNoMatchIsNoResultsNotEmptyHistory() = runTest {
         val now = System.currentTimeMillis()
         val viewModel = viewModel(

@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,6 +39,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -93,7 +93,6 @@ import com.mori.core.model.Comic
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ResumeTarget
-import com.mori.core.model.UserCollection
 
 /**
  * Public tab content for the main viewport pager. Route and tab share one
@@ -205,6 +204,11 @@ internal fun LibraryScreen(
             if (uiState is LibraryUiState.Success) {
                 LibraryTopBar(
                     searchOpen = uiState.searchOpen,
+                    // Shelf selection or any non-default sort/filter lights
+                    // the Tune icon: with the chips row gone, the grid alone
+                    // must show that a filter is active.
+                    filterActive = uiState.selectedCollectionId != null ||
+                        uiState.query.copy(text = "") != LibraryQuery(),
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
                 )
@@ -235,8 +239,6 @@ internal fun LibraryScreen(
                         searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
                         shelf = uiState.continueReading,
-                        collections = uiState.collections,
-                        selectedCollectionId = uiState.selectedCollectionId,
                         sections = uiState.sections,
                         onAction = onAction,
                         onReadClick = onReadClick,
@@ -247,6 +249,8 @@ internal fun LibraryScreen(
                         LibrarySortFilterSheet(
                             query = uiState.query,
                             onAction = onAction,
+                            collections = uiState.collections,
+                            selectedCollectionId = uiState.selectedCollectionId,
                         )
                     }
                 }
@@ -264,8 +268,6 @@ private fun LibraryContent(
     searchOpen: Boolean,
     linked: Boolean,
     shelf: List<Comic>,
-    collections: List<UserCollection>,
-    selectedCollectionId: Long?,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
@@ -330,8 +332,6 @@ private fun LibraryContent(
                 refreshing = refreshing && indexProgress == null,
                 linked = linked,
                 shelf = shelf,
-                collections = collections,
-                selectedCollectionId = selectedCollectionId,
                 sections = sections,
                 onAction = onAction,
                 onReadClick = onReadClick,
@@ -353,6 +353,7 @@ private fun LibraryContent(
 @Composable
 private fun LibraryTopBar(
     searchOpen: Boolean,
+    filterActive: Boolean,
     onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -361,9 +362,9 @@ private fun LibraryTopBar(
         title = {
             Text(
                 text = stringResource(R.string.library_title),
-                // M3 small-bar role: titleLarge. Display scales belong to
-                // hero moments, not 64dp bars where 36sp ellipsizes.
-                style = MaterialTheme.typography.titleLarge,
+                // Same emphasized screen-title role as Settings and
+                // History so sibling tabs match.
+                style = MoriEmphasized.headlineMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -389,6 +390,11 @@ private fun LibraryTopBar(
                 Icon(
                     imageVector = MoriIcons.Tune,
                     contentDescription = stringResource(R.string.library_action_sort_filter),
+                    tint = if (filterActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        LocalContentColor.current
+                    },
                 )
             }
         },
@@ -404,8 +410,6 @@ private fun LibraryBody(
     refreshing: Boolean,
     linked: Boolean,
     shelf: List<Comic>,
-    collections: List<UserCollection>,
-    selectedCollectionId: Long?,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
@@ -444,21 +448,11 @@ private fun LibraryBody(
             bottom = FloatingChromeBottomReserve,
         )
     }
-    Column(modifier = modifier.fillMaxSize()) {
-        // Shelf filter rides above the pull area: filtering never triggers
-        // a refresh gesture, and the row stays put while the grid scrolls.
-        CollectionChipsRow(
-            collections = collections,
-            selectedCollectionId = selectedCollectionId,
-            onAction = onAction,
-        )
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = { onAction(LibraryAction.Refresh) },
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        ) {
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = { onAction(LibraryAction.Refresh) },
+        modifier = modifier.fillMaxSize(),
+    ) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
                 searching = queryText.isNotBlank(),
@@ -544,7 +538,6 @@ private fun LibraryBody(
         }
     }
 }
-}
 
 /**
  * Grid book cells shared by flat and sectioned grids: stable keys plus the
@@ -587,57 +580,6 @@ private fun LazyGridScope.comicItems(
         }
     }
 }
-
-/**
- * Shelf filter chips: All, every user shelf with its count, and a New
- * action. Long-pressing a shelf asks to delete it (books stay). The row is
- * always present (even with zero shelves) so the grid below never shifts
- * when the first shelf is created.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun CollectionChipsRow(
-    collections: List<UserCollection>,
-    selectedCollectionId: Long?,
-    onAction: (LibraryAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(LibraryTestTags.CollectionRow),
-    ) {
-        item(key = "all") {
-            FilterChip(
-                selected = selectedCollectionId == null,
-                onClick = { onAction(LibraryAction.SelectCollection(null)) },
-                label = { Text(stringResource(R.string.library_collection_all)) },
-            )
-        }
-        items(collections, key = { "collection-${it.id}" }) { collection ->
-            // Single tap filters; management (create/rename/delete) lives
-            // in Settings Groups, so headers stay tap-only too.
-            FilterChip(
-                selected = selectedCollectionId == collection.id,
-                onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
-                label = {
-                    Text(
-                        stringResource(
-                            R.string.library_collection_labeled,
-                            collection.name,
-                            collection.bookCount,
-                        ),
-                    )
-                },
-                modifier = Modifier.testTag(LibraryTestTags.collectionChip(collection.id)),
-            )
-        }
-    }
-}
-
-
 
 /**
  * Collapsible shelf header: full-row 48dp touch target (the whole row

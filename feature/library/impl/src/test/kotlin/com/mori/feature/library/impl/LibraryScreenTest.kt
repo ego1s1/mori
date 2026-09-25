@@ -87,7 +87,7 @@ class LibraryScreenTest {
         setScreen(success())
 
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
-        // Chips + shelf push cards below the short test viewport fold.
+        // The continue shelf pushes cards below the short test viewport fold.
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
             swipeUp()
         }
@@ -114,18 +114,39 @@ class LibraryScreenTest {
 
 
     @Test
-    fun collectionChipsFilterAndDelete() {
-        val actions = mutableListOf<LibraryAction>()
+    fun shelfFilterRendersInSheet() {
         setScreen(
-            success().copy(
+            success(filterOpen = true).copy(
                 collections = listOf(
                     UserCollection(id = 7L, name = "Picks", bookCount = 1, createdAt = 1L),
                 ),
             ),
-            actions = actions,
         )
 
+        // Full-screen wiring: the sheet carries the shelf chips now that
+        // the grid row is gone.
         composeTestRule.onNodeWithTag(LibraryTestTags.CollectionRow).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Picks (1)").assertIsDisplayed()
+    }
+
+    @Test
+    fun shelfChipInSheetDispatchesSelection() {
+        // Dispatch is covered at content level: modal clicks measure zero
+        // under Robolectric legacy graphics (see emptyStateShowsMessage),
+        // so full-screen only asserts composition above.
+        val actions = mutableListOf<LibraryAction>()
+        composeTestRule.setContent {
+            MoriTheme {
+                LibrarySortFilterContent(
+                    query = LibraryQuery(),
+                    onAction = actions::add,
+                    collections = listOf(
+                        UserCollection(id = 7L, name = "Picks", bookCount = 1, createdAt = 1L),
+                    ),
+                )
+            }
+        }
+
         composeTestRule.onNodeWithTag(LibraryTestTags.collectionChip(7L)).performClick()
         assert(actions.contains(LibraryAction.SelectCollection(7L)))
     }
@@ -286,10 +307,17 @@ class LibraryScreenTest {
                 LibrarySortFilterContent(
                     query = LibraryQuery(),
                     onAction = {},
+                    collections = listOf(
+                        UserCollection(id = 7L, name = "Picks", bookCount = 1, createdAt = 1L),
+                    ),
                 )
             }
         }
 
+        composeTestRule.onNodeWithText("Shelf").assertIsDisplayed()
+        // Both the shelf section and the status filter offer "All".
+        composeTestRule.onAllNodesWithText("All").assertCountEquals(2)
+        composeTestRule.onNodeWithText("Picks (1)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Filter").assertIsDisplayed()
         composeTestRule.onNodeWithText("Sort by").assertIsDisplayed()
         composeTestRule.onNodeWithText("In progress").assertIsDisplayed()

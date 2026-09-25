@@ -21,16 +21,19 @@ import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.UserCollection
 
 /**
  * Tab-less Filter/Sort/Display sheet as a single scrolling M3 sheet:
- * filter chips, sort chips, and display switches.
+ * shelf, filter chips, sort chips, and display switches.
  */
 @Composable
 internal fun LibrarySortFilterSheet(
     query: LibraryQuery,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
+    collections: List<UserCollection> = emptyList(),
+    selectedCollectionId: Long? = null,
 ) {
     MoriSheet(
         onDismissRequest = { onAction(LibraryAction.CloseFilter) },
@@ -39,6 +42,8 @@ internal fun LibrarySortFilterSheet(
         LibrarySortFilterContent(
             query = query,
             onAction = onAction,
+            collections = collections,
+            selectedCollectionId = selectedCollectionId,
         )
     }
 }
@@ -50,6 +55,8 @@ internal fun LibrarySortFilterContent(
     query: LibraryQuery,
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
+    collections: List<UserCollection> = emptyList(),
+    selectedCollectionId: Long? = null,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -58,6 +65,39 @@ internal fun LibrarySortFilterContent(
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
     ) {
+        // Shelf filter lives here now that the grid chips row is gone:
+        // All plus every user shelf with its count. Management
+        // (create/rename/delete) lives in Settings Groups.
+        Text(text = stringResource(R.string.library_sheet_shelf), style = MaterialTheme.typography.titleMedium)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(LibraryTestTags.CollectionRow),
+        ) {
+            FilterChip(
+                selected = selectedCollectionId == null,
+                onClick = { onAction(LibraryAction.SelectCollection(null)) },
+                label = { Text(stringResource(R.string.library_collection_all)) },
+            )
+            collections.forEach { collection ->
+                FilterChip(
+                    selected = selectedCollectionId == collection.id,
+                    onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
+                    label = {
+                        Text(
+                            stringResource(
+                                R.string.library_collection_labeled,
+                                collection.name,
+                                collection.bookCount,
+                            ),
+                        )
+                    },
+                    modifier = Modifier.testTag(LibraryTestTags.collectionChip(collection.id)),
+                )
+            }
+        }
+
         Text(text = stringResource(R.string.library_sheet_filter), style = MaterialTheme.typography.titleMedium)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),

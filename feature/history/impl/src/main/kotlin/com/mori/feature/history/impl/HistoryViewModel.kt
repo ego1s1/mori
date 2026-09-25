@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import java.util.Locale
 import javax.inject.Inject
 
@@ -29,19 +30,23 @@ internal class HistoryViewModel @Inject constructor(
 
     private val searchText = MutableStateFlow("")
 
+    /** Collapsible search chrome, mirroring the library toggle. */
+    private val searchOpen = MutableStateFlow(false)
+
     val uiState: StateFlow<HistoryUiState> = combine(
         repository.observeLibrary(LibraryQuery()),
         searchText,
-    ) { comics, text ->
-        toUiState(comics.historyGroups(), text)
+        searchOpen,
+    ) { comics, text, open ->
+        toUiState(comics.historyGroups(), text, open)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HistoryUiState.Loading,
     )
 
-    private fun toUiState(days: List<HistoryDay>, text: String): HistoryUiState {
-        if (text.isBlank()) return HistoryUiState.Success(days, text)
+    private fun toUiState(days: List<HistoryDay>, text: String, open: Boolean): HistoryUiState {
+        if (text.isBlank()) return HistoryUiState.Success(days, text, open)
         // ROOT folding on both sides: default-locale casing (Turkish dotted
         // I) must never split a match asymmetrically.
         val needle = text.trim().lowercase(Locale.ROOT)
@@ -52,13 +57,14 @@ internal class HistoryViewModel @Inject constructor(
             }
             if (matches.isEmpty()) null else day.copy(comics = matches)
         }
-        return HistoryUiState.Success(filtered, text)
+        return HistoryUiState.Success(filtered, text, open)
     }
 
     fun onAction(action: HistoryAction) {
         when (action) {
             is HistoryAction.SearchTextChanged -> searchText.value = action.text
             HistoryAction.ClearSearch -> searchText.value = ""
+            HistoryAction.ToggleSearch -> searchOpen.update { !it }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.mori.feature.history.impl
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -18,12 +19,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,11 +46,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
@@ -91,6 +102,7 @@ internal fun HistoryRouteContent(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HistoryScreen(
     uiState: HistoryUiState,
@@ -99,18 +111,75 @@ internal fun HistoryScreen(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (uiState) {
-        HistoryUiState.Loading -> MoriLoading(
-            modifier = modifier.testTag(HistoryTestTags.Loading),
-        )
-        is HistoryUiState.Success -> HistoryContent(
-            uiState = uiState,
-            onAction = onAction,
-            onReadClick = onReadClick,
-            onComicLongClick = onComicLongClick,
-            modifier = modifier,
-        )
+    Scaffold(
+        topBar = {
+            if (uiState is HistoryUiState.Success) {
+                HistoryTopBar(
+                    searchOpen = uiState.searchOpen,
+                    onSearchClick = { onAction(HistoryAction.ToggleSearch) },
+                )
+            }
+        },
+        modifier = modifier,
+    ) { padding ->
+        Surface(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
+            when (uiState) {
+                HistoryUiState.Loading -> MoriLoading(
+                    modifier = Modifier.testTag(HistoryTestTags.Loading),
+                )
+                is HistoryUiState.Success -> HistoryContent(
+                    uiState = uiState,
+                    onAction = onAction,
+                    onReadClick = onReadClick,
+                    onComicLongClick = onComicLongClick,
+                )
+            }
+        }
     }
+}
+
+/**
+ * Static compact app bar matching the library: emphasized title, search as
+ * a direct icon action. The search field below collapses with the same
+ * expressive motion as the library's.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryTopBar(
+    searchOpen: Boolean,
+    onSearchClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = stringResource(R.string.history_title),
+                // Same emphasized screen-title role as Settings and
+                // Library so sibling tabs match.
+                style = MoriEmphasized.headlineMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        actions = {
+            IconButton(
+                onClick = onSearchClick,
+                modifier = Modifier.testTag(HistoryTestTags.SearchToggle),
+            ) {
+                Icon(
+                    imageVector = if (searchOpen) {
+                        MoriIcons.Close
+                    } else {
+                        MoriIcons.Search
+                    },
+                    contentDescription = stringResource(R.string.history_action_search),
+                )
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -124,20 +193,18 @@ private fun HistoryContent(
     // Centered well on expanded windows; phones stay full-bleed.
     MoriContentWell(modifier = modifier) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(R.string.history_title),
-            // Same bar-title role as Library so sibling tabs match; this
-            // header stands in for an app bar on this screen.
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
-        HistorySearchField(
-            text = uiState.queryText,
-            onTextChange = { onAction(HistoryAction.SearchTextChanged(it)) },
-        )
+        AnimatedVisibility(
+            visible = uiState.searchOpen,
+            enter = MoriMotion.enter(MoriEnterKind.SEARCH),
+            exit = MoriMotion.exit(MoriEnterKind.SEARCH),
+        ) {
+            HistorySearchField(
+                text = uiState.queryText,
+                searchOpen = uiState.searchOpen,
+                onTextChange = { onAction(HistoryAction.SearchTextChanged(it)) },
+                onSearch = { onAction(HistoryAction.ToggleSearch) },
+            )
+        }
         if (uiState.isEmpty) {
             MoriEmptyState(
                 icon = MoriIcons.History,
@@ -186,11 +253,23 @@ private fun HistoryContent(
 @Composable
 private fun HistorySearchField(
     text: String,
+    searchOpen: Boolean,
     onTextChange: (String) -> Unit,
+    onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Focus + keyboard follow the toggle both ways, like the library:
+    // opening focuses and lifts the keyboard, closing releases both.
     val searchFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(searchOpen) {
+        if (searchOpen) {
+            searchFocus.requestFocus()
+            keyboard?.show()
+        } else {
+            keyboard?.hide()
+        }
+    }
     OutlinedTextField(
         value = text,
         onValueChange = onTextChange,
@@ -200,12 +279,12 @@ private fun HistorySearchField(
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
         shape = MaterialTheme.shapes.extraLarge,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(bottom = 8.dp)
+            .padding(top = 8.dp, bottom = 8.dp)
             .focusRequester(searchFocus)
             .focusable()
             .testTag(HistoryTestTags.SearchField),

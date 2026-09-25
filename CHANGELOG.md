@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1-alpha.1 (pre-release)
+
+- App lock fires the native biometric prompt immediately; the lock screen
+  stays only as a backdrop and retry path
+- Library and History headers match Settings (emphasized, pinned)
+- History search collapses behind a top-bar toggle, like the library
+- Shelf filter moves from the grid chips row into the filter sheet; the
+  Tune icon lights while any filter is active
+- Zoomed panning flings with momentum instead of stopping dead
+- Tap-to-turn hold shortens 300ms to 250ms; double-tap zoom window unchanged
+
 ## 0.2.0-alpha.1 (pre-release)
 
 Shelves: group books into named shelves.

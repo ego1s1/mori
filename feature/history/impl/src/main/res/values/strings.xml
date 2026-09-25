@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="history_title">History</string>
+    <string name="history_action_search">Search history</string>
     <string name="history_search_label">Search history</string>
     <string name="history_empty_title">No reading history yet</string>
     <string name="history_empty_body">Books you open will appear here, grouped by day.</string>

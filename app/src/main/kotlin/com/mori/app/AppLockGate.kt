@@ -14,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,10 @@ import com.mori.core.designsystem.MoriEmphasized
  * Biometric/device-credential gate: when [appLockEnabled], the app content
  * stays hidden behind this lock until authentication succeeds. Unlock is
  * process-scoped (a fresh process locks again); closing the app relocks.
+ *
+ * The native system prompt fires immediately on composition — no tap needed.
+ * The lock screen behind it is only a backdrop (and a retry path when the
+ * prompt is dismissed or the device cannot authenticate).
  *
  * Devices with no secure lock at all cannot authenticate: the gate explains
  * and offers to turn the lock off rather than bricking the library.
@@ -112,6 +117,12 @@ private fun AppLockScreen(
                 )
                 .build(),
         )
+    }
+
+    // Fire the native prompt immediately: unlocking must not need a tap.
+    // Dismissal lands back on the lock screen, where Unlock retries.
+    LaunchedEffect(Unit) {
+        authenticate()
     }
 
     Surface(modifier = modifier.fillMaxSize()) {

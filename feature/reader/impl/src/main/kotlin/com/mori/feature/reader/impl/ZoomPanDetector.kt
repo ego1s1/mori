@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import com.mori.core.model.ReadingDirection
 
 /**
@@ -17,6 +18,10 @@ import com.mori.core.model.ReadingDirection
  *   stays under the fingers;
  * - single-finger drags while zoomed pan 1:1 inside content bounds with a
  *   hard stop at the clamp — the same gesture never turns the page;
+ * - lifting a fast single-finger pan flings with momentum ([onFlingEnd]
+ *   carries the release velocity in px/s): the glide decays inside the
+ *   same clamp instead of stopping dead, so swipes feel accelerated
+ *   rather than glued to the finger;
  * - a *new* swipe starting while already clamped turns the page: if the
  *   first past-slop movement pushes further past the edge, [onEdgeTurn]
  *   fires once ([forward] in reading direction) and the gesture ends. The
@@ -42,10 +47,15 @@ internal fun Modifier.zoomPan(
     onEdgeTurn: (forward: Boolean) -> Unit,
     onPinchingChange: (pinching: Boolean) -> Unit,
     maxZoom: Float = MAX_ZOOM,
+    onFlingEnd: (velocityPxPerSec: Offset) -> Unit = {},
 ): Modifier = pointerInput(Unit) {
     val touchSlop = viewConfiguration.touchSlop
     awaitEachGesture {
         val downs = mutableMapOf<PointerId, Offset>()
+        // Release-velocity tracking for the fling: single-finger only,
+        // rebased on every finger-count change like the pan math.
+        val tracker = VelocityTracker()
+        var singlePanned = false
         var pastSlop = false
         var prevCount = 0
         var prevCentroid = Offset.Zero
@@ -74,7 +84,22 @@ internal fun Modifier.zoomPan(
                 }
                 val pressed = event.changes.filter { it.pressed }
                 event.changes.filter { !it.pressed }.forEach { downs.remove(it.id) }
-                if (pressed.isEmpty()) break
+                if (pressed.isEmpty()) {
+                    // All fingers up: a fast single-finger pan keeps going
+                    // with momentum instead of stopping dead. Edge-turns and
+                    // pinches never fling; fit-scale has nothing to glide.
+                    if (!edgeTurnFired && singlePanned && getScale() > 1f) {
+                        val raw = tracker.calculateVelocity()
+                        val velocity = capFlingVelocity(
+                            Offset(raw.x, raw.y),
+                            MAX_FLING_PX_PER_SEC,
+                        )
+                        if (velocity.getDistance() >= MIN_FLING_PX_PER_SEC) {
+                            onFlingEnd(velocity)
+                        }
+                    }
+                    break
+                }
                 if (!pastSlop) {
                     // Tap-friendly: claim nothing until someone actually drifts.
                     val drifted = pressed.any { change ->
@@ -109,6 +134,7 @@ internal fun Modifier.zoomPan(
                     prevCentroid = centroid
                     prevDist = spreadOf(pressed)
                     prevCount = pressed.size
+                    tracker.resetTracking()
                     continue
                 }
                 val multi = pressed.size > 1
@@ -137,6 +163,14 @@ internal fun Modifier.zoomPan(
                     setScale(targetScale)
                     setOffset(target)
                     pressed.forEach { it.consume() }
+                    if (!multi) {
+                        // Single-finger pan sample for release momentum. Only
+                        // the traveling finger feeds the tracker; pinch
+                        // samples would corrupt the release velocity.
+                        val single = pressed.first()
+                        tracker.addPosition(single.uptimeMillis, single.position)
+                        singlePanned = true
+                    }
                 }
                 prevCentroid = centroid
                 prevDist = dist
@@ -150,6 +184,29 @@ internal fun Modifier.zoomPan(
 
 /** Pinch ceiling shared by manual pan/zoom and the double-tap toggle. */
 internal const val MAX_ZOOM = 4f
+
+/**
+ * Release-velocity ceiling for pan flings (px/s): a violent swipe still
+ * glides instead of teleporting across the clamp. Pure for testability.
+ */
+internal const val MAX_FLING_PX_PER_SEC = 12_000f
+
+/**
+ * Minimum release velocity for a fling (px/s, ~50dp/s at high density):
+ * slower lifts just settle where the finger left them. Below typical
+ * swipe speeds, so only deliberate lifts-off glide.
+ */
+internal const val MIN_FLING_PX_PER_SEC = 200f
+
+/**
+ * Clamps a release velocity to [maxPxPerSec] magnitude, preserving
+ * direction. Pure for testability.
+ */
+internal fun capFlingVelocity(velocity: Offset, maxPxPerSec: Float = MAX_FLING_PX_PER_SEC): Offset {
+    val speed = velocity.getDistance()
+    if (speed <= maxPxPerSec || speed <= 0f) return velocity
+    return velocity * (maxPxPerSec / speed)
+}
 
 /**
  * Whether a fresh swipe pushes further past the already-clamped edge.

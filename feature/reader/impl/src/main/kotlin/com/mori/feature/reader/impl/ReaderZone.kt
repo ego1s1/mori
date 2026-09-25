@@ -69,11 +69,14 @@ internal fun panOrTurn(
 private const val PAN_STEP_FRACTION = 0.4f
 
 /**
- * Standard Android double-tap timeout (AOSP `DOUBLE_TAP_TIMEOUT`). Every tap
- * holds this window before firing (single-tap-confirmed); a second tap
- * inside it pairs into a zoom instead.
+ * Single-tap hold before a tap fires (single-tap-confirmed): the window a
+ * second tap may still pair into a zoom. Shorter than AOSP's 300ms
+ * `DOUBLE_TAP_TIMEOUT` so page turns feel snappy, but long enough that a
+ * genuine double-tap's second contact (typically <200ms) always lands
+ * inside it — pairing and the hold share this one constant, so the window
+ * can never overlap inconsistently.
  */
-internal const val DOUBLE_TAP_TIMEOUT_MS = 300L
+internal const val DOUBLE_TAP_TIMEOUT_MS = 250L
 
 /**
  * Pair-matching radius for a double-tap, as a multiple of touch slop. The

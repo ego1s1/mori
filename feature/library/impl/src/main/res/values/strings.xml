@@ -13,14 +13,6 @@
     <string name="library_continue_title">Continue reading</string>
     <string name="library_collection_all">All</string>
     <string name="library_collection_labeled">%1$s (%2$d)</string>
-    <string name="library_collection_new">+ New shelf</string>
-    <string name="library_collection_create_title">New shelf</string>
-    <string name="library_collection_name_label">Name</string>
-    <string name="library_collection_create">Create</string>
-    <string name="library_collection_cancel">Cancel</string>
-    <string name="library_collection_delete_title">Delete shelf?</string>
-    <string name="library_collection_delete_body">“%1$s” will be removed. Its books stay in the library.</string>
-    <string name="library_collection_delete">Delete</string>
     <string name="library_shelf_unsorted">Unsorted</string>
     <string name="library_shelf_expand">Expand shelf</string>
     <string name="library_shelf_collapse">Collapse shelf</string>
@@ -31,6 +23,7 @@
     <string name="library_card_read">Read %1$s</string>
     <string name="library_card_details">Comic details</string>
     <string name="library_sheet_filter">Filter</string>
+    <string name="library_sheet_shelf">Shelf</string>
     <string name="library_sheet_sort_by">Sort by</string>
     <string name="library_sheet_hide_errors">Hide unreadable comics</string>
     <string name="library_filter_all">All</string>

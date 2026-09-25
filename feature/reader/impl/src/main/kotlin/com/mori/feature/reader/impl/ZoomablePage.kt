@@ -1,6 +1,9 @@
 package com.mori.feature.reader.impl
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -114,9 +117,9 @@ internal fun ZoomablePage(
     // Serialized motion job: double-tap zoom, edge pan hops, and pinch all
     // cancel each other instead of fighting over scale/offset.
     var motionJob by remember { mutableStateOf<Job?>(null) }
-    fun launchMotion(block: suspend () -> Unit) {
+    fun launchMotion(block: suspend () -> Unit): Job {
         motionJob?.cancel()
-        motionJob = scope.launch { block() }
+        return scope.launch { block() }.also { motionJob = it }
     }
     // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
     // so it must read scale through a ref instead of a stale closure. Zooming in
@@ -156,6 +159,9 @@ internal fun ZoomablePage(
         val density = LocalDensity.current
         val widthPx = remember(density, maxWidth) {
             with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
+        }
+        val heightPx = remember(density, maxHeight) {
+            with(density) { maxHeight.toPx() }.coerceAtLeast(1f)
         }
         // Live viewport width: the detector loop reads it through state so it
         // survives rotation without restarting mid-tap.
@@ -227,6 +233,37 @@ internal fun ZoomablePage(
                     direction = direction,
                     onEdgeTurn = onEdgeTurn,
                     onPinchingChange = onPinchingChange,
+                    onFlingEnd = { velocity ->
+                        // Release momentum: the glide decays inside the same
+                        // clamp the finger obeyed, so fast swipes travel
+                        // instead of stopping dead. Serialized with taps and
+                        // pinches — a fresh touch cancels it via onCancelMotion.
+                        if (scale > 1f) {
+                            // Self-cancellable: the decay listener is a plain
+                            // callback (no suspend calls), so a stalled glide
+                            // cancels its own job instead of idling.
+                            var flingJob: Job? = null
+                            flingJob = launchMotion {
+                                val glide = Animatable(offset, Offset.VectorConverter)
+                                var last = offset
+                                var stalls = 0
+                                glide.animateDecay(velocity, exponentialDecay()) {
+                                    val clamped = clampPan(value, scale, widthPx, heightPx)
+                                    offset = clamped
+                                    // The decay converges asymptotically and
+                                    // the clamp pins wall hits: stop once the
+                                    // visible position stops changing so the
+                                    // job never idles against a wall.
+                                    if (clamped == last) {
+                                        if (++stalls >= 2) flingJob?.cancel()
+                                    } else {
+                                        stalls = 0
+                                        last = clamped
+                                    }
+                                }
+                            }
+                        }
+                    },
                 ),
         ) {
             // Placeholder number behind the art: hidden once the decode

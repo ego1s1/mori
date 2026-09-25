@@ -57,4 +57,17 @@ class ZoomPanTest {
         // Fit never turns.
         assertFalse(isOutwardPush(0f, 1f, 400f, -10f))
     }
+
+    @Test
+    fun slowReleasePassesThroughUncapped() {
+        assertEquals(Offset(900f, -300f), capFlingVelocity(Offset(900f, -300f)))
+    }
+
+    @Test
+    fun violentSwipeCapsMagnitudeKeepsDirection() {
+        val capped = capFlingVelocity(Offset(9_000f, 12_000f))
+        // 15,000 px/s input clamps to the 12,000 ceiling, same heading.
+        assertEquals(12_000f, capped.getDistance(), 0.5f)
+        assertEquals(9_000f / 15_000f, capped.x / capped.getDistance(), 0.001f)
+    }
 }
