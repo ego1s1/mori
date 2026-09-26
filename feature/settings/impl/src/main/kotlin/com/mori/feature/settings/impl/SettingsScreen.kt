@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -404,7 +405,7 @@ internal fun SettingsContent(
             }
             OutlinedButton(
                 onClick = { onAction(SettingsAction.ClearThumbnailCache) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
             ) {
                 Text(stringResource(R.string.settings_clear_cache))
             }
@@ -434,6 +435,7 @@ internal fun SettingsContent(
                 onClick = { onAction(SettingsAction.OpenCreateGroup) },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .sizeIn(minHeight = 48.dp)
                     .testTag(SettingsTestTags.GroupCreateButton),
             ) {
                 Text(stringResource(R.string.settings_groups_create))
@@ -530,6 +532,7 @@ private fun OptionLabel(
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier,
     )
 }
@@ -546,7 +549,7 @@ private fun SegmentedChoiceRow(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().sizeIn(minHeight = 48.dp)) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
                 selected = index == selectedIndex,
@@ -728,7 +731,7 @@ private fun StatRow(
         )
         Text(
             text = value,
-            style = MoriEmphasized.titleMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

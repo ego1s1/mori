@@ -44,7 +44,7 @@ fun MoriCoverArt(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
         if (coverPath != null) {
             // No per-load fade: the global loader crossfades, but grid cells
@@ -78,7 +78,7 @@ fun MoriCoverArt(
                 Icon(
                     imageVector = MoriIcons.MenuBook,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -86,7 +86,7 @@ fun MoriCoverArt(
             Icon(
                 imageVector = MoriIcons.MenuBook,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(40.dp),
             )
         }

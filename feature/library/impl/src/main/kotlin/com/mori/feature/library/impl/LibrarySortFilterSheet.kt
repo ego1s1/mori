@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
@@ -63,12 +68,17 @@ internal fun LibrarySortFilterContent(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp),
+            .padding(bottom = 32.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         // Shelf filter lives here now that the grid chips row is gone:
         // All plus every user shelf with its count. Management
         // (create/rename/delete) lives in Settings Groups.
-        Text(text = stringResource(R.string.library_sheet_shelf), style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = stringResource(R.string.library_sheet_shelf),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
@@ -98,7 +108,11 @@ internal fun LibrarySortFilterContent(
             }
         }
 
-        Text(text = stringResource(R.string.library_sheet_filter), style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = stringResource(R.string.library_sheet_filter),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -112,7 +126,11 @@ internal fun LibrarySortFilterContent(
             }
         }
 
-        Text(text = stringResource(R.string.library_sheet_sort_by), style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = stringResource(R.string.library_sheet_sort_by),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),

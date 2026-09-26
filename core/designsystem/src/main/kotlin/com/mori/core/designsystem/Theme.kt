@@ -13,6 +13,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.mori.core.model.ColorSchemeChoice
 
+/** M3 baseline light surface ramp (neutral light-gray) containers whisper into. */
+private val LightLowest = Color(0xFFFFFFFF)
+private val LightLow = Color(0xFFF7F2FA)
+private val LightContainer = Color(0xFFF3EDF7)
+private val LightHigh = Color(0xFFECE6F0)
+private val LightHighest = Color(0xFFE6E0E9)
+
+/** Light surface ramp carrying a whisper of [seed], mirroring [darkSurfaceRamp]. */
+private fun lightSurfaceRamp(seed: Color, whisper: Float = 0.08f): SurfaceRamp = SurfaceRamp(
+    lowest = LightLowest.blend(seed, whisper),
+    low = LightLow.blend(seed, whisper),
+    container = LightContainer.blend(seed, whisper),
+    high = LightHigh.blend(seed, whisper),
+    highest = LightHighest.blend(seed, whisper),
+)
+
 private val LightColors = lightColorScheme(
     primary = MoriSeedDark,
     onPrimary = MoriOnSeedLight,
@@ -28,6 +44,11 @@ private val LightColors = lightColorScheme(
     onError = OnErrorLight,
     errorContainer = ErrorContainerLight,
     onErrorContainer = OnErrorContainerLight,
+    surfaceContainerLowest = lightSurfaceRamp(MoriSeedDark).lowest,
+    surfaceContainerLow = lightSurfaceRamp(MoriSeedDark).low,
+    surfaceContainer = lightSurfaceRamp(MoriSeedDark).container,
+    surfaceContainerHigh = lightSurfaceRamp(MoriSeedDark).high,
+    surfaceContainerHighest = lightSurfaceRamp(MoriSeedDark).highest,
 )
 
 private val DarkColors = darkColorScheme(
@@ -59,13 +80,25 @@ private val DarkColors = darkColorScheme(
  */
 private fun ColorScheme.amoled(): ColorScheme = copy(
     background = Color.Black,
+    onBackground = onBackground,
     surface = Color.Black,
+    onSurface = onSurface,
+    surfaceDim = Color.Black,
+    surfaceBright = surfaceBright.darkened(0.45f),
+    surfaceTint = surfaceTint,
     surfaceContainerLowest = Color.Black,
     surfaceContainerLow = surfaceContainerLow.darkened(0.45f),
     surfaceContainer = surfaceContainer.darkened(0.35f),
     surfaceContainerHigh = surfaceContainerHigh.darkened(0.25f),
     surfaceContainerHighest = surfaceContainerHighest.darkened(0.12f),
     surfaceVariant = surfaceVariant.darkened(0.35f),
+    onSurfaceVariant = onSurfaceVariant,
+    inverseSurface = inverseSurface,
+    inverseOnSurface = inverseOnSurface,
+    inversePrimary = inversePrimary,
+    outline = outline,
+    outlineVariant = outlineVariant,
+    scrim = Color.Black,
 )
 
 /** Full dark preset from accents: containers + error ramp derived, never baseline. */
@@ -109,22 +142,30 @@ private fun presetLightScheme(
     onPrimaryContainer: Color,
     secondary: Color,
     tertiary: Color,
-): ColorScheme = lightColorScheme(
-    primary = primary,
-    onPrimary = onPrimary,
-    primaryContainer = primaryContainer,
-    onPrimaryContainer = onPrimaryContainer,
-    secondary = secondary,
-    secondaryContainer = containerFor(secondary, darkTheme = false).container,
-    onSecondaryContainer = containerFor(secondary, darkTheme = false).onContainer,
-    tertiary = tertiary,
-    tertiaryContainer = containerFor(tertiary, darkTheme = false).container,
-    onTertiaryContainer = containerFor(tertiary, darkTheme = false).onContainer,
-    error = ErrorLight,
-    onError = OnErrorLight,
-    errorContainer = ErrorContainerLight,
-    onErrorContainer = OnErrorContainerLight,
-)
+): ColorScheme {
+    val ramp = lightSurfaceRamp(primary)
+    return lightColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = secondary,
+        secondaryContainer = containerFor(secondary, darkTheme = false).container,
+        onSecondaryContainer = containerFor(secondary, darkTheme = false).onContainer,
+        tertiary = tertiary,
+        tertiaryContainer = containerFor(tertiary, darkTheme = false).container,
+        onTertiaryContainer = containerFor(tertiary, darkTheme = false).onContainer,
+        error = ErrorLight,
+        onError = OnErrorLight,
+        errorContainer = ErrorContainerLight,
+        onErrorContainer = OnErrorContainerLight,
+        surfaceContainerLowest = ramp.lowest,
+        surfaceContainerLow = ramp.low,
+        surfaceContainer = ramp.container,
+        surfaceContainerHigh = ramp.high,
+        surfaceContainerHighest = ramp.highest,
+    )
+}
 
 private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorScheme {
     if (darkTheme) {

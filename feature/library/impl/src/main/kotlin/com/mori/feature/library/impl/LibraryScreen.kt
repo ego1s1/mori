@@ -6,15 +6,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -23,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +69,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriContentWell
+import com.mori.core.designsystem.WindowWidthClass
+import com.mori.core.designsystem.windowWidthClass
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
@@ -382,22 +389,42 @@ private fun LibraryTopBar(
                     } else {
                         MoriIcons.Search
                     },
-                    contentDescription = stringResource(R.string.library_action_search),
+                    contentDescription = stringResource(
+                        if (searchOpen) {
+                            R.string.library_action_close_search
+                        } else {
+                            R.string.library_action_search
+                        },
+                    ),
                 )
             }
-            IconButton(
-                onClick = { onAction(LibraryAction.OpenFilter) },
-                modifier = Modifier.testTag(LibraryTestTags.FilterButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.Tune,
-                    contentDescription = stringResource(R.string.library_action_sort_filter),
-                    tint = if (filterActive) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        LocalContentColor.current
-                    },
-                )
+            Box {
+                IconButton(
+                    onClick = { onAction(LibraryAction.OpenFilter) },
+                    modifier = Modifier.testTag(LibraryTestTags.FilterButton),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.Tune,
+                        contentDescription = stringResource(R.string.library_action_sort_filter),
+                        tint = if (filterActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            LocalContentColor.current
+                        },
+                    )
+                }
+                if (filterActive) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 10.dp, end = 10.dp)
+                            .size(8.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                CircleShape,
+                            ),
+                    )
+                }
             }
         },
         modifier = modifier,
@@ -462,15 +489,24 @@ private fun LibraryBody(
                 onChooseFolder = onChooseFolder,
             )
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(GRID_CELL_MIN),
-                contentPadding = gridPadding,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(LibraryTestTags.Grid),
-            ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                // Expanded windows get roomier book cells; Compact/Medium
+                // keep the phone-tuned minimum. Adaptive still decides the
+                // final column count — only the floor changes.
+                val minCell = if (windowWidthClass() == WindowWidthClass.Expanded) {
+                    160.dp
+                } else {
+                    GRID_CELL_MIN
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minCell),
+                    contentPadding = gridPadding,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(LibraryTestTags.Grid),
+                ) {
                 if (sections.isNotEmpty()) {
                     // Sectioned grid: one collapsible shelf after another.
                     sections.forEach { section ->
@@ -506,6 +542,7 @@ private fun LibraryBody(
                         onCardDetails = onCardDetails,
                         launchingId = launchingId,
                     )
+                }
                 }
             }
         }
@@ -619,11 +656,13 @@ private fun ShelfSectionHeader(
         ) {
             Text(
                 text = title,
-                style = MoriEmphasized.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
             )
             Surface(
                 shape = MaterialTheme.shapes.small,

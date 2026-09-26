@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -106,6 +107,7 @@ internal fun ReaderOverviewSheetContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(max = OVERVIEW_GRID_MAX_HEIGHT)
             .testTag(ReaderTestTags.OverviewGrid),
     ) {
         // The grid walks archive pages (stable identities with full-page
@@ -224,5 +226,7 @@ private fun OverviewThumb(
 private const val OVERVIEW_MAX_DIMENSION = 256
 
 private val OVERVIEW_CELL_MIN = 96.dp
+
+private val OVERVIEW_GRID_MAX_HEIGHT = 560.dp
 
 private const val PAGE_ASPECT = 2f / 3f

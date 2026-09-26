@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,6 +42,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -379,7 +382,7 @@ private fun HistoryDayHeader(dayStartMillis: Long, modifier: Modifier = Modifier
     Surface(
         // Container (not page surface) so the stuck header stays visible
         // while rows scroll beneath it.
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier,
     ) {
         Text(
@@ -388,7 +391,9 @@ private fun HistoryDayHeader(dayStartMillis: Long, modifier: Modifier = Modifier
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .semantics { heading() },
         )
     }
 }
@@ -404,12 +409,15 @@ private fun HistoryRow(
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier.testTag(HistoryTestTags.rowFor(comic.id)).combinedClickable(
-            onClick = { onRead(comic) },
-            onClickLabel = stringResource(R.string.history_row_read, comic.title),
-            onLongClick = onDetails?.let { action -> { action(comic) } },
-            onLongClickLabel = onDetails?.let { stringResource(R.string.history_row_details) },
-        ),
+        modifier = modifier
+            .testTag(HistoryTestTags.rowFor(comic.id))
+            .sizeIn(minHeight = 48.dp)
+            .combinedClickable(
+                onClick = { onRead(comic) },
+                onClickLabel = stringResource(R.string.history_row_read, comic.title),
+                onLongClick = onDetails?.let { action -> { action(comic) } },
+                onLongClickLabel = onDetails?.let { stringResource(R.string.history_row_details) },
+            ),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -423,7 +431,7 @@ private fun HistoryRow(
             ) {
                 MoriCoverArt(
                     coverPath = comic.coverPath,
-                    contentDescription = comic.title,
+                    contentDescription = null,
                 )
             }
             Column(
@@ -436,6 +444,7 @@ private fun HistoryRow(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
                 )
                 val subtitle = listOfNotNull(comic.series, comic.number).joinToString(" • ")
                 if (subtitle.isNotBlank()) {
@@ -458,13 +467,35 @@ private fun HistoryRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                MoriProgressBar(
-                    progress = { comic.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .height(3.dp),
-                )
+                if (comic.error == null) {
+                    MoriProgressBar(
+                        progress = { comic.progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .height(4.dp),
+                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = MoriIcons.BrokenImage,
+                            contentDescription = stringResource(R.string.history_row_details),
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.history_row_details),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

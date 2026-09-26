@@ -80,7 +80,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
@@ -283,7 +282,7 @@ private fun WelcomeContent(
                 Box(contentAlignment = Alignment.Center) {
                     Surface(
                         shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
                             .size(88.dp)
                             .offset((-58).dp, 44.dp)
@@ -291,14 +290,14 @@ private fun WelcomeContent(
                     ) {}
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier
                             .size(56.dp)
                             .offset(66.dp, (-52).dp),
                     ) {}
                     MorphingHero(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         icon = MoriIcons.MenuBook,
                     )
                 }
@@ -325,15 +324,14 @@ private fun WelcomeContent(
                             append(stringResource(R.string.onboarding_hero_prefix))
                             withStyle(
                                 SpanStyle(
-                                    fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 ),
                             ) {
                                 append(stringResource(R.string.onboarding_hero_accent))
                             }
                             append(stringResource(R.string.onboarding_hero_suffix))
                         },
-                        style = MoriEmphasized.displaySmall,
+                        style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center,
                     )
                 }

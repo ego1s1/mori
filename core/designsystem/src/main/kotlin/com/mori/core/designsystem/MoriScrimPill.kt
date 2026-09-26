@@ -7,14 +7,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
- * One-line label on a translucent black scrim, for text drawn over artwork
- * (page counters, remaining-count badges). The scrim is deliberately raw
- * black, not a scheme role: no tonal color survives a pure-black art bed.
+ * One-line label on a translucent scrim, for text drawn over artwork
+ * (page counters, remaining-count badges). The scrim uses the scheme scrim
+ * role so it tracks the theme instead of pinning raw black.
  */
 @Composable
 fun MoriScrimPill(
@@ -25,13 +24,13 @@ fun MoriScrimPill(
 ) {
     Surface(
         shape = shape,
-        color = Color.Black.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
         modifier = modifier,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.inverseOnSurface,
             maxLines = 1,
             modifier = Modifier.padding(contentPadding),
         )

@@ -630,14 +630,14 @@ private fun ReaderTopBar(
                 Icon(
                     imageVector = MoriIcons.Back,
                     contentDescription = stringResource(R.string.reader_back),
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title.ifBlank { stringResource(R.string.reader_untitled) },
                     style = MoriEmphasized.headlineSmall,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.semantics { heading() },
@@ -646,7 +646,7 @@ private fun ReaderTopBar(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -669,7 +669,7 @@ private fun ReaderTopBar(
                 Icon(
                     imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
                     contentDescription = bookmarkLabel,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             // Incognito indicator: decorative badge, announced once for
@@ -678,7 +678,7 @@ private fun ReaderTopBar(
                 Icon(
                     imageVector = MoriIcons.Incognito,
                     contentDescription = stringResource(R.string.reader_incognito_on),
-                    tint = Color.White.copy(alpha = 0.9f),
+                    tint = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.9f),
                     modifier = Modifier
                         .padding(end = 12.dp)
                         .size(24.dp)
@@ -846,6 +846,7 @@ private fun ReaderBottomChrome(
                                 text = pageCount.toString(),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.semantics { invisibleToUser() },
                             )
                         }
                     }
@@ -895,6 +896,7 @@ private fun ReaderBottomChrome(
                     onAction(ReaderAction.SetDirection(next))
                 },
                 modifier = Modifier
+                    .size(48.dp)
                     .testTag(ReaderTestTags.DirectionButton)
                     .semantics {
                         onClick(label = directionLabel, action = null)
@@ -904,7 +906,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.ScreenRotation,
                     contentDescription = directionLabel,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             val fitLabel = stringResource(R.string.reader_page_fit)
@@ -923,6 +925,7 @@ private fun ReaderBottomChrome(
                     onAction(ReaderAction.SetPageFit(next))
                 },
                 modifier = Modifier
+                    .size(48.dp)
                     .testTag(ReaderTestTags.FitButton)
                     .semantics {
                         onClick(label = fitLabel, action = null)
@@ -932,13 +935,14 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.FitScreen,
                     contentDescription = fitLabel,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             val cropLabel = stringResource(R.string.reader_crop_margins)
             IconButton(
                 onClick = { onAction(ReaderAction.ToggleCrop) },
                 modifier = Modifier
+                    .size(48.dp)
                     .testTag(ReaderTestTags.CropButton)
                     .semantics {
                         onClick(label = cropLabel, action = null)
@@ -947,27 +951,31 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.Crop,
                     contentDescription = cropLabel,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             IconButton(
                 onClick = { onAction(ReaderAction.OpenOverview) },
-                modifier = Modifier.testTag(ReaderTestTags.OverviewButton),
+                modifier = Modifier
+                    .size(48.dp)
+                    .testTag(ReaderTestTags.OverviewButton),
             ) {
                 Icon(
                     imageVector = MoriIcons.GridView,
                     contentDescription = stringResource(R.string.reader_overview_button),
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             IconButton(
                 onClick = { onAction(ReaderAction.OpenSettings) },
-                modifier = Modifier.testTag(ReaderTestTags.SettingsButton),
+                modifier = Modifier
+                    .size(48.dp)
+                    .testTag(ReaderTestTags.SettingsButton),
             ) {
                 Icon(
                     imageVector = MoriIcons.Settings,
                     contentDescription = stringResource(R.string.reader_settings),
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
         }

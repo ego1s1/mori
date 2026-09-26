@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.1
+
+Reader pan responsiveness and Material 3 Expressive compliance:
+
+- Zoomed panning now tracks the finger 1:1 at any zoom (was 1/scale, so
+  half-speed at 2x and a fifth at 5x); fling velocity, travel and engage
+  thresholds are measured in screen px so flicks register and glide fully
+- Pinch keeps the content point under the centroid while scaling
+- M3 Expressive pass: scheme colors replace hardcoded black/white across
+  chrome, badges, scrims and placeholders; 48dp touch targets; heading and
+  state semantics; sheet/section type demoted to standard roles; sheets gain
+  scroll and height bounds; light/AMOLED surface ramps completed; onboarding
+  reduced to a single hero moment
+- Floating navigator unchanged by design (not reproducible with the standard
+  NavigationBar in Material3 1.3.1)
+
 ## 0.3.0
 
 - Library drops the Continue Reading shelf; the bottom-pill resume button

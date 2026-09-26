@@ -34,7 +34,7 @@ fun MoriSectionCard(
             if (!title.isNullOrBlank()) {
                 Text(
                     text = title,
-                    style = MoriEmphasized.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                 )
             }
             content()

@@ -410,7 +410,7 @@ private fun DetailContent(
                     .height(48.dp)
                     .testTag(DetailTestTags.PageStrip),
             ) {
-                items(indices.size, key = { indices[it] }) { slot ->
+                items(indices.size, key = { indices[it] }, contentType = { "page" }) { slot ->
                     val index = indices[slot]
                     val chipDescription = if (index == comic.lastPageIndex) {
                         stringResource(R.string.detail_page_chip_current, index + 1)

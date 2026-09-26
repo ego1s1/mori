@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,7 +79,7 @@ internal fun ComicCard(
             ) {
                 MoriCoverArt(
                     coverPath = comic.coverPath,
-                    contentDescription = comic.title,
+                    contentDescription = null,
                 )
 
                 if (comic.error != null) {
@@ -115,7 +114,7 @@ internal fun ComicCard(
                     // containers wash out on bright covers, black does not.
                     Surface(
                         shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
@@ -127,7 +126,7 @@ internal fun ComicCard(
                             // the book, so a bare "favorite" would announce
                             // without state.
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.inverseOnSurface,
                             modifier = Modifier
                                 .padding(6.dp)
                                 .size(16.dp),

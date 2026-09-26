@@ -166,4 +166,52 @@ class ZoomPanTest {
         assertEquals(12_000f, capped.getDistance(), 0.5f)
         assertEquals(9_000f / 15_000f, capped.x / capped.getDistance(), 0.001f)
     }
+
+    @Test
+    fun panTracksFingerOneToOneAtAnyZoom() {
+        // A 100px local finger move is 100px of screen travel at fit.
+        assertEquals(
+            Offset(100f, 0f),
+            zoomPanTarget(
+                current = Offset.Zero,
+                centroidNow = Offset(300f, 300f),
+                centroidPrev = Offset(200f, 300f),
+                center = Offset(200f, 300f),
+                scaleNow = 1f,
+                targetScale = 1f,
+            ),
+        )
+        // Zoomed 3x: local 100px maps to 300px screen travel, so the content
+        // keeps up with the finger instead of lagging at 1/scale.
+        assertEquals(
+            Offset(300f, 0f),
+            zoomPanTarget(
+                current = Offset.Zero,
+                centroidNow = Offset(300f, 300f),
+                centroidPrev = Offset(200f, 300f),
+                center = Offset(200f, 300f),
+                scaleNow = 3f,
+                targetScale = 3f,
+            ),
+        )
+    }
+
+    @Test
+    fun pinchKeepsCentroidContentPointUnderFinger() {
+        // Centroid stationary at u from center, scale doubles: translation must
+        // cancel the scaling of that point so it stays put on screen.
+        val center = Offset(200f, 300f)
+        val centroid = Offset(300f, 300f)
+        val target = zoomPanTarget(
+            current = Offset.Zero,
+            centroidNow = centroid,
+            centroidPrev = centroid,
+            center = center,
+            scaleNow = 1f,
+            targetScale = 2f,
+        )
+        // u = +100; T1 = (1 - 2) * 100 = -100 keeps the art point anchored.
+        assertEquals(-100f, target.x, 0.001f)
+        assertEquals(0f, target.y, 0.001f)
+    }
 }

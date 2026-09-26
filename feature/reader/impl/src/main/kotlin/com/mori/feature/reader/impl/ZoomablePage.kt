@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,6 +47,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -296,7 +299,7 @@ internal fun ZoomablePage(
                 Text(
                     text = pageNumber.toString(),
                     style = MoriEmphasized.headlineSmall,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
             }
             PageArt(
@@ -407,7 +410,7 @@ private fun PageArt(
             }
             when (painterState) {
                 is AsyncImagePainter.State.Loading -> MoriLoadingIndicator(
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     modifier = Modifier.size(40.dp),
                 )
                 is AsyncImagePainter.State.Error -> Column(
@@ -426,7 +429,15 @@ private fun PageArt(
                         color = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.padding(top = 12.dp),
                     )
-                    TextButton(onClick = { attempt++ }) {
+                    val retryLabel = stringResource(R.string.reader_page_retry)
+                    TextButton(
+                        onClick = { attempt++ },
+                        modifier = Modifier
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                contentDescription = retryLabel
+                            },
+                    ) {
                         Text(stringResource(R.string.reader_page_retry))
                     }
                 }
