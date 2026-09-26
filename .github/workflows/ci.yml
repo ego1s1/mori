@@ -35,6 +35,19 @@ jobs:
       - name: Run unit tests
         run: ./gradlew test
 
+      - name: Upload test reports
+        # Always upload so a red "Run unit tests" step exposes the failing
+        # test names without needing runner log access.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          if-no-files-found: ignore
+          retention-days: 5
+
       - name: Run lint
         run: ./gradlew lint
 
