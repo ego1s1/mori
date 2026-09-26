@@ -1,6 +1,10 @@
 package com.mori.feature.reader.impl
 
+import android.app.ActivityManager
+import android.content.Context
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector3D
+import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.Image
@@ -29,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -38,6 +43,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import com.mori.core.model.DisplayFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -54,6 +60,7 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -79,20 +86,29 @@ internal fun ZoomablePage(
     direction: ReadingDirection,
     cropMargins: Boolean,
     onZoneTap: (ReaderZone) -> Unit,
-    onZoomedChange: (Boolean) -> Unit,
     onPinchingChange: (Boolean) -> Unit,
     onEdgeTurn: (forward: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     half: PageHalf = PageHalf.FULL,
     displayFilter: DisplayFilter = DisplayFilter.Neutral,
+    swipeToTurn: Boolean = true,
 ) {
     var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
     var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
-    // Zoom ownership reporting: the pager stands down while any page is
-    // zoomed or pinched so it can never steal the gesture. LaunchedEffect
-    // refires on fresh compositions, so recycled pages reset it for free.
-    LaunchedEffect(scale > 1f) {
-        onZoomedChange(scale > 1f)
+    // Double-tap-hold-drag state, keyed with the zoom it drives.
+    val quickScale = remember(comicId, pageIndex, pageFit, direction, half) { QuickScaleState() }
+    // Deep-zoom latch with hysteresis: the hi-res overlay loads past 2x
+    // and stays until scale drops back under 1.7x, so pinches hovering at
+    // the threshold never thrash the decode.
+    var deepZoomLatched by remember(comicId, pageIndex, cropMargins, half) { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { scale }.distinctUntilChanged().collect {
+            if (it >= DEEP_ZOOM_SCALE) {
+                deepZoomLatched = true
+            } else if (it < DEEP_ZOOM_EXIT_SCALE) {
+                deepZoomLatched = false
+            }
+        }
     }
     // Aspect of the DECODED art (post-crop, post-split). Fit is computed from
     // these bounds — the minimum scale derives from the image itself, never
@@ -106,19 +122,25 @@ internal fun ZoomablePage(
     val scope = rememberCoroutineScope()
     // Detector epoch: a direction flip bumps it so a double-tap hold parked
     // across the flip drops instead of dispatching with the old zone.
-    val tapEpoch = remember { mutableIntStateOf(1) }
-    LaunchedEffect(direction) { tapEpoch.intValue++ }
+    val tapEpoch = remember(comicId, pageIndex) { mutableIntStateOf(1) }
+    var lastDirection by remember(comicId, pageIndex) { mutableStateOf(direction) }
+    LaunchedEffect(direction) {
+        if (direction != lastDirection) {
+            tapEpoch.intValue++
+            lastDirection = direction
+        }
+    }
     val expressiveMotion = LocalExpressiveMotionEnabled.current
-    // Serialized motion job: edge pan hops and flings cancel each other
-    // instead of fighting over scale/offset. Double-tap zoom runs on its
-    // own job (never touch-cancelled, reference-reader parity); a new
-    // double-tap retargets it.
+    // Serialized motion job: edge pan hops, flings, and double-tap zooms
+    // cancel each other instead of fighting over scale/offset. A fresh touch
+    // or a new double-tap retargets via the same cancellation.
     var motionJob by remember { mutableStateOf<Job?>(null) }
+    var zoomJob by remember { mutableStateOf<Job?>(null) }
     fun launchMotion(block: suspend () -> Unit): Job {
         motionJob?.cancel()
+        zoomJob?.cancel()
         return scope.launch { block() }.also { motionJob = it }
     }
-    var zoomJob by remember { mutableStateOf<Job?>(null) }
 
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
@@ -135,33 +157,32 @@ internal fun ZoomablePage(
         }
         // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
         // so it must read scale through a ref instead of a stale closure. Zooming in
-        // centers the tap point (reference-reader focus-center) clamped to the pan
-        // bounds; zooming out always returns to fit. Calm motion shortens the glide
-        // to a quiet fade. Lives inside the constraints scope so the clamped
+        // centers the tap point clamped to the pan
+        // bounds; zooming out always returns to fit. Calm motion snaps instantly.
+        // Lives inside the constraints scope so the clamped
         // landing can read the live viewport size.
         val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
             val target = zoomTargetForTap(scale)
             val targetOffset = zoomOffsetForTap(tap, center, target, widthPx, heightPx)
-            val startScale = scale
-            val startOffset = offset
-            val spec = if (expressiveMotion) {
-                MoriMotion.zoomSpec()
+            if (!expressiveMotion) {
+                zoomJob?.cancel()
+                motionJob?.cancel()
+                scale = target
+                offset = if (target <= 1f) Offset.Zero else targetOffset
             } else {
-                MoriMotion.calmFade()
-            }
-            zoomJob?.cancel()
-            motionJob?.cancel()
-            zoomJob = scope.launch {
-                animate(
-                    initialValue = 0f,
-                    targetValue = 1f,
-                    animationSpec = spec,
-                ) { fraction, _ ->
-                    scale = startScale + (target - startScale) * fraction
-                    offset = startOffset + (targetOffset - startOffset) * fraction
-                }
-                if (target <= 1f) {
-                    offset = Offset.Zero
+                zoomJob?.cancel()
+                motionJob?.cancel()
+                zoomJob = scope.launch {
+                    Animatable(ZoomState(scale, offset), ZoomState.VectorConverter).animateTo(
+                        targetValue = ZoomState(target, targetOffset),
+                        animationSpec = MoriMotion.zoomStateSpec(),
+                    ) {
+                        scale = value.scale
+                        offset = value.offset
+                    }
+                    if (target <= 1f) {
+                        offset = Offset.Zero
+                    }
                 }
             }
         }
@@ -174,7 +195,7 @@ internal fun ZoomablePage(
                 .pageFit(pageFit, artAspect, maxWidth, maxHeight)
                 .graphicsLayer {
                     // Render-thread transform: pan/pinch/fling frames never
-                    // recompose the page (reference-reader frame path).
+                    // recompose the page.
                     scaleX = scale
                     scaleY = scale
                     translationX = offset.x
@@ -199,19 +220,20 @@ internal fun ZoomablePage(
                                     (direction == ReadingDirection.LEFT_TO_RIGHT)
                             when (val decision = panOrTurn(scale, offset.x, widthPx, towardTrailing)) {
                                 is PanTurn.Pan -> {
-                                    val startX = offset.x
                                     val targetX = decision.targetOffsetX
-                                    launchMotion {
-                                        animate(
-                                            initialValue = startX,
-                                            targetValue = targetX,
-                                            animationSpec = if (expressiveMotion) {
-                                                MoriMotion.pageTurnSpec()
-                                            } else {
-                                                MoriMotion.calmFade()
-                                            },
-                                        ) { value, _ ->
-                                            offset = offset.copy(x = value)
+                                    if (!expressiveMotion) {
+                                        motionJob?.cancel()
+                                        zoomJob?.cancel()
+                                        offset = offset.copy(x = targetX)
+                                    } else {
+                                        launchMotion {
+                                            animate(
+                                                initialValue = offset.x,
+                                                targetValue = targetX,
+                                                animationSpec = MoriMotion.pageTurnSpec(),
+                                            ) { value, _ ->
+                                                offset = offset.copy(x = value)
+                                            }
                                         }
                                     }
                                 }
@@ -223,32 +245,43 @@ internal fun ZoomablePage(
                     },
                     onZoom = { tap, center -> latestZoomToggle.value(tap, center) },
                     consumeUp = true,
+                    quickScale = quickScale,
                 )
-                // Pan/zoom routing: single-finger
-                // drags at fit pass straight through to the pager; pinches
-                // always zoom; pans act only while zoomed and release to the
-                // pager at the pan limits (edge handoff).
+    // Pan/zoom routing: single-finger drags at fit pass straight through
+    // to the pager; edge-start outward swipes do the same so the pager
+    // drags them natively. Pinches always zoom; pans act only while zoomed,
+    // turning explicitly past the clamp when the pager declines.
                 .zoomPan(
                     getScale = { scale },
                     setScale = { scale = it },
                     getOffset = { offset },
                     setOffset = { offset = it },
-                    onCancelMotion = { motionJob?.cancel() },
+                    onCancelMotion = {
+                        motionJob?.cancel()
+                        zoomJob?.cancel()
+                    },
                     direction = direction,
                     onEdgeTurn = onEdgeTurn,
                     onPinchingChange = onPinchingChange,
+                    quickScale = quickScale,
+                    swipeToTurn = swipeToTurn,
                     onFlingEnd = { velocity ->
                         // Release momentum: ease out over the
                         // velocity-projected target inside the same clamp
                         // the finger obeyed. Serialized with pan hops — a
-                        // fresh touch cancels it via onCancelMotion.
+                        // fresh touch cancels it via onCancelMotion. Calm
+                        // motion snaps instead of gliding.
                         if (scale > 1f) {
                             val target = flingTarget(offset, velocity, scale, widthPx, heightPx)
-                            launchMotion {
-                                Animatable(offset, Offset.VectorConverter).animateTo(
-                                    targetValue = target,
-                                    animationSpec = MoriMotion.flingSpec(),
-                                ) { offset = value }
+                            if (!expressiveMotion) {
+                                offset = target
+                            } else {
+                                launchMotion {
+                                    Animatable(offset, Offset.VectorConverter).animateTo(
+                                        targetValue = target,
+                                        animationSpec = MoriMotion.flingSpec(),
+                                    ) { offset = value }
+                                }
                             }
                         }
                     },
@@ -273,6 +306,7 @@ internal fun ZoomablePage(
                 cropMargins = cropMargins,
                 half = half,
                 displayFilter = displayFilter,
+                deepZoom = deepZoomLatched,
                 onArtSize = { artWidth, artHeight -> artAspect = artAspectFor(artWidth, artHeight) },
                 onLoadedChange = { artLoaded = it },
             )
@@ -284,6 +318,9 @@ internal fun ZoomablePage(
  * Page artwork with loading and error states. A failed decode shows a retry
  * affordance instead of failing the whole book; retry restarts the Coil
  * request without touching the cache key.
+ *
+ * @param deepZoom when true, a higher-resolution overlay fades in over the
+ * base art for sharp deep zoom (silent fallback: base art stays on failure).
  */
 @Composable
 private fun PageArt(
@@ -293,19 +330,21 @@ private fun PageArt(
     cropMargins: Boolean,
     half: PageHalf,
     displayFilter: DisplayFilter,
+    deepZoom: Boolean,
     onArtSize: (widthPx: Float, heightPx: Float) -> Unit,
     onLoadedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var attempt by remember(comicId, pageIndex, half) { mutableIntStateOf(0) }
+    var attempt by remember(comicId, pageIndex, cropMargins, half) { mutableIntStateOf(0) }
     key(attempt) {
         val painter = rememberAsyncImagePainter(
             model = ComicPageKey(comicId, pageIndex, READER_MAX_DIMENSION, cropMargins, half),
             contentScale = ContentScale.Fit,
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
-        LaunchedEffect(painterState) {
-            onLoadedChange(painterState is AsyncImagePainter.State.Success)
+        val painterSuccess = painterState is AsyncImagePainter.State.Success
+        LaunchedEffect(painterSuccess) {
+            onLoadedChange(painterSuccess)
         }
         // Intrinsic size follows the decoded (possibly cropped) art; the fit
         // box wraps it so crop refits instead of sitting at the old scale.
@@ -326,6 +365,18 @@ private fun PageArt(
                 colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
                 modifier = Modifier.fillMaxSize(),
             )
+            // Deep-zoom sharpness: past 2x a higher-resolution decode fades
+            // in over the base art (same key family, Coil-cached). The base
+            // stays underneath until the hi-res lands, so there is no flash.
+            if (deepZoom) {
+                HiResOverlay(
+                    comicId = comicId,
+                    pageIndex = pageIndex,
+                    cropMargins = cropMargins,
+                    half = half,
+                    displayFilter = displayFilter,
+                )
+            }
             // Filter overlays ride above the art (inside the zoom transform):
             // dim, lift, then night warmth. Skipped entirely when neutral.
             if (!displayFilter.isNeutral) {
@@ -423,13 +474,25 @@ private const val DOUBLE_TAP_ZOOM = 2f
 private const val DOUBLE_TAP_HYSTERESIS = 0.9f
 private const val PAGE_ASPECT = 2f / 3f
 
+/**
+ * Combined scale + offset animation state for seamless double-tap retargets:
+ * a fresh tap animates from the live position instead of restarting the lerp.
+ */
+private data class ZoomState(val scale: Float, val offset: Offset) {
+    companion object {
+        val VectorConverter: TwoWayConverter<ZoomState, AnimationVector3D> = TwoWayConverter(
+            convertToVector = { AnimationVector3D(it.scale, it.offset.x, it.offset.y) },
+            convertFromVector = { ZoomState(it.v1, Offset(it.v2, it.v3)) },
+        )
+    }
+}
+
 /** Sanity bounds for decoded-art aspects (guards degenerate intrinsic sizes). */
 private const val MIN_ART_ASPECT = 0.2f
 private const val MAX_ART_ASPECT = 5f
 
 /**
- * Double-tap zoom target: a 2-state toggle with hysteresis (reference-reader
- * parity). At or below 90% of the zoom level zooms in; anything above —
+ * Double-tap zoom target: a 2-state toggle with hysteresis. At or below 90% of the zoom level zooms in; anything above —
  * including deep pinches — resets to fit. Pure for testability; the
  * animation itself runs in the page.
  */
@@ -438,7 +501,7 @@ internal fun zoomTargetForTap(currentScale: Float): Float =
 
 /**
  * Translation that glides the tapped art to the viewport center while
- * zooming in (reference-reader focus-center), clamped to the pan bounds so
+ * zooming in, clamped to the pan bounds so
  * the landing never overshoots into a snap-back on first touch.
  *
  * The page scales about its center, so a point `tap` lands at
@@ -464,6 +527,60 @@ internal fun zoomOffsetForTap(
 
 /** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */
 private const val READER_MAX_DIMENSION = 1600
+
+/**
+ * Deep-zoom decode bound past [DEEP_ZOOM_SCALE]: one sharper bitmap swapped
+ * over the base art instead of stretching it (~39MB transient worst case at
+ * 2:3 portrait, Coil-cached, released with the page).
+ */
+private const val HI_RES_DIMENSION = 2560
+private const val HI_RES_DIMENSION_LOW_RAM = 1280
+
+private fun isLowRamDevice(context: Context): Boolean {
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+    return activityManager?.isLowRamDevice ?: false
+}
+
+/** Scale past which the hi-res overlay loads. */
+private const val DEEP_ZOOM_SCALE = 2f
+
+/** Scale below which the hi-res overlay unloads (hysteresis vs [DEEP_ZOOM_SCALE]). */
+private const val DEEP_ZOOM_EXIT_SCALE = 1.7f
+
+/**
+ * Higher-resolution overlay for deep zoom. Loads only while zoomed past
+ * [DEEP_ZOOM_SCALE] and draws only once decoded, over the base art with the
+ * same filter — no placeholder, no flash, no layout effect.
+ */
+@Composable
+private fun HiResOverlay(
+    comicId: String,
+    pageIndex: Int,
+    cropMargins: Boolean,
+    half: PageHalf,
+    displayFilter: DisplayFilter,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val hiResDimension = remember(context) {
+        if (isLowRamDevice(context)) HI_RES_DIMENSION_LOW_RAM else HI_RES_DIMENSION
+    }
+    key(comicId, pageIndex, cropMargins, half) {
+        val painter = rememberAsyncImagePainter(
+            model = ComicPageKey(comicId, pageIndex, hiResDimension, cropMargins, half),
+            contentScale = ContentScale.Fit,
+        )
+        val painterState by painter.state.collectAsStateWithLifecycle()
+        if (painterState is AsyncImagePainter.State.Success) {
+            Image(
+                painter = painter,
+                contentDescription = null,
+                colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
+                modifier = modifier.fillMaxSize(),
+            )
+        }
+    }
+}
 
 /** Warm overlay hue for the night filter (alpha carries the strength). */
 private val NightTintColor = Color(0xFFFFAB40)

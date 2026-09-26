@@ -30,7 +30,16 @@ import javax.inject.Singleton
 class LinkedArchiveCache @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val cacheDir = File(context.cacheDir, LINKED_DIR).apply { mkdirs() }
+    // Plain File ref only: mkdirs() runs inside materialize's IO block so no
+    // filesystem I/O happens on the thread that creates the singleton.
+    private val cacheDir = File(context.cacheDir, LINKED_DIR)
+
+    /**
+     * Serializes eviction across entries: evictToFit runs inside per-entry
+     * locks, so two books materializing in parallel could otherwise compute
+     * the same total and evict overlapping sets.
+     */
+    private val evictionMutex = Mutex()
 
     /**
      * Per-entry locks: concurrent page-fetch plus cover-gen for the same
@@ -40,6 +49,7 @@ class LinkedArchiveCache @Inject constructor(
     private val entryLocks = ConcurrentHashMap<String, Mutex>()
 
     suspend fun materialize(uri: Uri, displayName: String): File = withContext(Dispatchers.IO) {
+        cacheDir.mkdirs()
         val doc = DocumentFile.fromSingleUri(context, uri)
             ?: throw IOException("Unable to open $displayName")
         val size = doc.length()
@@ -84,14 +94,20 @@ class LinkedArchiveCache @Inject constructor(
         return "${sha256Hex(uri.toString()).take(16)}-$size-$modified-$safe"
     }
 
-    private fun evictToFit(incoming: Long) {
-        val files = cacheDir.listFiles()?.sortedBy { it.lastModified() } ?: return
-        var total = files.sumOf { it.length() }
-        for (file in files) {
-            if (total + incoming.coerceAtLeast(0) <= CACHE_BOUND_BYTES) break
-            val freed = file.length()
-            if (runCatching { file.delete() }.getOrDefault(false)) {
-                total -= freed
+    private suspend fun evictToFit(incoming: Long) {
+        evictionMutex.withLock {
+            // In-flight ".part" temps belong to a live materialize holding its
+            // entry lock: never count them toward the total, never delete them.
+            val files = cacheDir.listFiles()
+                ?.filterNot { it.name.endsWith(".part") }
+                ?.sortedBy { it.lastModified() } ?: return
+            var total = files.sumOf { it.length() }
+            for (file in files) {
+                if (total + incoming.coerceAtLeast(0) <= CACHE_BOUND_BYTES) break
+                val freed = file.length()
+                if (runCatching { file.delete() }.getOrDefault(false)) {
+                    total -= freed
+                }
             }
         }
     }

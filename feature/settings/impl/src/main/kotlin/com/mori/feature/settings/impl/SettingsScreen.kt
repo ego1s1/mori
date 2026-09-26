@@ -1,6 +1,7 @@
 package com.mori.feature.settings.impl
 
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,8 +44,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSliderRow
@@ -214,7 +219,11 @@ internal fun SettingsContent(
             )
             // True-black only applies in dark mode; hide it under explicit
             // light so the toggle never reads as broken.
-            if (theme.mode != ThemeMode.LIGHT) {
+            AnimatedVisibility(
+                visible = theme.mode != ThemeMode.LIGHT,
+                enter = MoriMotion.enter(MoriEnterKind.FADE),
+                exit = MoriMotion.exit(MoriEnterKind.FADE),
+            ) {
                 MoriSettingSwitch(
                     title = stringResource(R.string.settings_amoled_title),
                     subtitle = stringResource(R.string.settings_amoled_subtitle),
@@ -300,7 +309,11 @@ internal fun SettingsContent(
                 checked = reader.volumeKeys,
                 onCheckedChange = { onAction(SettingsAction.ToggleVolumeKeys) },
             )
-            if (reader.volumeKeys) {
+            AnimatedVisibility(
+                visible = reader.volumeKeys,
+                enter = MoriMotion.enter(MoriEnterKind.FADE),
+                exit = MoriMotion.exit(MoriEnterKind.FADE),
+            ) {
                 MoriSettingSwitch(
                     title = stringResource(R.string.settings_volume_invert_title),
                     subtitle = stringResource(R.string.settings_volume_invert_subtitle),
@@ -472,7 +485,12 @@ internal fun SettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.large)
-                    .clickable(onClick = onLicensesClick, role = Role.Button)
+                    .clickable(
+                        onClickLabel = stringResource(R.string.settings_about_licenses),
+                        onClick = onLicensesClick,
+                        role = Role.Button,
+                    )
+                    .testTag(SettingsTestTags.LicensesRow)
                     .padding(vertical = 8.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -595,9 +613,14 @@ private fun GroupDialogHost(
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (dialog) {
-        null -> Unit
-        GroupDialog.Create -> GroupNameDialog(
+    AnimatedVisibility(
+        visible = dialog != null,
+        enter = MoriMotion.enter(MoriEnterKind.FADE),
+        exit = MoriMotion.exit(MoriEnterKind.FADE),
+    ) {
+        when (dialog) {
+            null -> Unit
+            GroupDialog.Create -> GroupNameDialog(
             title = stringResource(R.string.settings_group_create_title),
             label = stringResource(R.string.settings_group_create_label),
             confirmText = stringResource(R.string.settings_group_create_confirm),
@@ -637,6 +660,7 @@ private fun GroupDialogHost(
             },
             modifier = modifier.testTag(SettingsTestTags.GroupDialog),
         )
+        }
     }
 }
 

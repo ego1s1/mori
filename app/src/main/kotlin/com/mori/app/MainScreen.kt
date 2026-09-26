@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -60,17 +61,21 @@ object MainRoute
  * Survives process death (unlike plain remember): the resume FAB stays
  * until the library flow re-emits, instead of vanishing after a kill.
  */
-private val ResumeTargetSaver: Saver<ResumeTarget?, Any> = Saver(
+private val ResumeTargetSaver: Saver<ResumeTarget?, Any> = listSaver(
     save = { target ->
-        target?.let { listOf(it.comicId, it.pageIndex, it.title) }
+        if (target == null) emptyList() else listOf(target.comicId, target.pageIndex, target.title)
     },
-    restore = { saved ->
-        @Suppress("UNCHECKED_CAST")
-        (saved as? List<Any>)?.let { parts ->
+    restore = { parts ->
+        val comicId = parts.getOrNull(0) as? String
+        val pageIndex = (parts.getOrNull(1) as? Number)?.toInt()
+        val title = parts.getOrNull(2) as? String
+        if (comicId == null || pageIndex == null || title == null) {
+            null
+        } else {
             ResumeTarget(
-                comicId = parts[0] as String,
-                pageIndex = (parts[1] as Number).toInt(),
-                title = parts[2] as String,
+                comicId = comicId,
+                pageIndex = pageIndex,
+                title = title,
             )
         }
     },
@@ -147,6 +152,13 @@ internal fun MainScreen(
 
     var resume by rememberSaveable(stateSaver = ResumeTargetSaver) { mutableStateOf<ResumeTarget?>(null) }
 
+    // Reading consumes the resume cue: clear it alongside navigation so the
+    // FAB never lingers over the reader or survives a return stale.
+    val handleReadClick: (String, Int) -> Unit = { comicId, pageIndex ->
+        resume = null
+        onReadClick(comicId, pageIndex)
+    }
+
     // Single floating navigator for all tabs (destinations + resume); the
     // library's action toolbar floats above it. No bottom bar.
     Scaffold(
@@ -197,12 +209,12 @@ internal fun MainScreen(
                 tabStateHolder.SaveableStateProvider(tab) {
                     when (tab) {
                         LIBRARY_TAB -> LibraryTabContent(
-                            onReadClick = onReadClick,
+                            onReadClick = handleReadClick,
                             onComicLongClick = onComicLongClick,
-                            onResumeAvailable = { resume = it },
+                            onResumeAvailable = { if (it != resume) resume = it },
                         )
                         HISTORY_TAB -> HistoryTabContent(
-                            onReadClick = onReadClick,
+                            onReadClick = handleReadClick,
                             onComicLongClick = onComicLongClick,
                         )
                         else -> SettingsTabContent(
@@ -241,7 +253,7 @@ internal fun MainScreen(
                         resume?.let { target ->
                             ResumeButton(
                                 title = target.title,
-                                onClick = { onReadClick(target.comicId, target.pageIndex) },
+                                onClick = { handleReadClick(target.comicId, target.pageIndex) },
                             )
                         }
                     }

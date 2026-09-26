@@ -534,6 +534,8 @@ internal class ReaderViewModel @Inject constructor(
         }
     }
 
+    private var filterJob: Job? = null
+
     /**
      * Display-filter edits land on this book's override (never the global
      * default): read the effective filter synchronously so rapid slider
@@ -543,7 +545,8 @@ internal class ReaderViewModel @Inject constructor(
         val ready = uiState.value as? ReaderUiState.Ready ?: return
         val id = ready.comicId
         val next = transform(ready.displayFilter)
-        viewModelScope.launch {
+        filterJob?.cancel()
+        filterJob = viewModelScope.launch {
             repository.setDisplayFilter(id, next)
         }
     }

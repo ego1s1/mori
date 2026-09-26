@@ -11,7 +11,7 @@ import com.mori.core.model.ReadingDirection
 import kotlin.math.abs
 
 /**
- * Pan/zoom routing for reader pages and its pager (reference-reader parity):
+ * Pan/zoom routing for reader pages and its pager:
  *
  * - single-finger drags at fit (`scale <= 1`) are never touched, so the
  *   pager owns swipes outright instead of fighting over every delta;
@@ -33,8 +33,13 @@ import kotlin.math.abs
  *
  * Ownership notes: the loop reports multi-touch ([onPinchingChange]) so the
  * pager can stand down for the whole pinch — a pager that tracks pinch
- * drift turns pages mid-zoom. The caller turns the page explicitly because
- * the pager is stood down while zoomed and could never take over by itself.
+ * drift turns pages mid-zoom. A swipe starting already clamped at the edge
+ * in the outward direction passes straight through untouched, so the
+ * enabled pager drags it natively with the finger; pans that reach the
+ * clamp mid-gesture turn through the explicit overshoot dispatch below.
+ *
+ * @param quickScale shared hold-drag state for double-tap-hold continuous
+ * zoom; null disables it.
  */
 internal fun Modifier.zoomPan(
     getScale: () -> Float,
@@ -47,12 +52,22 @@ internal fun Modifier.zoomPan(
     onPinchingChange: (pinching: Boolean) -> Unit,
     maxZoom: Float = MAX_ZOOM,
     onFlingEnd: (velocityPxPerSec: Offset) -> Unit = {},
-): Modifier = pointerInput(Unit) {
-    // Engage budget (~5dp, reference-reader parity): content starts
+    quickScale: QuickScaleState? = null,
+    /**
+     * False while the pager is not allowed to turn: edge pass-through is
+     * skipped so the swipe pans (or does nothing) instead of paging.
+     */
+    swipeToTurn: Boolean = true,
+): Modifier = pointerInput(direction) {
+    // Engage budget (~5dp: content starts
     // following well before full touch slop. zoneTaps voids holds on the
     // same budget, so taps and pans stay mutually exclusive.
     val engageSlop = GESTURE_ENGAGE_DP * density
     val edgeTurnExtraPx = EDGE_TURN_EXTRA_DP * density
+    // FLING_MIN_* consts keep their px names to avoid breaking tests; they
+    // are treated as dp and scaled to px here.
+    val minTravelPx = FLING_MIN_TRAVEL_PX * density
+    val minVelPxPerSec = FLING_MIN_VELOCITY_PX_PER_SEC * density
     awaitEachGesture {
         val downs = mutableMapOf<PointerId, Offset>()
         // Release-velocity tracking for the fling: single-finger only,
@@ -73,6 +88,10 @@ internal fun Modifier.zoomPan(
         // vertical drift resets it.
         var edgeOvershoot = 0f
         var turned = false
+        // Edge-start pass-through: a fresh single-finger gesture that begins
+        // already clamped and pushes further outward belongs to the pager —
+        // set once the drift clears engage, cleared on any finger change.
+        var edgePassThrough = false
         try {
             while (true) {
                 val event = awaitPointerEvent()
@@ -90,7 +109,7 @@ internal fun Modifier.zoomPan(
                     // the pinch report so the pager stands down for the whole
                     // multi-touch gesture. Only a mid-gesture join/leave skips
                     // panning for one event (stale centroid would jump).
-                    if (pressed.size > 1 && prevCount <= 1) {
+                    if (pressed.size > 1 && prevCount <= 1 && !pinched) {
                         onPinchingChange(true)
                         pinched = true
                     }
@@ -103,12 +122,20 @@ internal fun Modifier.zoomPan(
                     edgeOvershoot = 0f
                     flingAnchor = if (pressed.size == 1) snapshot else null
                     flingLast = null
-                    if (joined != 0) continue
+                    if (joined != 0) {
+                        // A mid-gesture join/leave ends the hold-drag and any
+                        // edge pass-through: pinch (or the fresh single pan)
+                        // takes over instead of fighting it.
+                        quickScale?.disarm()
+                        edgePassThrough = false
+                        continue
+                    }
                 }
-                if (pressed.isEmpty()) {                    // All fingers up: a fast single-finger pan keeps going
+                if (pressed.isEmpty()) {
+                    // All fingers up: a fast single-finger pan keeps going
                     // with momentum instead of stopping dead. Turns, pinches
                     // and fit-scale have nothing to glide.
-                    if (!turned && !pinched && singlePanned && getScale() > 1f) {
+                    if (!turned && !pinched && !edgePassThrough && singlePanned && getScale() > 1f) {
                         val raw = tracker.calculateVelocity()
                         val velocity = capFlingVelocity(
                             Offset(raw.x, raw.y),
@@ -121,8 +148,8 @@ internal fun Modifier.zoomPan(
                         } else {
                             0f
                         }
-                        if (travel >= FLING_MIN_TRAVEL_PX &&
-                            velocity.getDistance() >= FLING_MIN_VELOCITY_PX_PER_SEC
+                        if (travel >= minTravelPx &&
+                            velocity.getDistance() >= minVelPxPerSec
                         ) {
                             onFlingEnd(velocity)
                         }
@@ -131,19 +158,84 @@ internal fun Modifier.zoomPan(
                 }
                 if (!pastSlop) {
                     // Tap-friendly: claim nothing until someone actually drifts.
-                    val drifted = pressed.any { change ->
+                    var drifted = false
+                    for (change in pressed) {
                         val start = downs[change.id] ?: change.position
-                        (change.position - start).getDistance() > engageSlop
+                        if ((change.position - start).getDistance() > engageSlop) {
+                            drifted = true
+                            break
+                        }
                     }
                     if (!drifted) continue
                     pastSlop = true
                     onCancelMotion()
                     if (pressed.size == 1) {
                         flingAnchor = pressed.first().position
+                        // Edge-start pass-through: a fresh gesture that begins
+                        // already clamped and pushes further outward belongs
+                        // to the pager outright — claim nothing all gesture
+                        // so it drags natively with the finger. Pulling back
+                        // pans instead.
+                        val first = pressed.first()
+                        val start = downs[first.id] ?: first.position
+                        val dx = first.position.x - start.x
+                        val scale = getScale()
+                        edgePassThrough = swipeToTurn && scale > 1f &&
+                            isOutwardPush(getOffset().x, scale, size.width.toFloat(), dx)
                     }
+                }
+                if (edgePassThrough) {
+                    // Pager owns this gesture: track baselines only, consume
+                    // nothing, so its drag starts on unconsumed slop.
+                    val passCentroid = centroidOf(pressed)
+                    prevCentroid = passCentroid
+                    prevDist = spreadOf(pressed)
+                    continue
                 }
                 val multi = pressed.size > 1
                 val scaleNow = getScale()
+                if (quickScale?.armed == true && !multi) {
+                    // Double-tap-hold-drag: vertical travel zooms continuously
+                    // around the armed point instead of panning. Horizontal
+                    // drift is ignored; a second finger disarms above.
+                    val thresholdPx = QUICK_SCALE_THRESHOLD_DP * density
+                    val centroid = centroidOf(pressed)
+                    val y = centroid.y
+                    if (quickScale.lastDistance < 0f) {
+                        quickScale.lastDistance = abs(quickScale.startY - y) * 2f + thresholdPx
+                    }
+                    val dist = abs(quickScale.startY - y) * 2f + thresholdPx
+                    val mult = quickScaleMultiplier(dist, quickScale.lastDistance, y > prevCentroid.y)
+                    if (mult != 1f) {
+                        if (!quickScale.moved) {
+                            onCancelMotion()
+                        }
+                        quickScale.markMoved()
+                        val newScale = (scaleNow * mult).coerceIn(1f, maxZoom)
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val f = quickScale.anchor - center
+                        val ratio = newScale / scaleNow.coerceAtLeast(1e-6f)
+                        val rawTarget = f * (1f - ratio) + getOffset() * ratio +
+                            (centroid - prevCentroid)
+                        val target = clampPan(
+                            rawTarget,
+                            newScale,
+                            size.width.toFloat(),
+                            size.height.toFloat(),
+                        )
+                        if (target != getOffset() || newScale != scaleNow) {
+                            setScale(newScale)
+                            setOffset(target)
+                            for (change in pressed) {
+                                change.consume()
+                            }
+                        }
+                    }
+                    quickScale.sampleSpan(dist)
+                    prevCentroid = centroid
+                    prevDist = spreadOf(pressed)
+                    continue
+                }
                 if (!multi && scaleNow <= 1f) {
                     // Fit: single-finger drags belong to the pager. Touch nothing.
                     val centroid = centroidOf(pressed)
@@ -151,57 +243,41 @@ internal fun Modifier.zoomPan(
                     prevDist = spreadOf(pressed)
                     continue
                 }
-                val centroid = centroidOf(pressed)
-                val dist = spreadOf(pressed)
+                val (centroid, dist) = centroidAndSpread(pressed)
                 val zoom = if (multi && prevDist > 0f) dist / prevDist else 1f
                 val targetScale = (scaleNow * zoom).coerceIn(1f, maxZoom)
                 val center = Offset(size.width / 2f, size.height / 2f)
                 // Scale about the centroid so the tapped art stays put, then
                 // follow centroid travel, all inside content bounds.
+                val cur = getOffset()
                 val f = centroid - center
                 val ratio = targetScale / scaleNow.coerceAtLeast(1e-6f)
-                val rawTarget = f * (1f - ratio) + getOffset() * ratio + (centroid - prevCentroid)
+                val rawTarget = f * (1f - ratio) + cur * ratio + (centroid - prevCentroid)
                 val target = clampPan(rawTarget, targetScale, size.width.toFloat(), size.height.toFloat())
-                // Hard stop: mid-gesture clamp excess is dropped, never turned —
-                // unless it keeps pushing outward past the turn budget.
-                val used = target != getOffset() || targetScale != scaleNow
+                // Hard stop with fallback: the clamp drops excess, which
+                // accumulates toward the explicit turn below. A swipe that
+                // started already clamped never reaches here — it passes
+                // through to the pager above.
+                val used = target != cur || targetScale != scaleNow
+                if (!multi) {
+                    // Single-finger pan sample for release momentum. Only
+                    // the traveling finger feeds the tracker; pinch
+                    // samples would corrupt the release velocity.
+                    val single = pressed.first()
+                    tracker.addPosition(single.uptimeMillis, single.position)
+                    flingLast = single.position
+                    singlePanned = true
+                }
                 if (used) {
-                    setScale(targetScale)
-                    setOffset(target)
-                    pressed.forEach { it.consume() }
-                    if (!multi) {
-                        // Single-finger pan sample for release momentum. Only
-                        // the traveling finger feeds the tracker; pinch
-                        // samples would corrupt the release velocity.
-                        val single = pressed.first()
-                        tracker.addPosition(single.uptimeMillis, single.position)
-                        flingLast = single.position
-                        singlePanned = true
-                        // Edge handoff: the dropped clamp excess accumulates
-                        // only while the push stays horizontal and outward.
-                        // Past the budget the same swipe pages — anywhere
-                        // origin, direction only. Anything else resets.
-                        val travel = centroid - prevCentroid
-                        val horizontal = abs(travel.x) > abs(travel.y)
-                        edgeOvershoot = accumulateEdgeOvershoot(
-                            edgeOvershoot,
-                            excessX = rawTarget.x - target.x,
-                            clampedX = target.x,
-                            horizontalPush = horizontal,
-                        )
-                        if (edgeOvershoot >= edgeTurnExtraPx) {
-                            turned = true
-                            onEdgeTurn(edgeTurnForward(rawTarget.x - target.x, direction))
-                            pressed.forEach { it.consume() }
-                            break
-                        }
-                    } else {
-                        edgeOvershoot = 0f
+                    if (target.x.isFinite() && target.y.isFinite()) {
+                        setScale(targetScale)
+                        setOffset(target)
                     }
-                } else if (!multi) {
-                    // Fully clamped with no room: still watch the push, so a
-                    // swipe starting pinned at the edge can turn without
-                    // content moving first.
+                    for (change in pressed) {
+                        change.consume()
+                    }
+                }
+                if (!multi) {
                     val travel = centroid - prevCentroid
                     val horizontal = abs(travel.x) > abs(travel.y)
                     edgeOvershoot = accumulateEdgeOvershoot(
@@ -213,9 +289,13 @@ internal fun Modifier.zoomPan(
                     if (edgeOvershoot >= edgeTurnExtraPx) {
                         turned = true
                         onEdgeTurn(edgeTurnForward(rawTarget.x - target.x, direction))
-                        pressed.forEach { it.consume() }
+                        for (change in pressed) {
+                            change.consume()
+                        }
                         break
                     }
+                } else {
+                    edgeOvershoot = 0f
                 }
                 prevCentroid = centroid
                 prevDist = dist
@@ -231,7 +311,7 @@ internal fun Modifier.zoomPan(
 internal const val MAX_ZOOM = 5f
 
 /**
- * Gesture engage budget in dp (reference-reader parity): content starts
+ * Gesture engage budget in dp: content starts
  * following well before full touch slop. Shared with [zoneTaps], which
  * voids tap holds on the same budget so taps and pans stay exclusive.
  */
@@ -251,13 +331,13 @@ internal const val EDGE_TURN_EXTRA_DP = 8f
 internal const val MAX_FLING_PX_PER_SEC = 12_000f
 
 /**
- * Minimum release velocity for a fling (px/s, reference-reader parity):
+ * Minimum release velocity for a fling (px/s:
  * slower lifts just settle where the finger left them.
  */
 internal const val FLING_MIN_VELOCITY_PX_PER_SEC = 500f
 
 /**
- * Minimum finger travel for a fling (px, reference-reader parity): a fast
+ * Minimum finger travel for a fling (px: a fast
  * flick with no travel is a tap, not a glide.
  */
 internal const val FLING_MIN_TRAVEL_PX = 50f
@@ -288,7 +368,7 @@ internal fun accumulateEdgeOvershoot(
         0f
     }
 
-/** Seconds of release velocity folded into the fling target (reference-reader parity). */
+/** Seconds of release velocity folded into the fling target. */
 internal const val FLING_GLIDE_SECONDS = 0.25f
 
 /**
@@ -307,6 +387,24 @@ internal fun flingTarget(
 /** Maps a horizontal clamp overshoot to reading-direction travel. Pure for testability. */
 internal fun edgeTurnForward(overshootX: Float, direction: ReadingDirection): Boolean =
     if (direction == ReadingDirection.LEFT_TO_RIGHT) overshootX < 0f else overshootX > 0f
+
+/**
+ * Whether a fresh swipe pushes further past the already-clamped edge.
+ * [offsetX] and [scale] are the gesture-start values; [dx] is the first
+ * past-slop horizontal travel. Pure for testability.
+ */
+internal fun isOutwardPush(offsetX: Float, scale: Float, widthPx: Float, dx: Float): Boolean {
+    if (scale <= 1f || dx == 0f) return false
+    val maxX = widthPx * (scale - 1f) / 2f
+    return when {
+        offsetX <= -maxX + EDGE_EPS_PX && dx < 0f -> true
+        offsetX >= maxX - EDGE_EPS_PX && dx > 0f -> true
+        else -> false
+    }
+}
+
+/** Clamp tolerance: offsets within a pixel of the limit count as at-edge. */
+internal const val EDGE_EPS_PX = 1f
 
 /** Pan limits for width-fitted content: overflow halves each side. */
 internal fun clampPan(target: Offset, scale: Float, widthPx: Float, heightPx: Float): Offset {
@@ -335,4 +433,20 @@ private fun spreadOf(pressed: List<PointerInputChange>): Float {
     var spread = 0f
     pressed.forEach { spread += (it.position - centroid).getDistance() }
     return spread / pressed.size
+}
+
+private fun centroidAndSpread(pressed: List<PointerInputChange>): Pair<Offset, Float> {
+    var x = 0f
+    var y = 0f
+    for (change in pressed) {
+        x += change.position.x
+        y += change.position.y
+    }
+    val centroid = Offset(x / pressed.size, y / pressed.size)
+    if (pressed.size < 2) return centroid to 0f
+    var spread = 0f
+    for (change in pressed) {
+        spread += (change.position - centroid).getDistance()
+    }
+    return centroid to spread / pressed.size
 }

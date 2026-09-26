@@ -194,8 +194,9 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     }
 
     override suspend fun toggleBookmark(id: String) {
-        val row = dao.getById(id) ?: return
-        dao.updateBookmark(id, !row.bookmarked, System.currentTimeMillis())
+        // Single-statement toggle: a missing row is a no-op, same as the
+        // previous read-then-write, without the extra round trip.
+        dao.toggleBookmark(id, System.currentTimeMillis())
     }
 
     override fun observeDisplayFilter(id: String): Flow<DisplayFilter?> =
@@ -389,6 +390,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         // user's folders; only covers and the transient read cache count.
         val coversDir = File(context.filesDir, CoverGenerator.COVERS_DIR)
         val linkedDir = File(context.cacheDir, LinkedArchiveCache.LINKED_DIR)
+        // Coil disk cache dir, mirroring MoriImageLoaderFactory ("coil").
+        val coilDir = File(context.cacheDir, "coil")
         fun dirBytes(dir: File): Long =
             if (dir.isDirectory) {
                 dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
@@ -396,9 +399,9 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                 0L
             }
         StorageUsage(
-            comicCount = dao.getIds().size,
+            comicCount = dao.count().toInt(),
             libraryBytes = 0L,
-            coversBytes = dirBytes(coversDir) + dirBytes(linkedDir),
+            coversBytes = dirBytes(coversDir) + dirBytes(linkedDir) + dirBytes(coilDir),
         )
     }
 
@@ -419,7 +422,10 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         fallbackTitle: String? = null,
     ): ComicEntity {
         val now = System.currentTimeMillis()
-        val known = existing ?: dao.getById(file.name)
+        // Callers pass the row from the single getAll() snapshot (indexLinkedTree)
+        // or the just-fetched row (refreshComic); no inner lookup needed. A null
+        // `existing` means "not in the snapshot", i.e. a genuinely new file.
+        val known = existing
         if (known != null && known.sourceModified == file.lastModified() &&
             known.coverPath?.let { File(it).isFile } == true
         ) {

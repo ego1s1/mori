@@ -2,6 +2,7 @@ package com.mori.feature.reader.impl
 
 import androidx.compose.ui.geometry.Offset
 import com.mori.core.model.ReadingDirection
+import kotlin.math.abs
 
 /**
  * Tap-zone outcome for a tap on a reader page.
@@ -45,7 +46,7 @@ internal sealed interface PanTurn {
 
 /**
  * Routes an edge tap while zoomed: pan toward the tapped side first, turn only
- * at the pan limit (reference-reader navigate-to-pan behavior).
+ * at the pan limit.
  *
  * [towardTrailing] is true for taps on the screen's trailing (right) edge:
  * the NEXT zone in left-to-right, the PREV zone in right-to-left. Pan limits
@@ -63,7 +64,7 @@ internal fun panOrTurn(
     val maxPan = viewportWidthPx * (scale - 1f) / 2f
     val step = viewportWidthPx * PAN_STEP_FRACTION * if (towardTrailing) -1f else 1f
     val target = (offsetX + step).coerceIn(-maxPan, maxPan)
-    return if (target == offsetX) PanTurn.Turn else PanTurn.Pan(target)
+    return if (abs(target - offsetX) <= EDGE_EPS_PX) PanTurn.Turn else PanTurn.Pan(target)
 }
 
 private const val PAN_STEP_FRACTION = 0.4f

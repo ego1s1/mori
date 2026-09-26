@@ -22,9 +22,10 @@ import kotlinx.coroutines.launch
  * physical x always lands in the same zone.
  *
  * Single-tap-confirmed dispatch: every tap holds a small double-tap
- * window before it fires. A second contact landing in-window pairs into
- * a zoom immediately — on second down, like the platform `onDoubleTap` —
- * so pairs never dispatch and there is nothing to undo or compensate. Held edge taps
+ * window before it fires. A second contact landing in-window arms a
+ * quick-scale hold-drag (continuous zoom while held, stepped zoom on clean
+ * lift) — like the platform `onDoubleTap` — so pairs never dispatch and
+ * there is nothing to undo or compensate. Held edge taps
  * open a short rhythm window of instant turns for fast skipping; center taps
  * always hold, so double-tap-to-zoom works from any state; a press that drifts
  * into a scroll or pinch stands the hold down silently.
@@ -32,10 +33,11 @@ import kotlinx.coroutines.launch
  * Every finger is tracked independently inside one gesture: alternating
  * two-finger skipping dispatches one tap per finger-up, even with overlapping
  * contact (overlapping downs never pair — pairs are strictly sequential).
- * A press only counts when its own drift stays within touch slop, no other
- * finger drifted either (pinches void the whole gesture), and the up wasn't
- * claimed by a drag handler. Presses that drift past touch slop are not taps
- * and are ignored. The trailing up of a paired double-tap is swallowed.
+ * A press only counts when its own drift stays within the engage budget, no
+ * other finger drifted either (pinches void the whole gesture), and the up
+ * wasn't claimed by a drag handler. Presses that drift past the budget are
+ * not taps and are ignored. The trailing up of a paired double-tap is
+ * swallowed.
  *
  * All pairing math runs on pointer-event time, so tests drive it with the
  * test clock. [viewportWidth] is read live through state, so the detector
@@ -44,6 +46,9 @@ import kotlinx.coroutines.launch
  * after handling, so an outer detector further up the hit path ignores taps
  * already claimed by a page. Taps swallowed by chrome clickables never reach
  * a detector at all.
+ *
+ * @param quickScale shared hold-drag state; null keeps the immediate
+ * stepped zoom on pair (container fallback).
  */
 internal fun Modifier.zoneTaps(
     viewportWidth: State<Float>,
@@ -53,23 +58,29 @@ internal fun Modifier.zoneTaps(
      * Bumped by the caller whenever [direction] changes. The hold job runs
      * in [scope] (a pointerInput restart cannot cancel outer-scope
      * children), so it stamps the epoch at hold time and drops the fire
-     * when the epoch moved — a direction flip mid-hold never dispatches a
-     * stale-zone tap nor pins its callback past the rebuild.
+     * when the epoch moved — a direction flip mid-hold moves it, and the
+     * stale fire drops.
      */
     epoch: State<Int>,
     onZoneTap: (ReaderZone) -> Unit,
     onZoom: (tap: Offset, center: Offset) -> Unit,
     consumeUp: Boolean,
+    quickScale: QuickScaleState? = null,
 ): Modifier = pointerInput(direction) {
     val touchSlop = viewConfiguration.touchSlop
+    val longPressTimeoutMs = android.view.ViewConfiguration.getLongPressTimeout().toLong()
     // Same engage budget as zoomPan: a press that drifts past it is a
     // gesture, never a tap — the two detectors stay mutually exclusive.
-    // Pair radius keeps full slop so double-taps stay forgiving.
+    // Pair radius keeps 2x slop so double-taps stay forgiving.
     val engageSlop = GESTURE_ENGAGE_DP * density
     var pendingTap: TapRecord? = null
     var holdJob: Job? = null
+    // Epoch stamped with the hold: pairing and rhythm only continue on the
+    // same direction epoch, so a flip mid-gesture never dispatches stale.
+    var holdEpoch = 0
     var lastRhythmEdgeMs = 0L
     var lastRhythmZone: ReaderZone? = null
+    var lastRhythmEpoch = 0
     val consumedIds = mutableSetOf<PointerId>()
 
     fun cancelHold() {
@@ -88,23 +99,29 @@ internal fun Modifier.zoneTaps(
         if (tap.zone != ReaderZone.MENU) {
             lastRhythmEdgeMs = nowMs
             lastRhythmZone = tap.zone
+            lastRhythmEpoch = epoch.value
         }
         onZoneTap(tap.zone)
     }
 
     /**
-     * Pairs a fresh down with a held tap-up (double-tap timing):
-     * the zoom fires on second contact, so the pair never dispatches and the
-     * trailing up is swallowed via [consumedIds].
+     * Pairs a fresh down with a held tap-up (double-tap timing): arms
+     * quick-scale instead of zooming immediately, so a hold-drag zooms
+     * continuously while a clean lift falls through to the stepped zoom.
      */
-    fun pairOnDown(id: PointerId, position: Offset, center: Offset, downMs: Long): Boolean {
+    fun pairOnDown(id: PointerId, position: Offset, center: Offset, downMs: Long, downConsumed: Boolean): Boolean {
+        if (downConsumed) return false
         val armed = pendingTap ?: return false
+        if (holdEpoch != epoch.value) return false
         if (!shouldPair(armed, downMs, position, touchSlop)) {
             return false
         }
         cancelHold()
         consumedIds += id
-        onZoom(position, center)
+        quickScale?.arm(id, position.y, position)
+        if (quickScale == null) {
+            onZoom(position, center)
+        }
         return true
     }
 
@@ -116,7 +133,7 @@ internal fun Modifier.zoneTaps(
         canPair: Boolean,
     ) {
         val armed = pendingTap
-        if (canPair && shouldPair(armed, nowMs, position, touchSlop)) {
+        if (canPair && holdEpoch == epoch.value && shouldPair(armed, nowMs, position, touchSlop)) {
             // Double-tap completed on lift (the down already paired when the
             // frames arrived separately): zoom, and neither tap dispatches —
             // the first was held, so there is nothing to undo.
@@ -124,16 +141,24 @@ internal fun Modifier.zoneTaps(
             onZoom(position, center)
             return
         }
-        if (armed != null) {
-            // Early confirm: a far or overlapping second tap rules out
-            // pairing, so fire the held tap now instead of waiting out the
-            // window.
+        // Early confirm: a far or overlapping second tap rules out pairing,
+        // so fire the held tap now instead of waiting out the window. The
+        // current tap always holds afterwards — it must never instant-fire
+        // on the rhythm the confirm just opened.
+        val earlyConfirmed = armed != null
+        if (earlyConfirmed) {
             cancelHold()
             fireHeld(armed, nowMs)
         }
-        if (zone == ReaderZone.MENU || lastRhythmZone != zone ||
-            !isRhythmActive(lastRhythmEdgeMs, nowMs)
+        if (!earlyConfirmed && zone != ReaderZone.MENU && lastRhythmZone == zone &&
+            lastRhythmEpoch == epoch.value && isRhythmActive(lastRhythmEdgeMs, nowMs)
         ) {
+            // Rhythm: instant page turn, session refreshed.
+            lastRhythmEdgeMs = nowMs
+            lastRhythmZone = zone
+            lastRhythmEpoch = epoch.value
+            onZoneTap(zone)
+        } else {
             // Hold for a possible double-tap (single-tap-confirmed).
             // Center taps always take this path, so double-tap-to-zoom works
             // from any state. The hold stamps the detector epoch: a
@@ -141,29 +166,29 @@ internal fun Modifier.zoneTaps(
             val held = TapRecord(timeMs = nowMs, position = position, zone = zone)
             val heldEpoch = epoch.value
             pendingTap = held
+            holdEpoch = heldEpoch
             holdJob?.cancel()
             holdJob = scope.launch {
                 delay(DOUBLE_TAP_TIMEOUT_MS)
-                if (pendingTap?.timeMs == held.timeMs && epoch.value == heldEpoch) {
+                if (pendingTap === held && epoch.value == heldEpoch) {
                     pendingTap = null
                     fireHeld(held, held.timeMs + DOUBLE_TAP_TIMEOUT_MS)
                 }
             }
-        } else {
-            // Rhythm: instant page turn, session refreshed.
-            lastRhythmEdgeMs = nowMs
-            lastRhythmZone = zone
-            onZoneTap(zone)
         }
     }
 
-    awaitEachGesture {
+    try {
+        awaitEachGesture {
         val downPositions = mutableMapOf<PointerId, Offset>()
         val downTimes = mutableMapOf<PointerId, Long>()
         // False when another finger was already down: overlapping contact
-        // can never open a double-tap pair (system-detector parity).
+        // can never open a double-tap pair.
         val sequentialDowns = mutableSetOf<PointerId>()
         val currentPositions = mutableMapOf<PointerId, Offset>()
+        // Worst drift per finger this gesture: a press that wandered past
+        // the budget and came back is a gesture, never a tap.
+        val maxDrifts = mutableMapOf<PointerId, Float>()
         // Rebase helper: narrow centered content resolves taps in viewport
         // space, so the same physical x always lands in the same zone.
         fun rebase(position: Offset): Triple<Offset, Offset, ReaderZone> {
@@ -179,6 +204,11 @@ internal fun Modifier.zoneTaps(
                 if (change.pressed) {
                     currentPositions[change.id] = change.position
                     if (!change.previousPressed) {
+                        // A second finger voids an armed quick-scale: pinch
+                        // takes over instead of fighting the hold-drag.
+                        if (quickScale?.armed == true && change.id != quickScale.pointerId) {
+                            quickScale.disarm()
+                        }
                         if (downPositions.isEmpty()) {
                             sequentialDowns += change.id
                         }
@@ -188,7 +218,7 @@ internal fun Modifier.zoneTaps(
                         // immediately (double-tap timing).
                         if (change.id in sequentialDowns) {
                             val (rebased, center, _) = rebase(change.position)
-                            pairOnDown(change.id, rebased, center, change.uptimeMillis)
+                            pairOnDown(change.id, rebased, center, change.uptimeMillis, change.isConsumed)
                         }
                     }
                 }
@@ -197,7 +227,9 @@ internal fun Modifier.zoneTaps(
             // firing a page turn mid-gesture is worse than dropping it.
             val scrolling = currentPositions.any { (id, current) ->
                 val start = downPositions[id] ?: current
-                (current - start).getDistance() > engageSlop
+                val drift = (current - start).getDistance()
+                maxDrifts[id] = maxOf(maxDrifts[id] ?: 0f, drift)
+                drift > engageSlop
             }
             if (scrolling) {
                 cancelHold()
@@ -211,23 +243,34 @@ internal fun Modifier.zoneTaps(
                     if (change.id in consumedIds) {
                         // Trailing up of a paired double-tap: swallowed, and
                         // consumed so outer detectors don't re-pair it into
-                        // their own phantom toggle.
+                        // their own phantom toggle. A clean lift (no
+                        // hold-drag) falls through to the stepped zoom here.
                         consumedIds -= change.id
+                        val quick = quickScale
+                        if (quick?.armed == true && quick.pointerId == change.id) {
+                            val moved = quick.moved
+                            quick.disarm()
+                            if (!moved) {
+                                val (rebased, center, _) = rebase(change.position)
+                                onZoom(rebased, center)
+                            }
+                        }
                         if (consumeUp) {
                             change.consume()
                         }
                         continue
                     }
                     val ownDrift = start?.let { (change.position - it).getDistance() }
+                    val stayedPut = (maxDrifts.remove(change.id) ?: 0f) <= engageSlop
                     val othersStill = downPositions.all { (id, startPos) ->
                         val current = currentPositions[id] ?: startPos
                         (current - startPos).getDistance() <= engageSlop
                     }
                     // Presses held past the long-press timeout are long
-                    // presses, not taps (AOSP parity) — a two-second
-                    // touch must never turn a page on release.
-                    val quickTap = downMs?.let { isTapDurationValid(it, change.uptimeMillis) } == true
-                    if (ownDrift != null && ownDrift <= engageSlop && othersStill &&
+                    // presses, not taps — a two-second touch must never turn
+                    // a page on release.
+                    val quickTap = downMs?.let { isTapDurationValid(it, change.uptimeMillis, longPressTimeoutMs) } == true
+                    if (ownDrift != null && ownDrift <= engageSlop && stayedPut && othersStill &&
                         quickTap && !change.isConsumed
                     ) {
                         if (consumeUp) {
@@ -246,5 +289,10 @@ internal fun Modifier.zoneTaps(
             }
             if (event.changes.none { it.pressed }) break
         }
+        }
+    } finally {
+        // Detector restarted or gone mid-pair: never strand an armed
+        // hold-drag with no owner to finish it.
+        quickScale?.disarm()
     }
 }

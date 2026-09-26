@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- Library drops the Continue Reading shelf; the bottom-pill resume button
+  remains the single continue path
+- Reader edge swipes starting at the clamp pour into the pager natively;
+  mid-gesture overshoot still turns explicitly as fallback
+- Double-tap-hold-drag zooms continuously (quick-scale)
+- Deep zoom past 2x fades in a higher-resolution overlay with hysteresis
+- Tap pipeline hardening: epoch-guarded pairing/rhythm, single-fire
+  early-confirm, max-drift tap validity
+
 ## 0.2.0
 
 Reader gestures and library polish:

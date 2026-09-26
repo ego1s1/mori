@@ -19,6 +19,7 @@ import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -29,10 +30,10 @@ internal class DataStorePreferencesDataSource @Inject constructor(
 ) : MoriPreferencesDataSource {
 
     override val onboardingCompleted: Flow<Boolean> =
-        dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }
+        dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }.distinctUntilChanged()
 
     override val sourceTreeUri: Flow<String?> =
-        dataStore.data.map { it[SOURCE_TREE_URI] }
+        dataStore.data.map { it[SOURCE_TREE_URI] }.distinctUntilChanged()
 
     override val readerPreferences: Flow<ReaderPreferences> =
         dataStore.data.map { prefs ->
@@ -60,7 +61,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 ),
                 incognito = prefs[INCOGNITO] ?: false,
             )
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
@@ -73,7 +74,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {
-        val updated = transform(readerPreferences.first())
+        val current = readerPreferences.first()
+        val updated = transform(current)
         dataStore.edit {
             it[READING_DIRECTION] = updated.direction.name
             it[PAGE_FIT] = updated.pageFit.name
@@ -106,10 +108,11 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 } ?: ColorSchemeChoice.MORI,
                 amoled = prefs[AMOLED] ?: false,
             )
-        }
+        }.distinctUntilChanged()
 
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
-        val updated = transform(themePreferences.first())
+        val current = themePreferences.first()
+        val updated = transform(current)
         dataStore.edit {
             it[THEME_MODE] = updated.mode.name
             it[DYNAMIC_COLOR] = updated.dynamicColor
@@ -123,7 +126,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             prefs[MOTION_STYLE]?.let {
                 runCatching { MotionStyle.valueOf(it) }.getOrDefault(MotionStyle.EXPRESSIVE)
             } ?: MotionStyle.EXPRESSIVE
-        }
+        }.distinctUntilChanged()
 
     override suspend fun updateMotionStyle(style: MotionStyle) {
         dataStore.edit { it[MOTION_STYLE] = style.name }
@@ -143,10 +146,11 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                     it.toLongOrNull()
                 }.orEmpty().toSet(),
             )
-        }
+        }.distinctUntilChanged()
 
     override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
-        val updated = transform(libraryDisplay.first())
+        val current = libraryDisplay.first()
+        val updated = transform(current)
         dataStore.edit {
             it[LIBRARY_SORT] = updated.sortOrder.name
             it[LIBRARY_FILTER] = updated.filter.name
@@ -156,14 +160,14 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     }
 
     override val readerOverviewSeen: Flow<Boolean> =
-        dataStore.data.map { it[READER_OVERVIEW_SEEN] ?: false }
+        dataStore.data.map { it[READER_OVERVIEW_SEEN] ?: false }.distinctUntilChanged()
 
     override suspend fun setReaderOverviewSeen() {
         dataStore.edit { it[READER_OVERVIEW_SEEN] = true }
     }
 
     override val appLockEnabled: Flow<Boolean> =
-        dataStore.data.map { it[APP_LOCK_ENABLED] ?: false }
+        dataStore.data.map { it[APP_LOCK_ENABLED] ?: false }.distinctUntilChanged()
 
     override suspend fun setAppLockEnabled(enabled: Boolean) {
         dataStore.edit { it[APP_LOCK_ENABLED] = enabled }

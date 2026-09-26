@@ -27,7 +27,6 @@ import com.mori.core.model.MotionStyle
  * |----------------------------------|----------|----------------------|------------------|
  * | Screen enter                     | 400ms    | EmphasizedDecelerate | screenEnterSpec  |
  * | Screen exit                      | 200ms    | EmphasizedAccelerate | screenExitSpec   |
- * | Shared-element cover morph       | 500ms    | emphasized           | screen specs     |
  * | Tab travel glide (retargetable)  | 450/300ms| EmphasizedDec/Acc    | tabEnter/ExitSpec|
  * | Step fade-through                | spring   | spatial + effects    | FADE_THROUGH     |
  * | Content arrival fades            | spring   | effects              | FADE             |
@@ -37,7 +36,7 @@ import com.mori.core.model.MotionStyle
  * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
  * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
  * | Reader open/close fades          | 180/150ms| EmphasizedDec/Acc    | readerEnter/Exit |
- * | Cover launch morph               | 650ms    | EmphasizedDecelerate | coverMorphSpec   |
+ * | Cover launch morph               | 650ms    | EmphasizedDecelerate | coverMorphTransform |
  *
  * Tab travel deliberately uses fixed-time tweens instead of the FADE_THROUGH
  * spring: rapid tab hops retarget cleanly mid-flight, matching the pager
@@ -54,14 +53,13 @@ object MoriMotion {
     val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
     /**
-     * Robert Penner ease-out quad: fast start, soft landing. Pan flings and
-     * fling glides (reference-reader parity).
+     * Robert Penner ease-out quad: fast start, soft landing for pan flings
+     * and fling glides.
      */
     val EaseOutQuad = Easing { fraction -> 1f - (1f - fraction) * (1f - fraction) }
 
     /**
-     * Robert Penner ease-in-out quad: gentle both ends. Double-tap zoom
-     * (reference-reader parity).
+     * Robert Penner ease-in-out quad: gentle both ends for double-tap zoom.
      */
     val EaseInOutQuad = Easing { fraction ->
         if (fraction < 0.5f) {
@@ -106,14 +104,21 @@ object MoriMotion {
     fun pageTurnSpec(): FiniteAnimationSpec<Float> =
         tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
 
-    /** Double-tap zoom glide: fixed-time in-out quad (reference-reader parity). */
+    /** Double-tap zoom glide: fixed-time in-out quad. */
     fun zoomSpec(): FiniteAnimationSpec<Float> =
-        tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EmphasizedDecelerate)
+        tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EaseInOutQuad)
+
+    /**
+     * In-out quad tween for combined zoom state (scale + offset driven as one
+     * Animatable so retargets stay seamless).
+     */
+    fun <T> zoomStateSpec(): FiniteAnimationSpec<T> =
+        tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EaseInOutQuad)
 
     /**
      * Pan fling glide: fixed-time ease-out quad over the velocity-projected
-     * target (reference-reader parity). The target carries the decay, so no
-     * physical friction spec is needed.
+     * target. The target carries the decay, so no physical friction spec
+     * is needed.
      */
     fun flingSpec(): FiniteAnimationSpec<Offset> =
         tween(durationMillis = FLING_GLIDE_MS, easing = EaseOutQuad)

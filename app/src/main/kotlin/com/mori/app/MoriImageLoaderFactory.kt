@@ -54,8 +54,8 @@ class MoriImageLoaderFactory @Inject constructor(
     private companion object {
         const val IMAGE_MEMORY_PERCENT = 0.25
         const val IMAGE_DISK_BYTES = 256L * 1024 * 1024
-        const val IMAGE_FETCH_PARALLELISM = 8
-        const val IMAGE_DECODE_PARALLELISM = 3
+        const val IMAGE_FETCH_PARALLELISM = 4
+        const val IMAGE_DECODE_PARALLELISM = 2
     }
 }
 

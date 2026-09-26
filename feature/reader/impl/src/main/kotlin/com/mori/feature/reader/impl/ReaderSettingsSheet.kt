@@ -15,6 +15,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -96,6 +100,12 @@ internal fun ReaderSettingsSheetContent(
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var previewBrightness by remember(displayFilter.brightness) {
+        mutableStateOf(displayFilter.brightness)
+    }
+    var previewNightTint by remember(displayFilter.nightTint) {
+        mutableStateOf(displayFilter.nightTint)
+    }
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
@@ -240,15 +250,17 @@ internal fun ReaderSettingsSheetContent(
         )
         MoriSliderRow(
             label = stringResource(R.string.reader_filter_brightness),
-            value = displayFilter.brightness,
+            value = previewBrightness,
             valueRange = -1f..1f,
-            onValueChange = { onAction(ReaderAction.SetFilterBrightness(it)) },
+            onValueChange = { previewBrightness = it },
+            onValueChangeFinished = { onAction(ReaderAction.SetFilterBrightness(previewBrightness)) },
         )
         MoriSliderRow(
             label = stringResource(R.string.reader_filter_night),
-            value = displayFilter.nightTint,
+            value = previewNightTint,
             valueRange = 0f..1f,
-            onValueChange = { onAction(ReaderAction.SetFilterNightTint(it)) },
+            onValueChange = { previewNightTint = it },
+            onValueChangeFinished = { onAction(ReaderAction.SetFilterNightTint(previewNightTint)) },
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_filter_grayscale_title),

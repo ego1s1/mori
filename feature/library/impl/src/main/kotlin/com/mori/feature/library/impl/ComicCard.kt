@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,19 +38,17 @@ import com.mori.core.model.Comic
  * for failed rows.
  *
  * Tapping the card continues at the saved page, so there is no separate
- * continue button; the pages-left badge marks in-progress books. The
- * continue shelf reuses the same card in [compact] form: fixed width, shelf
- * identity for tests, no long-press (the grid owns details).
+ * continue button; the pages-left badge marks in-progress books.
+ * Long-press opens details.
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun ComicCard(
     comic: Comic,
     onRead: (Comic) -> Unit,
-    onDetails: ((Comic) -> Unit)?,
+    onDetails: (Comic) -> Unit,
     modifier: Modifier = Modifier,
     sharedCover: Boolean = false,
-    compact: Boolean = false,
     cardTag: String = LibraryTestTags.cardFor(comic.id),
 ) {
     // Wrappers keyed by click-relevant fields (identity, saved page, error)
@@ -59,18 +56,17 @@ internal fun ComicCard(
     // bumps on any write) no longer invalidate the handler, while a real
     // progress save still refreshes the captured resume index.
     val click = remember(comic.id, comic.lastPageIndex, comic.error, onRead) { { onRead(comic) } }
-    val longClick = remember(comic.id, onDetails) { onDetails?.let { action -> { action(comic) } } }
+    val longClick = remember(comic.id, onDetails) { { onDetails(comic) } }
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
-            .then(if (compact) Modifier.width(120.dp) else Modifier)
             .testTag(cardTag)
             .combinedClickable(
                 onClick = click,
                 onClickLabel = stringResource(R.string.library_card_read, comic.title),
                 onLongClick = longClick,
-                onLongClickLabel = longClick?.let { stringResource(R.string.library_card_details) },
+                onLongClickLabel = stringResource(R.string.library_card_details),
             ),
     ) {
         Column {

@@ -11,12 +11,9 @@ object LibraryTestTags {
     const val EmptyState = "libraryEmpty"
     const val EmptyRescan = "libraryEmptyRescan"
     const val EmptyChooseFolder = "libraryEmptyChooseFolder"
-    const val Shelf = "libraryContinueShelf"
     const val Snackbar = "librarySnackbar"
 
     fun cardFor(id: String): String = "libraryCard:$id"
-
-    fun shelfCardFor(id: String): String = "libraryShelfCard:$id"
 
     fun bookmarkBadgeFor(id: String): String = "libraryBookmark:$id"
 

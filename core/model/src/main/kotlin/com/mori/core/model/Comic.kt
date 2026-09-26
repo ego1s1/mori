@@ -54,10 +54,6 @@ data class Comic(
         get() = if (isInProgress) lastPageIndex else 0
 }
 
-/** In-progress books by recency, backing the continue shelf. */
-fun List<Comic>.continueShelf(max: Int = 10): List<Comic> =
-    filter { it.isInProgress }.sortedByDescending { it.updatedAt }.take(max)
-
 /**
  * Most recently touched readable comic; the resume button opens it at its
  * saved page. Errored rows (tap goes to details, never the reader) and

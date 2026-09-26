@@ -372,23 +372,6 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun continueShelfOrdersInProgressByRecency() = runTest {
-        val repository = FakeComicsRepository(
-            listOf(
-                FakeComicsRepository.comic("old", title = "Old", pageCount = 10, lastPageIndex = 3, updatedAt = 10L),
-                FakeComicsRepository.comic("new", title = "New", pageCount = 10, lastPageIndex = 3, updatedAt = 30L),
-                FakeComicsRepository.comic("fresh", title = "Fresh"),
-                FakeComicsRepository.comic("done", title = "Done", pageCount = 10, lastPageIndex = 9, updatedAt = 50L),
-            ),
-        )
-        viewModel(repository).uiState.test {
-            val shelf = awaitSuccess().continueReading.map { it.id }
-            // In-progress only, newest first; untouched and finished excluded.
-            assertEquals(listOf("new", "old"), shelf)
-        }
-    }
-
-    @Test
     fun queryRestoresFromSavedState() = runTest {
         val handle = SavedStateHandle(
             mapOf(

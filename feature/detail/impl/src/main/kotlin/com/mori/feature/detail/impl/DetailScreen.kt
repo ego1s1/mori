@@ -1,5 +1,6 @@
 package com.mori.feature.detail.impl
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,8 +64,12 @@ import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
+import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
@@ -183,18 +188,30 @@ internal fun DetailScreen(
                         onAction = onAction,
                         onReadClick = onReadClick,
                     )
-                    if (uiState.confirmRemove) {
-                        RemoveDialog(
-                            title = uiState.comic.title,
-                            onConfirm = { onAction(DetailAction.ConfirmRemove) },
-                            onDismiss = { onAction(DetailAction.CancelRemove) },
-                        )
+                    AnimatedVisibility(
+                        visible = uiState.confirmRemove,
+                        enter = MoriMotion.enter(MoriEnterKind.FADE),
+                        exit = MoriMotion.exit(MoriEnterKind.FADE),
+                    ) {
+                        if (uiState.confirmRemove) {
+                            RemoveDialog(
+                                title = uiState.comic.title,
+                                onConfirm = { onAction(DetailAction.ConfirmRemove) },
+                                onDismiss = { onAction(DetailAction.CancelRemove) },
+                            )
+                        }
                     }
-                    uiState.shelves?.let { shelves ->
-                        ShelvesDialog(
-                            shelves = shelves,
-                            onAction = onAction,
-                        )
+                    AnimatedVisibility(
+                        visible = uiState.shelves != null,
+                        enter = MoriMotion.enter(MoriEnterKind.FADE),
+                        exit = MoriMotion.exit(MoriEnterKind.FADE),
+                    ) {
+                        uiState.shelves?.let { shelves ->
+                            ShelvesDialog(
+                                shelves = shelves,
+                                onAction = onAction,
+                            )
+                        }
                     }
                 }
             }

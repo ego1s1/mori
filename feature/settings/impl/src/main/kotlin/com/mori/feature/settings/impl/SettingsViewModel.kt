@@ -11,6 +11,7 @@ import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import com.mori.core.model.UserCollection
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -163,20 +164,27 @@ internal class SettingsViewModel @Inject constructor(
         }
     }
 
+    private var prefsJob: Job? = null
+
+    private fun launchPrefs(block: suspend () -> Unit) {
+        prefsJob?.cancel()
+        prefsJob = viewModelScope.launch { block() }
+    }
+
     private fun updateTheme(transform: (ThemePreferences) -> ThemePreferences) {
-        viewModelScope.launch {
+        launchPrefs {
             preferences.updateThemePreferences(transform)
         }
     }
 
     private fun updateReader(transform: (ReaderPreferences) -> ReaderPreferences) {
-        viewModelScope.launch {
+        launchPrefs {
             preferences.updateReaderPreferences(transform)
         }
     }
 
     private fun updateMotion(style: MotionStyle) {
-        viewModelScope.launch {
+        launchPrefs {
             preferences.updateMotionStyle(style)
         }
     }

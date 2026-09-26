@@ -28,6 +28,7 @@ fun comicCoverSharedKey(comicId: String): String = "cover-$comicId"
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun sharedCoverModifier(comicId: String): Modifier {
+    if (!LocalExpressiveMotionEnabled.current) return Modifier
     val sharedScope = LocalSharedTransitionScope.current
     val animatedScope = LocalNavAnimatedVisibilityScope.current
     if (sharedScope == null || animatedScope == null) return Modifier

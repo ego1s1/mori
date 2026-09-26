@@ -81,17 +81,6 @@ class ComicTest {
     }
 
     @Test
-    fun continueShelfOrdersInProgressByRecency() {
-        val shelf = listOf(
-            comic(pageCount = 10, lastPageIndex = 0).copy(id = "fresh"),
-            comic(pageCount = 10, lastPageIndex = 3).copy(id = "old", updatedAt = 10L),
-            comic(pageCount = 10, lastPageIndex = 3).copy(id = "new", updatedAt = 30L),
-            comic(pageCount = 10, lastPageIndex = 9).copy(id = "done"),
-        ).continueShelf()
-        assertEquals(listOf("new", "old"), shelf.map { it.id })
-    }
-
-    @Test
     fun resumeTargetIsMostRecentlyTouched() {
         val list = listOf(
             comic(pageCount = 10, lastPageIndex = 1).copy(id = "a", updatedAt = 5L),

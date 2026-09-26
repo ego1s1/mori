@@ -52,7 +52,6 @@ class LibraryScreenTest {
             filterOpen = filterOpen,
             searchOpen = searchOpen,
             linked = linked,
-            continueReading = comics.filter { it.isInProgress },
         )
     }
 
@@ -100,11 +99,8 @@ class LibraryScreenTest {
     fun inProgressCardShowsPagesLeftBadge() {
         setScreen(success())
 
-        // Banana: lastPageIndex 2 of 10 -> 7 pages left. The unified card
-        // badges both copies: grid cell and continue-shelf card. The shelf
-        // copy is visible up front; the grid copy needs a swipe (short
-        // test viewport fold).
-        composeTestRule.onNodeWithTag(LibraryTestTags.shelfCardFor("b")).assertIsDisplayed()
+        // Banana: lastPageIndex 2 of 10 -> 7 pages left. The grid copy
+        // needs a swipe (short test viewport fold).
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
             swipeUp()
         }
@@ -234,18 +230,6 @@ class LibraryScreenTest {
         }
 
         assert(detailed == "a")
-    }
-
-    @Test
-    fun continueShelfRendersAndOpens() {
-        var opened: Pair<String, Int>? = null
-        setScreen(success(), onReadClick = { id, index -> opened = id to index })
-
-        composeTestRule.onNodeWithTag(LibraryTestTags.Shelf).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Continue reading").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(LibraryTestTags.shelfCardFor("b")).performClick()
-
-        assert(opened == ("b" to 2))
     }
 
     @Test

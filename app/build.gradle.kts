@@ -30,6 +30,7 @@ android {
             ?.removePrefix("v") ?: "0.1.$commitCount"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        resConfigs("en")
     }
 
     buildTypes {

@@ -23,6 +23,9 @@ interface ComicDao {
     @Query("SELECT id FROM comics")
     suspend fun getIds(): List<String>
 
+    @Query("SELECT COUNT(*) FROM comics")
+    suspend fun count(): Long
+
     @Upsert
     suspend fun upsert(comic: ComicEntity)
 
@@ -34,6 +37,10 @@ interface ComicDao {
 
     @Query("UPDATE comics SET bookmarked = :bookmarked, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateBookmark(id: String, bookmarked: Boolean, updatedAt: Long)
+
+    /** Single-statement toggle: missing rows are a no-op, same as the read-then-write. */
+    @Query("UPDATE comics SET bookmarked = NOT bookmarked, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun toggleBookmark(id: String, updatedAt: Long)
 
     @Query("UPDATE comics SET coverPath = NULL")
     suspend fun clearCovers()

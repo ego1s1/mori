@@ -16,8 +16,6 @@ sealed interface LibraryUiState {
         val filterOpen: Boolean,
         val searchOpen: Boolean,
         val linked: Boolean,
-        /** In-progress books by recency, backing the continue shelf. */
-        val continueReading: List<Comic>,
         /** Determinate rescan progress (done/total); null when idle. */
         val indexProgress: IndexProgress? = null,
         /** All user shelves for the chips row. */

@@ -111,7 +111,11 @@ internal fun ReaderOverviewSheetContent(
         // The grid walks archive pages (stable identities with full-page
         // thumbs); tapping one seeks to its first expanded position, so a
         // split wide page opens on its first half.
-        items(archivePageCount, key = { it }) { archive ->
+        items(
+            archivePageCount,
+            key = { archive -> "$comicId:$archive:$cropMargins" },
+            contentType = { "thumb" },
+        ) { archive ->
             OverviewThumb(
                 comicId = comicId,
                 pageIndex = archive,
@@ -137,7 +141,7 @@ private fun OverviewThumb(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var attempt by remember(comicId, pageIndex) { mutableIntStateOf(0) }
+    var attempt by remember(comicId, pageIndex, cropMargins) { mutableIntStateOf(0) }
     key(attempt) {
         val painter = rememberAsyncImagePainter(
             model = ComicPageKey(comicId, pageIndex, OVERVIEW_MAX_DIMENSION, cropMargins),

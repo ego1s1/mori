@@ -42,9 +42,15 @@ class PageDecoder {
         checkPixelBudget(dimensions)
         val sampleSize = chooseSampleSize(dimensions, options)
         val bitmap = decodeSubsampled(bytes, sampleSize, options, dimensions)
-        // Note: the source is deliberately not recycled — createBitmap may
-        // share its buffer, and the GC reclaims the transient anyway.
-        val final = if (options.cropMargins) trimUniformMargins(bitmap) else bitmap
+        // trimUniformMargins returns either the source or a new cropped bitmap;
+        // recycle the source only when a distinct copy was produced.
+        val final = if (options.cropMargins) {
+            val cropped = trimUniformMargins(bitmap)
+            if (cropped !== bitmap) bitmap.recycle()
+            cropped
+        } else {
+            bitmap
+        }
         return DecodedPage(
             bitmap = final,
             sourceWidth = dimensions.width,
@@ -105,15 +111,19 @@ class PageDecoder {
             inPreferredConfig = options.preferredConfig
         }
         val decoder = regionDecoder(bytes)
-        val sampledRect = scaleRectForSample(region, sampleSize)
-        val bitmap = if (decoder != null) {
-            val cropped = sampledRect.clampTo(dimensions.width, dimensions.height)
-            decoder.decodeRegion(cropped, decodeOptions)
-        } else {
-            decodeRegionByCrop(bytes, mediaType, region, options, dimensions).bitmap
+        try {
+            val sampledRect = scaleRectForSample(region, sampleSize)
+            val bitmap = if (decoder != null) {
+                val cropped = sampledRect.clampTo(dimensions.width, dimensions.height)
+                decoder.decodeRegion(cropped, decodeOptions)
+            } else {
+                decodeRegionByCrop(bytes, mediaType, region, options, dimensions).bitmap
+            }
+            requireNotNull(bitmap) { "Failed to decode region" }
+            return DecodedPage(bitmap, dimensions.width, dimensions.height, sampleSize, region, mediaType)
+        } finally {
+            decoder?.recycle()
         }
-        requireNotNull(bitmap) { "Failed to decode region" }
-        return DecodedPage(bitmap, dimensions.width, dimensions.height, sampleSize, region, mediaType)
     }
     private fun decodeRegionByCrop(
         bytes: ByteArray,

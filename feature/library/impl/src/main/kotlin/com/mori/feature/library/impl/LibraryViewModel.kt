@@ -11,7 +11,6 @@ import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.UserCollection
-import com.mori.core.model.continueShelf
 import com.mori.core.model.resumeTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,10 +31,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
@@ -56,7 +55,7 @@ class LibraryViewModel @Inject constructor(
         preferences.libraryDisplay,
         searchText,
         LibraryDisplay::toQuery,
-    ).stateIn(
+    ).distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryQuery(),
@@ -88,7 +87,7 @@ class LibraryViewModel @Inject constructor(
         preferences.libraryDisplay,
         searchText.debounce { text -> if (text.isEmpty()) 0L else SEARCH_DEBOUNCE_MS },
         LibraryDisplay::toQuery,
-    )
+    ).distinctUntilChanged()
 
     /**
      * One-shot messages (errors, confirmations). A channel, not state: rotation
@@ -140,7 +139,7 @@ class LibraryViewModel @Inject constructor(
             memberIds = selectedId?.let { allMembers[it].orEmpty() },
             allMembers = allMembers,
         )
-    }.stateIn(
+    }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = CollectionsState(emptyList(), null, null, emptyMap()),
@@ -155,12 +154,12 @@ class LibraryViewModel @Inject constructor(
             indexProgress,
         ) { comics, query, chrome, treeUri, progress ->
             LibraryBase(comics, query, chrome, treeUri != null, progress)
-        },
+        }.distinctUntilChanged(),
         collectionsState,
         preferences.libraryDisplay.map { it.collapsedShelfIds }.distinctUntilChanged(),
     ) { base, collections, collapsedIds ->
         toUiState(base, collections, collapsedIds)
-    }.stateIn(
+    }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryUiState.Loading,
@@ -214,7 +213,6 @@ class LibraryViewModel @Inject constructor(
             filterOpen = base.chrome.filterOpen,
             searchOpen = base.chrome.searchOpen,
             linked = base.linked,
-            continueReading = visible.continueShelf(),
             indexProgress = base.progress,
             collections = collections.collections,
             selectedCollectionId = effectiveSelected,
@@ -291,7 +289,8 @@ class LibraryViewModel @Inject constructor(
 
     private fun updateDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
         viewModelScope.launch {
-            preferences.updateLibraryDisplay(transform)
+            // Fire-and-forget prefs write: never crash the scope child on IO failure.
+            runCatching { preferences.updateLibraryDisplay(transform) }
         }
     }
 
@@ -305,7 +304,7 @@ class LibraryViewModel @Inject constructor(
     private fun reindex(linkUri: String? = null) {
         viewModelScope.launch {
             if (linkUri != null) preferences.setSourceTreeUri(linkUri)
-            if (reindexMutex.isLocked) {
+            if (!reindexMutex.tryLock()) {
                 // A run is active (or a follow-up already folded): merge this
                 // tap into it. Folder picks persist above, so the follow-up
                 // indexes the newest tree; pure refresh taps collapse to one.
@@ -313,28 +312,30 @@ class LibraryViewModel @Inject constructor(
                 return@launch
             }
             // Raised before parking: queued runs show the spinner instead
-            // of a dead gap. withLock (not manual lock/unlock) releases
-            // the mutex on cancellation instead of deadlocking the next run.
+            // of a dead gap. Manual unlock in finally releases the mutex
+            // on cancellation instead of deadlocking the next run.
             reindexPending.incrementAndGet()
             refreshing.value = true
             try {
                 do {
                     reindexQueued.set(false)
-                    reindexMutex.withLock {
-                        try {
-                            val treeUri = preferences.sourceTreeUri.first() ?: return@withLock
-                            val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
+                    try {
+                        val treeUri = preferences.sourceTreeUri.first() ?: return@launch
+                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
+                            if (done % 10 == 0 || done == total) {
                                 indexProgress.value = IndexProgress(done, total)
-                            }.failed
-                            if (failed > 0) {
-                                messageChannel.send(LibraryMessage.IndexFailed(failed))
                             }
-                        } catch (e: Exception) {
-                            messageChannel.send(LibraryMessage.RescanFailed)
+                        }.failed
+                        if (failed > 0) {
+                            messageChannel.trySend(LibraryMessage.IndexFailed(failed))
                         }
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        messageChannel.trySend(LibraryMessage.RescanFailed)
                     }
                 } while (reindexQueued.getAndSet(false))
             } finally {
+                reindexMutex.unlock()
                 if (reindexPending.decrementAndGet() == 0) {
                     refreshing.value = false
                     indexProgress.value = null
@@ -361,7 +362,7 @@ internal fun buildShelfSections(
     allMembers: Map<Long, Set<String>>,
     collapsedIds: Set<Long>,
 ): List<ShelfSection> {
-    val covered = mutableSetOf<String>()
+    val covered = HashSet<String>(visible.size)
     val sections = mutableListOf<ShelfSection>()
     shelves.forEach { shelf ->
         // Grid order wins over membership order: sections inherit the

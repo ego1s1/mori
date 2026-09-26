@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -126,9 +127,15 @@ internal fun HistoryScreen(
             .fillMaxSize()
             .padding(padding)) {
             when (uiState) {
-                HistoryUiState.Loading -> MoriLoading(
-                    modifier = Modifier.testTag(HistoryTestTags.Loading),
-                )
+                HistoryUiState.Loading -> AnimatedVisibility(
+                    visible = true,
+                    enter = MoriMotion.enter(MoriEnterKind.FADE),
+                    exit = MoriMotion.exit(MoriEnterKind.FADE),
+                ) {
+                    MoriLoading(
+                        modifier = Modifier.testTag(HistoryTestTags.Loading),
+                    )
+                }
                 is HistoryUiState.Success -> HistoryContent(
                     uiState = uiState,
                     onAction = onAction,
@@ -190,9 +197,25 @@ private fun HistoryContent(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Focus + keyboard follow the toggle both ways, like the library:
+    // opening focuses and lifts the keyboard, closing releases both.
+    val searchFocus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     // Centered well on expanded windows; phones stay full-bleed.
     MoriContentWell(modifier = modifier) {
     Column(modifier = Modifier.fillMaxSize()) {
+        // Inside the well's subcomposition so the field is attached before
+        // the effect below requests focus on it.
+        LaunchedEffect(uiState.searchOpen) {
+            if (uiState.searchOpen) {
+                searchFocus.requestFocus()
+                keyboard?.show()
+            } else {
+                keyboard?.hide()
+                focusManager.clearFocus()
+            }
+        }
         AnimatedVisibility(
             visible = uiState.searchOpen,
             enter = MoriMotion.enter(MoriEnterKind.SEARCH),
@@ -200,7 +223,7 @@ private fun HistoryContent(
         ) {
             HistorySearchField(
                 text = uiState.queryText,
-                searchOpen = uiState.searchOpen,
+                focusRequester = searchFocus,
                 onTextChange = { onAction(HistoryAction.SearchTextChanged(it)) },
                 onSearch = { onAction(HistoryAction.ToggleSearch) },
             )
@@ -253,23 +276,11 @@ private fun HistoryContent(
 @Composable
 private fun HistorySearchField(
     text: String,
-    searchOpen: Boolean,
+    focusRequester: FocusRequester,
     onTextChange: (String) -> Unit,
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Focus + keyboard follow the toggle both ways, like the library:
-    // opening focuses and lifts the keyboard, closing releases both.
-    val searchFocus = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(searchOpen) {
-        if (searchOpen) {
-            searchFocus.requestFocus()
-            keyboard?.show()
-        } else {
-            keyboard?.hide()
-        }
-    }
     OutlinedTextField(
         value = text,
         onValueChange = onTextChange,
@@ -285,7 +296,7 @@ private fun HistorySearchField(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp, bottom = 8.dp)
-            .focusRequester(searchFocus)
+            .focusRequester(focusRequester)
             .focusable()
             .testTag(HistoryTestTags.SearchField),
     )
@@ -299,6 +310,22 @@ private fun HistoryDays(
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Hoisted so rows don't recreate lambdas on every re-emit; mirrors the
+    // error→details else resume logic used inline before.
+    val onRowRead = remember(onReadClick, onComicLongClick) {
+        { comic: Comic ->
+            // Errored rows can't open the reader; tap goes to
+            // details where retry/remove live.
+            if (comic.error != null) {
+                onComicLongClick(comic.id)
+            } else {
+                onReadClick(comic.id, comic.resumeIndex)
+            }
+        }
+    }
+    val onRowDetails = remember(onComicLongClick) {
+        { comic: Comic -> onComicLongClick(comic.id) }
+    }
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = FloatingChromeBottomReserve),
@@ -315,7 +342,7 @@ private fun HistoryDays(
                 }
                 items(
                     day.comics,
-                    key = { it.id },
+                    key = { "${day.dayStartMillis}-${it.id}" },
                     // Same bitmask bucket as the library grid: variants never
                     // cross-recycle when history re-emits.
                     contentType = { comic ->
@@ -326,20 +353,12 @@ private fun HistoryDays(
                 ) { comic ->
                     HistoryRow(
                         comic = comic,
-                        onRead = {
-                            // Errored rows can't open the reader; tap goes to
-                            // details where retry/remove live.
-                            if (it.error != null) {
-                                onComicLongClick(it.id)
-                            } else {
-                                onReadClick(it.id, it.resumeIndex)
-                            }
-                        },
-                        onDetails = { onComicLongClick(it.id) },
+                        onRead = onRowRead,
+                        onDetails = onRowDetails,
                         modifier = Modifier
+                            .animateItem()
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .animateItem(),
+                            .padding(horizontal = 16.dp),
                     )
                 }
             }
@@ -404,7 +423,7 @@ private fun HistoryRow(
             ) {
                 MoriCoverArt(
                     coverPath = comic.coverPath,
-                    contentDescription = null,
+                    contentDescription = comic.title,
                 )
             }
             Column(

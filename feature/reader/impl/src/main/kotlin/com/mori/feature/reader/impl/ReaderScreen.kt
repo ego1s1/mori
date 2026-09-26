@@ -64,13 +64,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,7 +96,10 @@ import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -192,10 +198,10 @@ private fun ReaderContent(
         initialPage = state.pageIndex,
         pageCount = { state.pageCount },
     )
-    // Layout generation for the page slots below: any rebuild of the viewer
-    // list (split/direction/invert/scan) remounts pages at fit. Computed
-    // once per list instance so slot lookup stays O(1).
-    val viewerLayoutKey = remember(state.viewerPages) { state.viewerPages.hashCode() }
+    // Viewer pages hoisted once per composition so slot lookup stays O(1);
+    // pager content is keyed by the list instance below (split/direction/
+    // invert/scan rebuilds remount pages at fit).
+    val pages = state.viewerPages
 
     // ViewModel -> pager (buttons, taps, slider, seeks). Turns glide on a
     // short retargeting spec: each new target cancels the in-flight glide and
@@ -208,7 +214,9 @@ private fun ReaderContent(
     val pagerExpressive = LocalExpressiveMotionEnabled.current
     LaunchedEffect(state.pageIndex, state.pageCount, state.turnAnimated, pagerExpressive) {
         val target = state.pageIndex.coerceIn(0, (state.pageCount - 1).coerceAtLeast(0))
-        if (pagerState.currentPage != target) {
+        // Skip while settling: a swipe-driven offset is already converging on
+        // the target; retargeting mid-settle would fight the gesture.
+        if (pagerState.currentPage != target && pagerState.currentPageOffsetFraction == 0f) {
             if (pagerExpressive && state.turnAnimated) {
                 pagerState.animateScrollToPage(
                     target,
@@ -220,16 +228,16 @@ private fun ReaderContent(
         }
     }
     // Pager -> ViewModel (swipes).
-    // Zoom/pan ownership (edge handoff): while a page reports zoomed
-    // or pinching, swipes belong to the page — the pager stands down so it
-    // can never steal the gesture, and turns happen only through the
-    // explicit edge dispatch below. A settled page is always at fit, so any
-    // pager move resets the gate.
-    var zoomed by remember { mutableStateOf(false) }
+    // Zoom/pan ownership (edge handoff): the page pans while its content
+    // has room; a swipe starting already clamped at the edge passes
+    // straight through untouched, so the pager drags it natively with the
+    // finger still down. Pans that reach the clamp mid-gesture turn through
+    // the explicit overshoot dispatch. The pager only ever stands down for
+    // multi-touch: pinches belong to the page outright. A settled page is
+    // always at fit, so any pager move resets the gate.
     var pinching by remember { mutableStateOf(false) }
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            zoomed = false
+        snapshotFlow { pagerState.settledPage }.distinctUntilChanged().collect { page ->
             onAction(ReaderAction.PageChanged(page))
         }
     }
@@ -256,14 +264,16 @@ private fun ReaderContent(
             progress.collect { backPreview.snapTo(it.progress) }
             onBackClick()
         } catch (e: CancellationException) {
-            backPreview.animateTo(
-                0f,
-                animationSpec = if (pagerExpressive) {
-                    MoriMotion.defaultSpatialSpec()
-                } else {
-                    MoriMotion.calmFade()
-                },
-            )
+            withContext(NonCancellable) {
+                backPreview.animateTo(
+                    0f,
+                    animationSpec = if (pagerExpressive) {
+                        MoriMotion.defaultSpatialSpec()
+                    } else {
+                        MoriMotion.calmFade()
+                    },
+                )
+            }
             throw e
         }
     }
@@ -273,9 +283,26 @@ private fun ReaderContent(
     // real. No custom handler here — consuming the press would block that and
     // the settings sheet dismisses itself first via its own back handling.
 
+    // Chrome interaction epoch: bumped by chrome control callbacks
+    // (direction/fit/crop/settings/overview/bookmark) so the auto-hide timer
+    // below restarts on any chrome interaction, not just page turns.
+    var chromeInteractionEpoch by remember { mutableIntStateOf(0) }
+    // Mirrors ReaderBottomChrome's local `scrub != null` (slider held but drag
+    // detection lagging); updated via onScrubChange below.
+    var chromeScrubHeld by remember { mutableStateOf(false) }
+    val onChromeAction: (ReaderAction) -> Unit = { action ->
+        when (action) {
+            is ReaderAction.SetDirection, is ReaderAction.SetPageFit,
+            ReaderAction.ToggleCrop, ReaderAction.OpenSettings,
+            ReaderAction.OpenOverview, ReaderAction.ToggleBookmark -> chromeInteractionEpoch++
+            else -> Unit
+        }
+        onAction(action)
+    }
+
     // Auto-hide chrome after a moment of stillness, but never mid-scrub.
-    if (state.chromeVisible && !state.settingsOpen && !state.overviewOpen && !scrubbing) {
-        LaunchedEffect(state.chromeVisible, state.pageIndex) {
+    if (state.chromeVisible && !state.settingsOpen && !state.overviewOpen && !scrubbing && !chromeScrubHeld) {
+        LaunchedEffect(state.chromeVisible, state.pageIndex, chromeInteractionEpoch) {
             delay(CHROME_AUTO_HIDE_MS)
             onAction(ReaderAction.HideChrome)
         }
@@ -315,18 +342,24 @@ private fun ReaderContent(
 
     // Fullscreen follows chrome: bars hide with the controls for true immersion,
     // return with them. Transient swipe still reveals bars temporarily (system).
-    DisposableEffect(context, state.chromeVisible) {
+    // Hide is delayed until chrome settles; show stays instant.
+    LaunchedEffect(context, state.chromeVisible) {
         val window = (context as? android.app.Activity)?.window
         val controller = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
         if (state.chromeVisible) {
             controller?.show(WindowInsetsCompat.Type.systemBars())
         } else {
+            delay(CHROME_SETTLE_DELAY_MS)
             controller?.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsetsCompat.Type.systemBars())
         }
+    }
+    DisposableEffect(context) {
         onDispose {
-            controller?.show(WindowInsetsCompat.Type.systemBars())
+            val window = (context as? android.app.Activity)?.window
+            window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+                ?.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
@@ -349,9 +382,10 @@ private fun ReaderContent(
             // dispatches exactly once. Mirrors the pager-level detection in
             // the reference reader, where taps resolve against the viewport
             // rather than individual page views.
-            val containerWidthPx = with(LocalDensity.current) {
-                maxWidth.toPx()
-            }.coerceAtLeast(1f)
+            val density = LocalDensity.current
+            val containerWidthPx = remember(density, maxWidth) {
+                with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
+            }
             val viewportWidth = rememberUpdatedState(containerWidthPx)
             val pageWidth = minOf(maxWidth, EXPANDED_CONTENT_MAX_WIDTH)
             Box(
@@ -382,7 +416,7 @@ private fun ReaderContent(
                     state = pagerState,
                     reverseLayout = rtl,
                     beyondViewportPageCount = 1,
-                    userScrollEnabled = state.swipeToTurn && !zoomed && !pinching,
+                    userScrollEnabled = state.swipeToTurn && !pinching,
                     modifier = Modifier
                         .width(pageWidth)
                         .fillMaxHeight()
@@ -404,22 +438,19 @@ private fun ReaderContent(
                     // Neighbor ease: a whisper of shrink, no fade. Alpha on a
                     // black bed reads as flicker during fast swipes; the pager
                     // owns swipe physics natively, so chrome adds only shape.
-                    val pageOffset = (
-                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                        ).absoluteValue
+                    // pageOffset is read inside graphicsLayer only (layout phase),
+                    // never at composition level, to avoid recomposing on scroll.
                     // Dual-page split: the pager walks expanded positions, each
                     // resolving to an archive page plus the half to decode.
-                    val viewerPage = state.viewerPages.getOrNull(page)
+                    val viewerPage = pages.getOrNull(page)
                         ?: ReaderViewerPage(page, PageHalf.FULL)
                     // Remount on list rebuilds (split/direction/invert/scan):
                     // zoom and pan belong to a layout, not a slot — the page
                     // remembers zoom by archive identity, so carrying it
-                    // across a rebuild would strand the zoomed gate on a page
-                    // it no longer describes and freeze swipe-turns. Fresh
-                    // pages start at fit with the gate released. The key is a
-                    // content hash, not the list: equality is O(pages) once
-                    // per rebuild, O(1) per composition afterwards.
-                    key(viewerLayoutKey) {
+                    // across a rebuild would strand zoom on a page it no
+                    // longer describes. Fresh pages start at fit. Keyed by list
+                    // content directly (no hash Int intermediary).
+                    key(state.viewerPages) {
                         ZoomablePage(
                         comicId = state.comicId,
                         pageIndex = viewerPage.archiveIndex,
@@ -429,7 +460,7 @@ private fun ReaderContent(
                         cropMargins = state.cropMargins,
                         half = viewerPage.half,
                         displayFilter = state.displayFilter,
-                        onZoomedChange = { zoomed = it },
+                        swipeToTurn = state.swipeToTurn,
                         onPinchingChange = { pinching = it },
                         onEdgeTurn = { forward ->
                             // swipeToTurn off means swipes never turn — taps own that.
@@ -438,6 +469,9 @@ private fun ReaderContent(
                             }
                         },
                         modifier = Modifier.graphicsLayer {
+                            val pageOffset = (
+                                (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                ).absoluteValue
                             val scale = 1f - (pageOffset * PAGE_SHRINK).coerceIn(0f, PAGE_SHRINK)
                             scaleX = scale
                             scaleY = scale
@@ -455,6 +489,9 @@ private fun ReaderContent(
             TapZoneOverlay(direction = state.direction)
         }
 
+        // Traversal note: Modifier.traversalIndex (1.8 API) is unavailable here —
+        // skipped deliberately. Composition order is left unchanged (reordering
+        // chrome before pager would be risky for gesture/tap precedence).
         AnimatedVisibility(
             visible = state.chromeVisible,
             enter = topChromeEnter,
@@ -466,7 +503,7 @@ private fun ReaderContent(
                 bookmarked = state.bookmarked,
                 incognito = state.incognito,
                 onBackClick = onBackClick,
-                onBookmarkClick = { onAction(ReaderAction.ToggleBookmark) },
+                onBookmarkClick = { onChromeAction(ReaderAction.ToggleBookmark) },
             )
         }
 
@@ -482,7 +519,8 @@ private fun ReaderContent(
                 direction = state.direction,
                 pageFit = state.pageFit,
                 sliderInteraction = sliderInteraction,
-                onAction = onAction,
+                onAction = onChromeAction,
+                onScrubChange = { chromeScrubHeld = it },
             )
         }
 
@@ -602,6 +640,7 @@ private fun ReaderTopBar(
                     color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
                 )
                 if (subtitle.isNotBlank()) {
                     Text(
@@ -613,13 +652,23 @@ private fun ReaderTopBar(
                     )
                 }
             }
+            val bookmarkLabel = if (bookmarked) {
+                stringResource(R.string.reader_bookmark_remove)
+            } else {
+                stringResource(R.string.reader_bookmark)
+            }
             IconButton(
                 onClick = onBookmarkClick,
-                modifier = Modifier.testTag(ReaderTestTags.Bookmark),
+                modifier = Modifier
+                    .testTag(ReaderTestTags.Bookmark)
+                    .semantics {
+                        onClick(label = bookmarkLabel, action = null)
+                        stateDescription = bookmarkLabel
+                    },
             ) {
                 Icon(
                     imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
-                    contentDescription = if (bookmarked) stringResource(R.string.reader_bookmark_remove) else stringResource(R.string.reader_bookmark),
+                    contentDescription = bookmarkLabel,
                     tint = Color.White,
                 )
             }
@@ -641,6 +690,7 @@ private fun ReaderTopBar(
 }
 
 @Composable
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 private fun ReaderBottomChrome(
     pageIndex: Int,
     pageCount: Int,
@@ -649,6 +699,7 @@ private fun ReaderBottomChrome(
     sliderInteraction: MutableInteractionSource,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
+    onScrubChange: (Boolean) -> Unit = {},
 ) {
     // The whole row mirrors in RTL so the forward control stays on the leading side,
     // matching the pager's own reversal.
@@ -661,15 +712,19 @@ private fun ReaderBottomChrome(
     // Descriptions name the action, not the side, so TalkBack stays truthful.
     val nextLabel = stringResource(R.string.reader_next_page)
     val prevLabel = stringResource(R.string.reader_previous_page)
-    val leadingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
-    } else {
-        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
+    val leadingAction = remember(direction, nextLabel, prevLabel) {
+        if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+            Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
+        } else {
+            Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
+        }
     }
-    val trailingAction = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-        Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
-    } else {
-        Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
+    val trailingAction = remember(direction, nextLabel, prevLabel) {
+        if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+            Triple(ReaderAction.PrevPage, MoriIcons.SkipPrevious, prevLabel)
+        } else {
+            Triple(ReaderAction.NextPage, MoriIcons.SkipNext, nextLabel)
+        }
     }
 
     Column(
@@ -713,7 +768,10 @@ private fun ReaderBottomChrome(
                     ),
                     modifier = Modifier
                         .size(CHROME_CONTROL_SIZE)
-                        .testTag(ReaderTestTags.Prev),
+                        .testTag(ReaderTestTags.Prev)
+                        .semantics {
+                            onClick(label = leadingAction.third, action = null)
+                        },
                 ) {
                     Icon(
                         imageVector = leadingAction.second,
@@ -726,7 +784,9 @@ private fun ReaderBottomChrome(
                 // one seek (one glide, one debounced save) instead of a seek
                 // per drag tick. Hoisted above the pill so the number tracks
                 // live: the pill doubles as the slider's value indicator.
-                var scrub by remember { mutableStateOf<Int?>(null) }
+                // Reset per book length so a stale held index can't leak across books.
+                var scrub by remember(pageCount) { mutableStateOf<Int?>(null) }
+                LaunchedEffect(scrub) { onScrubChange(scrub != null) }
                 Surface(
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -751,6 +811,7 @@ private fun ReaderBottomChrome(
                                     text = pageCount.toString(),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.Transparent,
+                                    modifier = Modifier.semantics { invisibleToUser() },
                                 )
                             }
                             val scrubDescription = stringResource(
@@ -758,25 +819,29 @@ private fun ReaderBottomChrome(
                                 (scrub ?: pageIndex) + 1,
                                 pageCount,
                             )
-                            Slider(
-                                value = (scrub ?: pageIndex).toFloat(),
-                                onValueChange = { scrub = it.roundToInt() },
-                                onValueChangeFinished = {
-                                    scrub?.let { onAction(ReaderAction.SeekPage(it)) }
-                                    scrub = null
-                                },
-                                valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
-                                // Continuous: discrete steps quantize long books
-                                // into jumps; rounding lands the nearest page.
-                                steps = 0,
-                                interactionSource = sliderInteraction,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag(ReaderTestTags.Slider)
-                                    .semantics {
-                                        contentDescription = scrubDescription
+                            // Slider stays LTR even inside the mirrored RTL row so
+                            // scrub direction never flips with reading direction.
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Slider(
+                                    value = (scrub ?: pageIndex).toFloat(),
+                                    onValueChange = { scrub = it.roundToInt() },
+                                    onValueChangeFinished = {
+                                        scrub?.let { onAction(ReaderAction.SeekPage(it)) }
+                                        scrub = null
                                     },
-                            )
+                                    valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
+                                    // Continuous: discrete steps quantize long books
+                                    // into jumps; rounding lands the nearest page.
+                                    steps = 0,
+                                    interactionSource = sliderInteraction,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag(ReaderTestTags.Slider)
+                                        .semantics {
+                                            contentDescription = scrubDescription
+                                        },
+                                )
+                            }
                             Text(
                                 text = pageCount.toString(),
                                 style = MaterialTheme.typography.titleMedium,
@@ -794,7 +859,10 @@ private fun ReaderBottomChrome(
                     ),
                     modifier = Modifier
                         .size(CHROME_CONTROL_SIZE)
-                        .testTag(ReaderTestTags.Next),
+                        .testTag(ReaderTestTags.Next)
+                        .semantics {
+                            onClick(label = trailingAction.third, action = null)
+                        },
                 ) {
                     Icon(
                         imageVector = trailingAction.second,
@@ -812,6 +880,12 @@ private fun ReaderBottomChrome(
                 .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
                 .height(CHROME_CONTROL_SIZE),
         ) {
+            val directionLabel = stringResource(R.string.reader_reading_direction)
+            val directionState = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+                stringResource(R.string.reader_direction_rtl)
+            } else {
+                stringResource(R.string.reader_direction_ltr)
+            }
             IconButton(
                 onClick = {
                     val next = when (direction) {
@@ -820,13 +894,24 @@ private fun ReaderBottomChrome(
                     }
                     onAction(ReaderAction.SetDirection(next))
                 },
-                modifier = Modifier.testTag(ReaderTestTags.DirectionButton),
+                modifier = Modifier
+                    .testTag(ReaderTestTags.DirectionButton)
+                    .semantics {
+                        onClick(label = directionLabel, action = null)
+                        stateDescription = directionState
+                    },
             ) {
                 Icon(
                     imageVector = MoriIcons.ScreenRotation,
-                    contentDescription = stringResource(R.string.reader_reading_direction),
+                    contentDescription = directionLabel,
                     tint = Color.White,
                 )
+            }
+            val fitLabel = stringResource(R.string.reader_page_fit)
+            val fitState = when (pageFit) {
+                PageFit.WIDTH -> stringResource(R.string.reader_fit_width)
+                PageFit.HEIGHT -> stringResource(R.string.reader_fit_height)
+                PageFit.ORIGINAL -> stringResource(R.string.reader_fit_original)
             }
             IconButton(
                 onClick = {
@@ -837,21 +922,31 @@ private fun ReaderBottomChrome(
                     }
                     onAction(ReaderAction.SetPageFit(next))
                 },
-                modifier = Modifier.testTag(ReaderTestTags.FitButton),
+                modifier = Modifier
+                    .testTag(ReaderTestTags.FitButton)
+                    .semantics {
+                        onClick(label = fitLabel, action = null)
+                        stateDescription = fitState
+                    },
             ) {
                 Icon(
                     imageVector = MoriIcons.FitScreen,
-                    contentDescription = stringResource(R.string.reader_page_fit),
+                    contentDescription = fitLabel,
                     tint = Color.White,
                 )
             }
+            val cropLabel = stringResource(R.string.reader_crop_margins)
             IconButton(
                 onClick = { onAction(ReaderAction.ToggleCrop) },
-                modifier = Modifier.testTag(ReaderTestTags.CropButton),
+                modifier = Modifier
+                    .testTag(ReaderTestTags.CropButton)
+                    .semantics {
+                        onClick(label = cropLabel, action = null)
+                    },
             ) {
                 Icon(
                     imageVector = MoriIcons.Crop,
-                    contentDescription = stringResource(R.string.reader_crop_margins),
+                    contentDescription = cropLabel,
                     tint = Color.White,
                 )
             }
@@ -911,6 +1006,9 @@ private fun ReaderScreenPreview() {
 }
 
 private const val CHROME_AUTO_HIDE_MS = 3000L
+
+/** Delay before hiding system bars after chrome settles (show stays instant). */
+private const val CHROME_SETTLE_DELAY_MS = 120L
 
 /** Predictive-back shrink at full gesture progress (subtle bed pull). */
 private const val BACK_PREVIEW_SHRINK = 0.05f

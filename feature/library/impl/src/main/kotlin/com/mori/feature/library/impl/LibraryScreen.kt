@@ -5,20 +5,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -26,19 +21,11 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -47,7 +34,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -63,13 +49,14 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -90,7 +77,6 @@ import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
-import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ResumeTarget
 
@@ -201,16 +187,24 @@ internal fun LibraryScreen(
 ) {
     Scaffold(
         topBar = {
-            if (uiState is LibraryUiState.Success) {
+            val success = uiState as? LibraryUiState.Success
+            if (success != null) {
                 LibraryTopBar(
-                    searchOpen = uiState.searchOpen,
+                    searchOpen = success.searchOpen,
                     // Shelf selection or any non-default sort/filter lights
                     // the Tune icon: with the chips row gone, the grid alone
                     // must show that a filter is active.
-                    filterActive = uiState.selectedCollectionId != null ||
-                        uiState.query.copy(text = "") != LibraryQuery(),
+                    filterActive = success.selectedCollectionId != null ||
+                        success.query.copy(text = "") != LibraryQuery(),
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
+                )
+            } else {
+                LibraryTopBar(
+                    searchOpen = false,
+                    filterActive = false,
+                    onSearchClick = {},
+                    onAction = {},
                 )
             }
         },
@@ -238,7 +232,6 @@ internal fun LibraryScreen(
                         indexProgress = uiState.indexProgress,
                         searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
-                        shelf = uiState.continueReading,
                         sections = uiState.sections,
                         onAction = onAction,
                         onReadClick = onReadClick,
@@ -267,7 +260,6 @@ private fun LibraryContent(
     indexProgress: IndexProgress?,
     searchOpen: Boolean,
     linked: Boolean,
-    shelf: List<Comic>,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
@@ -279,31 +271,41 @@ private fun LibraryContent(
     MoriContentWell(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Determinate rescan bar: done/total from the index callback,
-            // so large rescans never read as a stuck spinner.
+            // so large rescans never read as a stuck spinner. Animated in
+            // place so its arrival never shoves the content down.
             val progress = indexProgress
-            if (refreshing && progress != null && progress.total > 0) {
+            AnimatedVisibility(
+                visible = refreshing && progress != null && progress.total > 0,
+                enter = MoriMotion.enter(MoriEnterKind.SEARCH),
+                exit = MoriMotion.exit(MoriEnterKind.SEARCH),
+            ) {
                 MoriProgressBar(
-                    progress = { (progress.done.coerceAtMost(progress.total)).toFloat() / progress.total },
+                    progress = {
+                        val done = (progress?.done ?: 0).coerceAtMost(progress?.total ?: 1)
+                        done.toFloat() / (progress?.total ?: 1)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+            // Focus + keyboard follow the toggle both ways: opening focuses
+            // and lifts the keyboard, closing releases both.
+            val searchFocus = remember { FocusRequester() }
+            val keyboard = LocalSoftwareKeyboardController.current
+            val focusManager = LocalFocusManager.current
+            LaunchedEffect(searchOpen) {
+                if (searchOpen) {
+                    searchFocus.requestFocus()
+                    keyboard?.show()
+                } else {
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                }
             }
             AnimatedVisibility(
                 visible = searchOpen,
                 enter = MoriMotion.enter(MoriEnterKind.SEARCH),
                 exit = MoriMotion.exit(MoriEnterKind.SEARCH),
             ) {
-                // Focus + keyboard follow the toggle both ways: opening focuses
-                // and lifts the keyboard, closing releases both.
-                val searchFocus = remember { FocusRequester() }
-                val keyboard = LocalSoftwareKeyboardController.current
-                LaunchedEffect(searchOpen) {
-                    if (searchOpen) {
-                        searchFocus.requestFocus()
-                        keyboard?.show()
-                    } else {
-                        keyboard?.hide()
-                    }
-                }
                 OutlinedTextField(
                     value = query.text,
                     onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
@@ -331,7 +333,6 @@ private fun LibraryContent(
                 // overlap otherwise during indexed rescans.
                 refreshing = refreshing && indexProgress == null,
                 linked = linked,
-                shelf = shelf,
                 sections = sections,
                 onAction = onAction,
                 onReadClick = onReadClick,
@@ -367,6 +368,7 @@ private fun LibraryTopBar(
                 style = MoriEmphasized.headlineMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
             )
         },
         actions = {
@@ -409,7 +411,6 @@ private fun LibraryBody(
     queryText: String,
     refreshing: Boolean,
     linked: Boolean,
-    shelf: List<Comic>,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
@@ -451,7 +452,7 @@ private fun LibraryBody(
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = { onAction(LibraryAction.Refresh) },
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
@@ -472,20 +473,6 @@ private fun LibraryBody(
             ) {
                 if (sections.isNotEmpty()) {
                     // Sectioned grid: one collapsible shelf after another.
-                    // The continue shelf still leads; flat views use the
-                    // legacy path in else below.
-                    if (shelf.isNotEmpty() && queryText.isBlank()) {
-                        item(
-                            span = { GridItemSpan(maxLineSpan) },
-                            contentType = "continueShelf",
-                        ) {
-                            ContinueShelf(
-                                comics = shelf,
-                                onReadClick = onReadClick,
-                                onComicLongClick = onComicLongClick,
-                            )
-                        }
-                    }
                     sections.forEach { section ->
                         item(
                             span = { GridItemSpan(maxLineSpan) },
@@ -499,6 +486,7 @@ private fun LibraryBody(
                                         LibraryAction.ToggleShelfCollapsed(section.id),
                                     )
                                 },
+                                modifier = Modifier.animateItem(),
                             )
                         }
                         comicItems(
@@ -511,21 +499,6 @@ private fun LibraryBody(
                         )
                     }
                 } else {
-                    // Continue shelf rides above the grid when anything is in
-                    // progress; hidden entirely otherwise (no empty header).
-                    if (shelf.isNotEmpty() && queryText.isBlank()) {
-                        item(
-                            span = { GridItemSpan(maxLineSpan) },
-                            contentType = "continueShelf",
-                            key = "continueShelf",
-                        ) {
-                            ContinueShelf(
-                                comics = shelf,
-                                onReadClick = onReadClick,
-                                onComicLongClick = onComicLongClick,
-                            )
-                        }
-                    }
                     comicItems(
                         comics = comics,
                         keyPrefix = "card",
@@ -552,32 +525,28 @@ private fun LazyGridScope.comicItems(
     launchingId: String?,
     contentVisible: Boolean = true,
 ) {
+    // Collapsed shelves skip emission entirely (no per-item
+    // AnimatedVisibility): items snap out on toggle instead of animating.
+    if (!contentVisible) return
     items(
         comics,
-        key = { "$keyPrefix-${it.id}" },
-        // Bitmask bucket: error/in-progress/finished variants never
-        // cross-recycle, with no per-item string allocation.
+        key = { it.id },
+        // Bitmask bucket: error/in-progress/finished/bookmarked variants
+        // never cross-recycle, with no per-item string allocation.
         contentType = { comic ->
             (if (comic.error != null) 4 else 0) +
                 (if (comic.isInProgress) 2 else 0) +
-                (if (comic.isFinished) 1 else 0)
+                (if (comic.isFinished) 1 else 0) +
+                (if (comic.bookmarked) 8 else 0)
         },
     ) { comic ->
-        // Collapse runs through AnimatedVisibility (not item removal) so
-        // cards glide out on the motion setting instead of snapping away.
-        AnimatedVisibility(
-            visible = contentVisible,
-            enter = MoriMotion.enter(MoriEnterKind.SEARCH),
-            exit = MoriMotion.exit(MoriEnterKind.SEARCH),
-        ) {
-            ComicCard(
-                comic = comic,
-                onRead = onCardRead,
-                onDetails = onCardDetails,
-                sharedCover = launchingId == comic.id,
-                modifier = Modifier.animateItem(),
-            )
-        }
+        ComicCard(
+            comic = comic,
+            onRead = onCardRead,
+            onDetails = onCardDetails,
+            sharedCover = launchingId == comic.id,
+            modifier = Modifier.animateItem(),
+        )
     }
 }
 
@@ -679,62 +648,6 @@ private fun ShelfSectionHeader(
     }
 }
 
-/**
- * Horizontal continue-reading shelf: compact cards for in-progress books by
- * recency. Same information as the grid cards, denser; tapping continues at
- * the saved page.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ContinueShelf(
-    comics: List<Comic>,
-    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.testTag(LibraryTestTags.Shelf)) {
-        Text(
-            text = stringResource(R.string.library_continue_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(
-                comics,
-                key = { it.id },
-                // Same bitmask bucket as the grid: variants never
-                // cross-recycle when the shelf list re-emits.
-                contentType = { comic ->
-                    (if (comic.error != null) 4 else 0) +
-                        (if (comic.isInProgress) 2 else 0) +
-                        (if (comic.isFinished) 1 else 0)
-                },
-            ) { comic ->
-                ComicCard(
-                    comic = comic,
-                    onRead = {
-                        if (it.error != null) {
-                            onComicLongClick(it.id)
-                        } else {
-                            onReadClick(it.id, it.resumeIndex)
-                        }
-                    },
-                    onDetails = null,
-                    compact = true,
-                    cardTag = LibraryTestTags.shelfCardFor(comic.id),
-                    modifier = Modifier.animateItem(),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-    }
-}
-
 @Composable
 private fun LibraryEmptyState(
     searching: Boolean,
@@ -789,7 +702,6 @@ private fun LibraryScreenPreview() {
                 filterOpen = false,
                 searchOpen = false,
                 linked = true,
-                continueReading = emptyList(),
             ),
             onAction = {},
             onReadClick = { _, _ -> },
