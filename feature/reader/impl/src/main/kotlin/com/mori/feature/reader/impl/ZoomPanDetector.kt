@@ -76,7 +76,13 @@ internal fun Modifier.zoomPan(
         var pinched = false
         var pastSlop = false
         var prevCount = 0
-        var prevCentroid = Offset.Zero
+        // Centroids are kept in SCREEN space. Pointer coords arrive in the
+        // layer's local (scaled) space, and translating the layer moves the
+        // local coord of a stationary finger — using local deltas as finger
+        // deltas feeds the page's own motion back into the gesture, which
+        // oscillates (sign-flips every frame → the "shake"). Reconstructing
+        // the true screen position each event breaks that feedback loop.
+        var prevScreenCentroid = Offset.Zero
         var prevDist = 0f
         // Finger travel of the pan portion, for the fling displacement
         // gate (reference readers require both speed and travel).
@@ -91,6 +97,13 @@ internal fun Modifier.zoomPan(
         // already clamped and pushes further outward belongs to the pager —
         // set once the drift clears engage, cleared on any finger change.
         var edgePassThrough = false
+        // Local pointer coord -> true screen coord under the current layer
+        // transform (scale about center, then translate). The result is the
+        // finger's real screen position, independent of our own translation.
+        fun toScreen(local: Offset): Offset {
+            val c = Offset(size.width / 2f, size.height / 2f)
+            return c + (local - c) * getScale() + getOffset()
+        }
         try {
             while (true) {
                 val event = awaitPointerEvent()
@@ -112,8 +125,8 @@ internal fun Modifier.zoomPan(
                         onPinchingChange(true)
                         pinched = true
                     }
-                    val snapshot = centroidOf(pressed)
-                    prevCentroid = snapshot
+                    val snapshot = toScreen(centroidOf(pressed))
+                    prevScreenCentroid = snapshot
                     prevDist = spreadOf(pressed)
                     val joined = prevCount
                     prevCount = pressed.size
@@ -175,7 +188,7 @@ internal fun Modifier.zoomPan(
                     onCancelMotion()
                     if (pressed.size == 1) {
                         val scaleAtEngage = getScale()
-                        flingAnchor = pressed.first().position * scaleAtEngage
+                        flingAnchor = toScreen(pressed.first().position)
                         // Edge-start pass-through: a fresh gesture that begins
                         // already clamped and pushes further outward belongs
                         // to the pager outright — claim nothing all gesture
@@ -191,8 +204,7 @@ internal fun Modifier.zoomPan(
                 if (edgePassThrough) {
                     // Pager owns this gesture: track baselines only, consume
                     // nothing, so its drag starts on unconsumed slop.
-                    val passCentroid = centroidOf(pressed)
-                    prevCentroid = passCentroid
+                    prevScreenCentroid = toScreen(centroidOf(pressed))
                     prevDist = spreadOf(pressed)
                     continue
                 }
@@ -203,13 +215,13 @@ internal fun Modifier.zoomPan(
                     // around the armed point instead of panning. Horizontal
                     // drift is ignored; a second finger disarms above.
                     val thresholdPx = QUICK_SCALE_THRESHOLD_DP * density
-                    val centroid = centroidOf(pressed)
-                    val y = centroid.y
+                    val screenCentroid = toScreen(centroidOf(pressed))
+                    val y = screenCentroid.y
                     if (quickScale.lastDistance < 0f) {
                         quickScale.lastDistance = abs(quickScale.startY - y) * 2f + thresholdPx
                     }
                     val dist = abs(quickScale.startY - y) * 2f + thresholdPx
-                    val mult = quickScaleMultiplier(dist, quickScale.lastDistance, y > prevCentroid.y)
+                    val mult = quickScaleMultiplier(dist, quickScale.lastDistance, y > prevScreenCentroid.y)
                     if (mult != 1f) {
                         if (!quickScale.moved) {
                             onCancelMotion()
@@ -217,14 +229,14 @@ internal fun Modifier.zoomPan(
                         quickScale.markMoved()
                         val newScale = (scaleNow * mult).coerceIn(1f, maxZoom)
                         val center = Offset(size.width / 2f, size.height / 2f)
-                        // Screen-space, like the pan path: keep the armed point
-                        // fixed while scaling, plus 1:1 finger follow. Local
-                        // deltas are scaled to screen px so the hold-drag never
-                        // under-moves at zoom.
+                        // Keep the armed content point fixed while scaling, plus
+                        // 1:1 screen-space finger follow (feedback-free: the
+                        // anchor is a stored content coord, the delta is a true
+                        // screen delta).
                         val cur = getOffset()
                         val uAnchor = quickScale.anchor - center
                         val rawTarget = cur + uAnchor * (scaleNow - newScale) +
-                            (centroid - prevCentroid) * scaleNow
+                            (screenCentroid - prevScreenCentroid)
                         val target = clampPan(
                             rawTarget,
                             newScale,
@@ -240,37 +252,35 @@ internal fun Modifier.zoomPan(
                         }
                     }
                     quickScale.sampleSpan(dist)
-                    prevCentroid = centroid
+                    prevScreenCentroid = screenCentroid
                     prevDist = spreadOf(pressed)
                     continue
                 }
                 if (!multi && scaleNow <= 1f) {
                     // Fit: single-finger drags belong to the pager. Touch nothing.
-                    val centroid = centroidOf(pressed)
-                    prevCentroid = centroid
+                    prevScreenCentroid = toScreen(centroidOf(pressed))
                     prevDist = spreadOf(pressed)
                     continue
                 }
-                val (centroid, dist) = centroidAndSpread(pressed)
+                val (localCentroid, dist) = centroidAndSpread(pressed)
                 val zoom = if (multi && prevDist > 0f) dist / prevDist else 1f
                 val targetScale = (scaleNow * zoom).coerceIn(1f, maxZoom)
                 val center = Offset(size.width / 2f, size.height / 2f)
-                // Pointer coords are in the layer's local (unscaled) space while
-                // `offset` feeds translationX/Y in screen px. Keeping the content
-                // point under the centroid while zooming (and moving 1:1 with the
-                // finger while panning) therefore resolves, in screen space, to:
-                //   T1 = T0 + S0 * uNow - S1 * uPrev      (u = centroid - center)
-                // i.e. pure pan (S0 == S1) advances by the finger's SCREEN delta.
-                // The old local-space lerp under-moved by 1/scale and made the
-                // zoomed page feel unresponsive (half speed at 2x, a fifth at 5x).
+                // Screen-space, feedback-free: keep the content point under the
+                // centroid while zooming, and move 1:1 with the finger while
+                // panning. `screenCentroid` is the finger's true screen position
+                // reconstructed from the layer transform, so the page's own
+                // translation can never feed back into the delta (that feedback
+                // sign-flipped every frame and made slow pans shake).
                 val cur = getOffset()
+                val screenCentroid = toScreen(localCentroid)
                 val rawTarget = zoomPanTarget(
-                    cur,
-                    centroid,
-                    prevCentroid,
-                    center,
-                    scaleNow,
-                    targetScale,
+                    current = cur,
+                    screenCentroidNow = screenCentroid,
+                    screenCentroidPrev = prevScreenCentroid,
+                    center = center,
+                    scaleNow = scaleNow,
+                    targetScale = targetScale,
                 )
                 val target = clampPan(
                     rawTarget,
@@ -289,22 +299,24 @@ internal fun Modifier.zoomPan(
                     // any zoom. Only the traveling finger feeds the tracker;
                     // pinch samples would corrupt the release velocity.
                     val single = pressed.first()
-                    val screenPos = single.position * targetScale
+                    val screenPos = toScreen(single.position)
                     tracker.addPosition(single.uptimeMillis, screenPos)
                     flingLast = screenPos
                     singlePanned = true
                 }
-                if (used) {
-                    if (target.x.isFinite() && target.y.isFinite()) {
-                        setScale(targetScale)
-                        setOffset(target)
-                    }
-                    for (change in pressed) {
-                        change.consume()
-                    }
+                if (used && target.x.isFinite() && target.y.isFinite()) {
+                    setScale(targetScale)
+                    setOffset(target)
+                }
+                // Own the gesture once engaged and not passing through: consume
+                // every change so the pager can neither steal a pan that is
+                // still moving nor start/stop flapping as the finger rides the
+                // clamp edge. Turning at the edge is the explicit budget below.
+                for (change in pressed) {
+                    change.consume()
                 }
                 if (!multi) {
-                    val travel = centroid - prevCentroid
+                    val travel = screenCentroid - prevScreenCentroid
                     val horizontal = abs(travel.x) > abs(travel.y)
                     edgeOvershoot = accumulateEdgeOvershoot(
                         edgeOvershoot,
@@ -323,7 +335,7 @@ internal fun Modifier.zoomPan(
                 } else {
                     edgeOvershoot = 0f
                 }
-                prevCentroid = centroid
+                prevScreenCentroid = screenCentroid
                 prevDist = dist
             }
         } finally {
@@ -435,24 +447,26 @@ internal const val EDGE_EPS_PX = 1f
 /**
  * Screen-space target translation for one pan/pinch event.
  *
- * Pointer coordinates arrive in the layer's local (unscaled) space while the
- * translation it drives is in screen px. Keeping the content point under the
- * centroid while zooming and moving 1:1 with the finger therefore resolves to
- * `T1 = T0 + S0 * uNow - S1 * uPrev` with `u = centroid - center`. A pure pan
- * (`S0 == S1`) advances by the finger's SCREEN delta, so the page tracks the
- * finger exactly at any zoom. Pure for testability.
+ * Inputs are the finger's true SCREEN centroid positions (reconstructed from
+ * the layer transform), not the layer-local pointer coords. Keeping the
+ * content point under the centroid while zooming and moving 1:1 with the
+ * finger resolves to `T1 = gNow - (gPrev - T0) * (S1 / S0)` with `g` measured
+ * from the layer center. Because the deltas are screen-space, the page's own
+ * translation can never feed back into the gesture (which previously
+ * oscillated and made slow pans shake). Pure for testability.
  */
 internal fun zoomPanTarget(
     current: Offset,
-    centroidNow: Offset,
-    centroidPrev: Offset,
+    screenCentroidNow: Offset,
+    screenCentroidPrev: Offset,
     center: Offset,
     scaleNow: Float,
     targetScale: Float,
 ): Offset {
-    val uNow = centroidNow - center
-    val uPrev = centroidPrev - center
-    return current + uNow * scaleNow - uPrev * targetScale
+    val gNow = screenCentroidNow - center
+    val gPrev = screenCentroidPrev - center
+    val ratio = targetScale / scaleNow.coerceAtLeast(1e-6f)
+    return gNow - (gPrev - current) * ratio
 }
 
 /** Pan limits for width-fitted content: overflow halves each side. */

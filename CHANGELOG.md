@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2
+
+- Fix slow zoomed pans shaking: the gesture ran inside the scale layer, so the
+  page's own translation fed back into the pointer delta and oscillated
+  (sign-flipped every frame). Deltas are now reconstructed in screen space,
+  which is provably stable and keeps pan/pinch/fling 1:1 at any zoom
+- Harden mid-gesture ownership so the pager cannot start or stop flapping as
+  the finger rides the pan clamp
+- Fix a flaky reading-stats test that read an intermediate database emission
+  (also the cause of recent red CI runs)
+
 ## 0.3.1
 
 Reader pan responsiveness and Material 3 Expressive compliance:

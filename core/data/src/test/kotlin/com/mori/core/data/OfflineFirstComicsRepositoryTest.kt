@@ -12,6 +12,7 @@ import com.mori.core.database.MoriDatabase
 import com.mori.core.model.ComicError
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.testing.awaitWhere
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -494,7 +495,9 @@ class OfflineFirstComicsRepositoryTest {
             )
             repository.recordSession("a", 1_000L, 61_000L, 5)
             repository.recordSession("b", 2_000L, 3_662_000L, 12)
-            val stats = awaitItem()
+            // The aggregate re-emits once per insert; await the settled state
+            // instead of the first (single-session) emission.
+            val stats = awaitWhere { it.totalSessions == 2 }
             assertEquals(2, stats.totalSessions)
             assertEquals(60_000L + 3_660_000L, stats.totalDurationMs)
             assertEquals(17, stats.totalPagesTurned)

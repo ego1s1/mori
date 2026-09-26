@@ -169,26 +169,25 @@ class ZoomPanTest {
 
     @Test
     fun panTracksFingerOneToOneAtAnyZoom() {
-        // A 100px local finger move is 100px of screen travel at fit.
+        // Screen-space centroids: a 100px screen move advances 100px at fit.
         assertEquals(
             Offset(100f, 0f),
             zoomPanTarget(
                 current = Offset.Zero,
-                centroidNow = Offset(300f, 300f),
-                centroidPrev = Offset(200f, 300f),
+                screenCentroidNow = Offset(300f, 300f),
+                screenCentroidPrev = Offset(200f, 300f),
                 center = Offset(200f, 300f),
                 scaleNow = 1f,
                 targetScale = 1f,
             ),
         )
-        // Zoomed 3x: local 100px maps to 300px screen travel, so the content
-        // keeps up with the finger instead of lagging at 1/scale.
+        // Zoomed 3x: a 300px screen move advances 300px regardless of scale.
         assertEquals(
             Offset(300f, 0f),
             zoomPanTarget(
                 current = Offset.Zero,
-                centroidNow = Offset(300f, 300f),
-                centroidPrev = Offset(200f, 300f),
+                screenCentroidNow = Offset(500f, 300f),
+                screenCentroidPrev = Offset(200f, 300f),
                 center = Offset(200f, 300f),
                 scaleNow = 3f,
                 targetScale = 3f,
@@ -198,20 +197,43 @@ class ZoomPanTest {
 
     @Test
     fun pinchKeepsCentroidContentPointUnderFinger() {
-        // Centroid stationary at u from center, scale doubles: translation must
+        // Centroid stationary at g from center, scale doubles: translation must
         // cancel the scaling of that point so it stays put on screen.
         val center = Offset(200f, 300f)
         val centroid = Offset(300f, 300f)
         val target = zoomPanTarget(
             current = Offset.Zero,
-            centroidNow = centroid,
-            centroidPrev = centroid,
+            screenCentroidNow = centroid,
+            screenCentroidPrev = centroid,
             center = center,
             scaleNow = 1f,
             targetScale = 2f,
         )
-        // u = +100; T1 = (1 - 2) * 100 = -100 keeps the art point anchored.
+        // g = +100; T1 = 100 - (100 - 0) * 2 = -100 keeps the art anchored.
         assertEquals(-100f, target.x, 0.001f)
         assertEquals(0f, target.y, 0.001f)
+    }
+
+    @Test
+    fun slowStationaryPanDoesNotOscillate() {
+        // The regression guard: with a stationary finger the screen centroid is
+        // identical every frame, so the translation must not change. Feeding
+        // layer-local coords fed the page's own motion back in and sign-flipped
+        // every frame (the shake); screen-space input is immune.
+        val center = Offset(200f, 300f)
+        val stationary = Offset(257.5f, 301.25f)
+        var offset = Offset(12f, -8f)
+        repeat(6) {
+            val next = zoomPanTarget(
+                current = offset,
+                screenCentroidNow = stationary,
+                screenCentroidPrev = stationary,
+                center = center,
+                scaleNow = 2.5f,
+                targetScale = 2.5f,
+            )
+            assertEquals(offset, next)
+            offset = next
+        }
     }
 }
