@@ -21,3 +21,11 @@ fun formatBytes(bytes: Long): String {
         "$rounded $unit"
     }
 }
+
+/**
+ * Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%".
+ */
+fun formatPercent(value: Float): String {
+    val percent = (value * 100).toInt()
+    return "$percent%"
+}

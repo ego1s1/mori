@@ -17,6 +17,7 @@ android {
 
 dependencies {
     implementation(project(":feature:reader:api"))
+    implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":core:data"))
     implementation(project(":core:datastore"))

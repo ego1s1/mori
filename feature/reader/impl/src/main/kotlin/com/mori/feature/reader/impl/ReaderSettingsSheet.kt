@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mori.core.common.formatPercent
 import com.mori.core.designsystem.MoriChoiceGroup
 import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriEmphasized
@@ -83,12 +84,6 @@ internal fun ReaderSettingsSheet(
             onAction = onAction,
         )
     }
-}
-
-/** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
-private fun percentText(value: Float): String {
-    val percent = (value * 100).toInt()
-    return "$percent%"
 }
 
 /** Sheet body content, exposed for testing. */
@@ -270,7 +265,7 @@ internal fun ReaderSettingsSheetContent(
             label = stringResource(R.string.reader_filter_brightness),
             value = previewBrightness,
             valueRange = -1f..1f,
-            valueText = percentText(previewBrightness),
+            valueText = formatPercent(previewBrightness),
             onValueChange = { previewBrightness = it },
             onValueChangeFinished = { onAction(ReaderAction.SetFilterBrightness(previewBrightness)) },
         )
@@ -278,7 +273,7 @@ internal fun ReaderSettingsSheetContent(
             label = stringResource(R.string.reader_filter_night),
             value = previewNightTint,
             valueRange = 0f..1f,
-            valueText = percentText(previewNightTint),
+            valueText = formatPercent(previewNightTint),
             onValueChange = { previewNightTint = it },
             onValueChangeFinished = { onAction(ReaderAction.SetFilterNightTint(previewNightTint)) },
         )

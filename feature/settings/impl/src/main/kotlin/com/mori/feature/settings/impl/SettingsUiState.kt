@@ -3,7 +3,6 @@ package com.mori.feature.settings.impl
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
-import com.mori.core.model.ReadingStats
 import com.mori.core.model.UserCollection
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
@@ -19,7 +18,6 @@ sealed interface SettingsUiState {
         val reader: ReaderPreferences,
         val motion: MotionStyle,
         val storage: StorageUsage?,
-        val stats: ReadingStats = ReadingStats(),
         val appLock: Boolean = false,
         val groups: List<UserCollection> = emptyList(),
         val groupDialog: GroupDialog? = null,

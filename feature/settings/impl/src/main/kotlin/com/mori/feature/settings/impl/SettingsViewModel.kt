@@ -6,7 +6,6 @@ import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
-import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemePreferences
 import com.mori.core.model.UserCollection
@@ -45,9 +44,8 @@ internal class SettingsViewModel @Inject constructor(
             preferences.readerPreferences,
             preferences.motionStyle,
             storageInfo,
-            repository.observeReadingStats(),
-        ) { theme, reader, motion, storage, stats ->
-            ThemeReaderState(theme, reader, motion, storage, stats)
+        ) { theme, reader, motion, storage ->
+            ThemeReaderState(theme, reader, motion, storage)
         },
         preferences.appLockEnabled,
         repository.observeCollections(),
@@ -77,19 +75,17 @@ internal class SettingsViewModel @Inject constructor(
         reader = combined.reader,
         motion = combined.motion,
         storage = combined.storage,
-        stats = combined.stats,
         appLock = appLock,
         groups = groups,
         groupDialog = groupDialog,
     )
 
-    /** Five-flow combine carrier (fixed-arity combine caps at five). */
+    /** Four-flow combine carrier (fixed-arity combine caps at five). */
     private data class ThemeReaderState(
         val theme: ThemePreferences,
         val reader: ReaderPreferences,
         val motion: MotionStyle,
         val storage: StorageUsage?,
-        val stats: ReadingStats,
     )
 
     fun onAction(action: SettingsAction) {

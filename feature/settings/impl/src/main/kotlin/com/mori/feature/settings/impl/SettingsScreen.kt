@@ -89,6 +89,7 @@ import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.common.formatBytes
+import com.mori.core.common.formatPercent
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
@@ -404,55 +405,20 @@ private fun HubRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    MoriSettingRow(
+        title = categoryTitle(category),
+        subtitle = categorySubtitle(category),
+        icon = categoryIcon(category),
         onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = 72.dp)
-            .testTag(SettingsTestTags.categoryFor(category)),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-            ) {
-                Icon(
-                    imageVector = categoryIcon(category),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-            ) {
-                Text(
-                    text = categoryTitle(category),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = categorySubtitle(category),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        modifier = modifier.testTag(SettingsTestTags.categoryFor(category)),
+        trailing = {
             Icon(
                 imageVector = MoriIcons.Forward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -682,14 +648,14 @@ private fun ReaderSection(
                 label = stringResource(R.string.settings_filter_brightness),
                 value = reader.displayFilter.brightness,
                 valueRange = -1f..1f,
-                valueText = percentText(reader.displayFilter.brightness),
+                valueText = formatPercent(reader.displayFilter.brightness),
                 onValueChange = { onAction(SettingsAction.SetDisplayBrightness(it)) },
             )
             MoriSliderRow(
                 label = stringResource(R.string.settings_filter_night),
                 value = reader.displayFilter.nightTint,
                 valueRange = 0f..1f,
-                valueText = percentText(reader.displayFilter.nightTint),
+                valueText = formatPercent(reader.displayFilter.nightTint),
                 onValueChange = { onAction(SettingsAction.SetDisplayNightTint(it)) },
             )
             MoriSettingSwitch(
@@ -844,9 +810,15 @@ private fun AboutSection(
     val context = LocalContext.current
     var privacyOpen by remember { mutableStateOf(false) }
     // Staggered entrance: hero lands first, link rows follow one beat
-    // apart. Idle-waiting tests see the settled tree.
-    var revealed by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
+    // apart. Calm motion reveals everything at once. Idle-waiting tests
+    // see the settled tree either way.
+    val expressive = LocalExpressiveMotionEnabled.current
+    var revealed by remember { mutableIntStateOf(if (expressive) 0 else AboutRevealSteps) }
+    LaunchedEffect(expressive) {
+        if (!expressive) {
+            revealed = AboutRevealSteps
+            return@LaunchedEffect
+        }
         repeat(AboutRevealSteps) {
             kotlinx.coroutines.delay(45)
             revealed++
@@ -1145,12 +1117,6 @@ private fun RevealRow(
 
 /** Hero, dev card, and five link rows revealed one beat apart. */
 private const val AboutRevealSteps = 7
-
-/** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
-private fun percentText(value: Float): String {
-    val percent = (value * 100).toInt()
-    return "$percent%"
-}
 
 @Composable
 private fun OptionLabel(
