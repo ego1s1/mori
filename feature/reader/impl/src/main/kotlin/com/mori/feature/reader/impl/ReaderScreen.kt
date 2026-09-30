@@ -1,9 +1,7 @@
 package com.mori.feature.reader.impl
 
 import android.view.KeyEvent
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -94,10 +92,7 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
 import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderKeyInterceptor
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -254,33 +249,11 @@ private fun ReaderContent(
     val tapEpoch = remember { mutableIntStateOf(1) }
     LaunchedEffect(state.direction) { tapEpoch.intValue++ }
 
-    // Predictive-back preview: the bed shrinks with the gesture instead of
-    // snapping on release; commit leaves the reader, cancel settles back.
-    // Sheets own the back press while open, so the handler stands down then.
-    val backPreview = remember { Animatable(0f) }
-    PredictiveBackHandler(enabled = !state.settingsOpen && !state.overviewOpen) { progress ->
-        try {
-            progress.collect { backPreview.snapTo(it.progress) }
-            onBackClick()
-        } catch (e: CancellationException) {
-            withContext(NonCancellable) {
-                backPreview.animateTo(
-                    0f,
-                    animationSpec = if (pagerExpressive) {
-                        MoriMotion.defaultSpatialSpec()
-                    } else {
-                        MoriMotion.calmFade()
-                    },
-                )
-            }
-            throw e
-        }
-    }
-
     // Back exits through the NavHost: Navigation Compose scrubs the pop
-    // transitions with the system gesture, so the library shows through for
-    // real. No custom handler here — consuming the press would block that and
-    // the settings sheet dismisses itself first via its own back handling.
+    // transitions with the system gesture, so Main shows through for real.
+    // No custom preview handler here — consuming the press would block that
+    // scrub and hide Main behind a shrinking bed. Sheets own the back press
+    // while open via their own back handling.
 
     // Chrome interaction epoch: bumped by chrome control callbacks
     // (direction/fit/crop/settings/overview/bookmark) so the auto-hide timer
@@ -390,13 +363,6 @@ private fun ReaderContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer {
-                        val pull = backPreview.value
-                        val settle = 1f - BACK_PREVIEW_SHRINK * pull
-                        scaleX = settle
-                        scaleY = settle
-                        alpha = 1f - BACK_PREVIEW_FADE * pull
-                    }
                     .zoneTaps(
                         viewportWidth = viewportWidth,
                         direction = state.direction,
@@ -1026,11 +992,6 @@ private const val CHROME_AUTO_HIDE_MS = 3000L
 private const val CHROME_SETTLE_DELAY_MS = 120L
 
 /** Predictive-back shrink at full gesture progress (subtle bed pull). */
-private const val BACK_PREVIEW_SHRINK = 0.05f
-
-/** Predictive-back dim at full gesture progress. */
-private const val BACK_PREVIEW_FADE = 0.15f
-
 /** Touch target for chrome controls (M3 minimum, down from 56dp). */
 private val CHROME_CONTROL_SIZE = 48.dp
 
