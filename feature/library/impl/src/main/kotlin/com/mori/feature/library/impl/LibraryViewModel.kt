@@ -78,6 +78,22 @@ class LibraryViewModel @Inject constructor(
     private val searchOpen = MutableStateFlow(false)
 
     /**
+     * Quick-actions sheet target (long-press); the comic itself resolves from
+     * the library flow in the UI, so this stays out of the query combine.
+     */
+    private val menuComicId = MutableStateFlow<String?>(null)
+    private val menuDeleteConfirm = MutableStateFlow(false)
+
+    /** Observed by the route to render the menu sheet and its confirm dialog. */
+    fun observeMenu(): Flow<MenuState> = combine(menuComicId, menuDeleteConfirm, ::MenuState)
+
+    /** Long-press menu chrome state. */
+    data class MenuState(
+        val comicId: String?,
+        val deleteConfirm: Boolean,
+    )
+
+    /**
      * Database subscription query: the text field echoes instantly through
      * [query], but the grid re-queries at most once per typing pause instead
      * of once per keystroke. Empty text (initial load, cleared search) passes
@@ -254,6 +270,29 @@ class LibraryViewModel @Inject constructor(
                 }
             }
             is LibraryAction.ToggleShelfCollapsed -> toggleShelfCollapsed(action.collectionId)
+            is LibraryAction.OpenMenu -> {
+                menuComicId.value = action.comicId
+                menuDeleteConfirm.value = false
+            }
+            LibraryAction.CloseMenu -> {
+                menuComicId.value = null
+                menuDeleteConfirm.value = false
+            }
+            LibraryAction.ToggleMenuBookmark -> {
+                val id = menuComicId.value ?: return
+                viewModelScope.launch {
+                    runCatching { repository.toggleBookmark(id) }
+                }
+            }
+            LibraryAction.OpenMenuDelete -> menuDeleteConfirm.value = true
+            LibraryAction.ConfirmMenuDelete -> {
+                val id = menuComicId.value ?: return
+                menuDeleteConfirm.value = false
+                menuComicId.value = null
+                viewModelScope.launch {
+                    runCatching { repository.removeComic(id) }
+                }
+            }
         }
     }
 

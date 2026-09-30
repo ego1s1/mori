@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,8 @@ fun MoriSettingRow(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     trailing: @Composable () -> Unit = {},
 ) {
     Surface(
@@ -67,7 +70,7 @@ fun MoriSettingRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = iconTint,
                 )
             }
             Column(
@@ -78,7 +81,7 @@ fun MoriSettingRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = titleColor,
                 )
                 Text(
                     text = subtitle,

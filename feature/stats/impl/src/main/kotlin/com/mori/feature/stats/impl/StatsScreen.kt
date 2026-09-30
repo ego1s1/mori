@@ -45,6 +45,7 @@ import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
@@ -249,11 +250,21 @@ private fun RangeSelector(
     val options = StatsRange.entries
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
+            val selected = option == range
             SegmentedButton(
-                selected = option == range,
+                selected = selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                label = { Text(rangeLabel(option)) },
+                label = {
+                    Text(
+                        text = rangeLabel(option),
+                        style = if (selected) {
+                            MoriEmphasized.labelLarge
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                    )
+                },
                 modifier = Modifier.testTag(StatsTestTags.rangeFor(option)),
             )
         }

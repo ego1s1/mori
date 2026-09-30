@@ -422,7 +422,58 @@ class LibraryViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun menuOpensClosesAndBookmarks() = runTest {
+        val repository = FakeComicsRepository(
+            listOf(FakeComicsRepository.comic("a", title = "Apple")),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.observeMenu().test {
+            assertEquals(null, awaitItem().comicId)
+
+            viewModel.onAction(LibraryAction.OpenMenu("a"))
+            assertEquals("a", awaitWhereMenu { it.comicId == "a" }.comicId)
+
+            viewModel.onAction(LibraryAction.ToggleMenuBookmark)
+            assertEquals(listOf("a"), repository.bookmarkToggles)
+
+            viewModel.onAction(LibraryAction.CloseMenu)
+            assertEquals(null, awaitWhereMenu { it.comicId == null }.comicId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun menuDeleteConfirmsAndRemoves() = runTest {
+        val repository = FakeComicsRepository(
+            listOf(FakeComicsRepository.comic("a", title = "Apple")),
+        )
+        val viewModel = viewModel(repository)
+        viewModel.observeMenu().test {
+            awaitItem()
+            viewModel.onAction(LibraryAction.OpenMenu("a"))
+            awaitWhereMenu { it.comicId == "a" }
+
+            viewModel.onAction(LibraryAction.OpenMenuDelete)
+            assertEquals(true, awaitWhereMenu { it.deleteConfirm }.deleteConfirm)
+
+            viewModel.onAction(LibraryAction.ConfirmMenuDelete)
+            val closed = awaitWhereMenu { it.comicId == null }
+            assertEquals(false, closed.deleteConfirm)
+            assertEquals(listOf("a"), repository.removedIds)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
+
+/**
+ * Consumes menu emissions until [predicate] holds. The menu flow is a plain
+ * combine of two StateFlows, so every write re-emits deterministically.
+ */
+private suspend fun ReceiveTurbine<LibraryViewModel.MenuState>.awaitWhereMenu(
+    predicate: (LibraryViewModel.MenuState) -> Boolean,
+): LibraryViewModel.MenuState = awaitWhere(predicate)
 
 /** Consumes until the first Success (tolerating an optional leading Loading). */
 private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccess(): LibraryUiState.Success =

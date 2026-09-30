@@ -174,11 +174,22 @@ private fun LibraryRouteContent(
             target?.let { ResumeTarget(it.id, it.resumeIndex, it.title) },
         )
     }
+    // Long-press menu target resolves from the grid flow (menu chrome lives
+    // outside the query combine); a removed comic closes the sheet by itself.
+    val menuState by viewModel.observeMenu().collectAsStateWithLifecycle(
+        initialValue = LibraryViewModel.MenuState(comicId = null, deleteConfirm = false),
+    )
+    val menuComic = (uiState as? LibraryUiState.Success)?.comics?.firstOrNull {
+        it.id == menuState.comicId
+    }
     LibraryScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
         onReadClick = onReadClick,
-        onComicLongClick = onComicLongClick,
+        onComicLongClick = { viewModel.onAction(LibraryAction.OpenMenu(it)) },
+        onDetailsClick = onComicLongClick,
+        menuComic = menuComic,
+        menuDeleteConfirm = menuState.deleteConfirm,
         onChooseFolder = { folderLauncher.launch(null) },
         snackbarHost = snackbarHost,
         modifier = modifier,
@@ -193,6 +204,9 @@ internal fun LibraryScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
     onComicLongClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onDetailsClick: (String) -> Unit = {},
+    menuComic: Comic? = null,
+    menuDeleteConfirm: Boolean = false,
     onChooseFolder: () -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -260,6 +274,16 @@ internal fun LibraryScreen(
                             onAction = onAction,
                             collections = uiState.collections,
                             selectedCollectionId = uiState.selectedCollectionId,
+                        )
+                    }
+                    val menu = menuComic
+                    if (menu != null) {
+                        LibraryMenuSheet(
+                            comic = menu,
+                            deleteConfirm = menuDeleteConfirm,
+                            onAction = onAction,
+                            onReadClick = onReadClick,
+                            onDetailsClick = onDetailsClick,
                         )
                     }
                 }

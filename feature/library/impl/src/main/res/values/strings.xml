@@ -40,4 +40,14 @@
     <string name="library_snack_index_failed">Couldn\'t index %1$d file(s). Check the files and rescan.</string>
     <string name="library_snack_rescan_failed">Rescan failed. Try again.</string>
     <string name="library_rescan_progress">Scanning library</string>
+    <string name="library_menu_read">Read</string>
+    <string name="library_menu_resume">Resume</string>
+    <string name="library_menu_details">Details</string>
+    <string name="library_menu_bookmark_add">Bookmark</string>
+    <string name="library_menu_bookmark_remove">Remove bookmark</string>
+    <string name="library_menu_delete">Remove from library</string>
+    <string name="library_menu_delete_title">Remove comic?</string>
+    <string name="library_menu_delete_body">%1$s will be removed from your library. Files on disk are kept.</string>
+    <string name="library_menu_delete_confirm">Remove</string>
+    <string name="library_dialog_cancel">Cancel</string>
 </resources>

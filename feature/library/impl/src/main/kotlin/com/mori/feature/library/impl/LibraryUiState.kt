@@ -78,6 +78,17 @@ sealed interface LibraryAction {
 
     /** Collapse/expand one shelf section; persisted in display prefs. */
     data class ToggleShelfCollapsed(val collectionId: Long) : LibraryAction
+
+    /** Open the quick-actions sheet for one comic (long-press). */
+    data class OpenMenu(val comicId: String) : LibraryAction
+
+    data object CloseMenu : LibraryAction
+
+    data object ToggleMenuBookmark : LibraryAction
+
+    data object OpenMenuDelete : LibraryAction
+
+    data object ConfirmMenuDelete : LibraryAction
 }
 
 /** One-shot library messages; the UI maps each to localized copy. */

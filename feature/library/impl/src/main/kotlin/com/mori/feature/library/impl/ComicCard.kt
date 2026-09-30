@@ -26,9 +26,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriScrimPill
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
 
@@ -40,7 +42,7 @@ import com.mori.core.model.Comic
  *
  * Tapping the card continues at the saved page, so there is no separate
  * continue button; the pages-left badge marks in-progress books.
- * Long-press opens details.
+ * Long-press opens the quick-actions menu.
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -57,7 +59,13 @@ internal fun ComicCard(
     // bumps on any write) no longer invalidate the handler, while a real
     // progress save still refreshes the captured resume index.
     val click = remember(comic.id, comic.lastPageIndex, comic.error, onRead) { { onRead(comic) } }
-    val longClick = remember(comic.id, onDetails) { { onDetails(comic) } }
+    val haptics = rememberMoriHaptics()
+    val longClick = remember(comic.id, onDetails, haptics) {
+        {
+            haptics(MoriHaptic.LongPress)
+            onDetails(comic)
+        }
+    }
     val bookmarkedLabel = stringResource(R.string.library_card_bookmarked)
     Surface(
         shape = MaterialTheme.shapes.large,
