@@ -239,7 +239,6 @@ private fun ReaderContent(
 
     val rtl = state.direction == ReadingDirection.RIGHT_TO_LEFT
     val context = LocalContext.current
-    val haptics = rememberMoriHaptics()
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
     val contentScope = rememberCoroutineScope()
@@ -278,13 +277,6 @@ private fun ReaderContent(
         LaunchedEffect(state.chromeVisible, state.pageIndex, chromeInteractionEpoch) {
             delay(CHROME_AUTO_HIDE_MS)
             onAction(ReaderAction.HideChrome)
-        }
-    }
-    // Tactile wheel while scrubbing through pages: one crisp detent per
-    // settled page.
-    LaunchedEffect(state.pageIndex, scrubbing) {
-        if (scrubbing) {
-            haptics(MoriHaptic.Detent)
         }
     }
 
@@ -754,6 +746,15 @@ private fun ReaderBottomChrome(
                 // Reset per book length so a stale held index can't leak across books.
                 var scrub by remember(pageCount) { mutableStateOf<Int?>(null) }
                 LaunchedEffect(scrub) { onScrubChange(scrub != null) }
+                // Tactile wheel: one crisp detent per page crossed. Keyed on
+                // the live scrub preview (not pageIndex, which only moves on
+                // commit) so every detent fires mid-drag.
+                val scrubHaptics = rememberMoriHaptics()
+                LaunchedEffect(scrub) {
+                    if (scrub != null) {
+                        scrubHaptics(MoriHaptic.Detent)
+                    }
+                }
                 Surface(
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,

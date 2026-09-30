@@ -881,11 +881,16 @@ private fun AboutSection(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
-                        text = stringResource(R.string.settings_about_credit),
+                        text = stringResource(R.string.settings_about_developer),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_about_handle),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clickable(
-                            onClickLabel = stringResource(R.string.settings_about_credit),
+                            onClickLabel = stringResource(R.string.settings_about_handle),
                             onClick = {
                                 haptics(MoriHaptic.Select)
                                 context.openUrl(AboutLinks.DEVELOPER)
