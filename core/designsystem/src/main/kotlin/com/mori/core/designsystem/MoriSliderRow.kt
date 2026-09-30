@@ -24,6 +24,7 @@ fun MoriSliderRow(
     onValueChangeFinished: () -> Unit = {},
     interactionSource: MutableInteractionSource? = null,
 ) {
+    val haptics = rememberMoriHaptics()
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -34,7 +35,10 @@ fun MoriSliderRow(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
-            onValueChangeFinished = onValueChangeFinished,
+            onValueChangeFinished = {
+                haptics(MoriHaptic.Tick)
+                onValueChangeFinished()
+            },
             interactionSource = interactionSource ?: remember { MutableInteractionSource() },
             modifier = Modifier.fillMaxWidth(),
         )

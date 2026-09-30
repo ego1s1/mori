@@ -1,32 +1,45 @@
-# Animation + Optimisation Action Plan
+# Settings overhaul — predictive back, expressive subsections, haptics
 
-Source: 40-agent audit (20 animation-behavior, 20 performance). Constraint: NO UI component/layout changes — animation behavior + performance only.
+Decisions locked: Tomato slide+parallax transitions, full gesture preview, all six
+sections overhauled, small detail bar stays, cookies on heroes only, Flex display
+values in Storage + About + slider readouts + Stats + library long-press menu.
 
-## Batch 1 — designsystem + reader gesture core
-- [ ] A. designsystem motion: fix Motion.kt table rows (cover morph dup/naming), FAB exit spec to heroSpring, coverMorphTransform + SharedTransitionLocals calm branch, MoriSheet expressive/calm branch
-- [ ] B. ZoomablePage: launchMotion cancels zoomJob too; calm snap unification (zoom/hop/fling); Animatable retarget for double-tap; deepZoom via snapshotFlow+distinct; motion/zoomJob plain refs (not state); HiRes threshold >= + current-page gate + low-RAM guard; remove onZoomedChange param+effect; attempt/cropMargins keys; tapEpoch keying; painter-state effect narrowing; PageArt deepZoom KDoc
-- [ ] C. ZoomPanDetector + ReaderZone: density-scaled fling gates; unconditional tracker sampling; pinching single-fire guard; NaN guard; single-pass centroid/spread; plain for-loops; cached reads; EDGE_EPS_PX on panOrTurn turn test; remnant-scaled hop duration
-- [ ] D. ZoneTapDetector + QuickScaleState: quickScale KDoc; consumed-down guard note (verified no-op — document); hold === identity (done); epoch guards (done); early-confirm single-fire (done); max-drift (done); getLongPressTimeout hoist; `full slop` comment fix
+## Stage 1 — Motion: Tomato slide + predictive preview (settings only)
+- `AnimatedContent(category)`: push = full-width slide-in + 1/4-parallax
+  slide-out with fade-out; pop = 1/4 slide-in with fade-in + full-width
+  slide-out. RTL-aware, token-driven (`tabEnterSpec`/`tabExitSpec`),
+  fade-only under calm/reduced-motion.
+- `PredictiveBackHandler(enabled = category != null)`: scrub the same slide
+  (detail drifts, hub revealed underneath), release commits, cancel springs
+  back. `BackHandler` stays for 3-button nav. No back haptic (Tomato parity).
 
-## Batch 2 — reader screen + library + history [DONE]
-- [x] E through H (ReaderScreen settled/distinct/guards/memo/a11y; LibraryScreen focus/topBar/animateItem/keys/semantics; LibraryViewModel distincts/tryLock/throttle/rethrow; HistoryScreen focus/keys/lambdas/FADE/cover title)
+## Stage 2 — Shared row component + Flex roles (designsystem)
+- New `MoriSettingRow`: 72dp min, `surfaceContainerLow`, `extraLarge` shape,
+  leading icon container, title/subtitle, trailing control slot.
+- Flex roles from existing `AppFonts`/`Type.kt`: selected-segment labels +
+  setting values → Flex emphasized; hero numerals → Flex display w900.
+- Switches gain the missing off-state thumb icon (check/clear both states).
 
-## Batch 3 — settings/detail/reader-sheet + VMs + Coil + prefs/app [DONE]
-- [x] I (dialog FADE gates, licenses tag+label, conditional FADE wraps; locale/separator/a11y skips noted)
-- [x] J (slider scrub-preview + commit; prefsJob/filterJob coalesce; MoriSliderRow params)
-- [x] K (regionDecoder recycle; trim recycle; cover RGB_565 best-effort; parallelism 4/2; overview prefetch/keys; heavy refactors skipped)
-- [x] L (distinct per prefs flow; atomic updateData; IO scope + corruptionHandler; MoriApp/MoriApplication skips noted)
+## Stage 3 — Per-section overhaul + satellites
+- Appearance: icon-bearing segments, filter-pill swatches, Flex section labels.
+- Reader: sliders with Flex value readouts + scrub ticks; segments with icons.
+- Shelves: segmented icon rows (cookie icon, Flex count); dialogs go
+  tonal-dismiss + filled-confirm.
+- Privacy: Feeding-times rows (status value + control).
+- Storage: finance-card hero (giant Flex number + filled-tonal clear button).
+- About: Cardfolio hero (cookie app-mark + Flex headline + version).
+- Satellites: Stats heroes/range selector; library long-press menu rows.
 
-## Batch 4 — data/db + size + tests + main chrome [DONE]
-- [x] M (count() query, single-statement bookmark, storageUsage coil dir, indexFile map-only, evict mutex+part filter, mkdirs IO, atomic cover write; indices/upsert/single-progress/chunk/ImageLoader-inject/LRU skips noted)
-- [x] N (resConfigs en + R8 fullMode flag; minify SKIPPED keeps-missing; lint baseline SKIPPED)
-- [x] O (quick-scale hold-drag UI test, ZoomPan/TapPairing edge tests, history search/list tests; fling-UI/zone-veto/chip-tag skips noted)
-- [x] P (listSaver typed getters, resume clear-on-read, resume dedup guard; title-drop/selectable skips noted)
+## Stage 4 — Haptics coverage (additive, Pulsar mappings unchanged)
+Segments/swatches `Select`; slider scrub `FrequentTick`; shelf + dialog
+commits `Confirm`; cache result `Confirm`/`Reject`; licenses `Select`; stats
+range `Select`; long-press open `Select`. No back/typing/expand haptics.
 
-## Deferred (systemic, separate changes)
-- Dispatcher qualifiers (@IoDispatcher), Hilt @Singleton binds, api/impl split for library/history, ReaderKeyInterceptor bus, deep links, predictive-pop simplification, tab enum, fakes fidelity overhaul, MockK ban compliance (already clean), margin-scan subsampling, overview-sheet virtualization rework
+## Stage 5 — Verify (emulator only, no phone)
+`assembleDebug` + unit tests + `detekt`; emulator round trip incl.
+mid-gesture predictive-back screenshots; dark + dynamic-color pass; logcat
+haptic smoke with no fatals.
 
-## Verify [DONE]
-- [x] Full unit suites green (299 tests: reader 142, library 36, history 12, settings 27, detail 27, data 37, model 18)
-- [x] Detekt clean on all touched modules
-- [x] Release build assembles (assembleDebug green; release verification at cut time)
+## Non-goals
+No `LargeFlexible` headers, no hub redesign, no tab-bar/FAB changes, no Pulsar
+API or permission changes, phone-Compact scope, calm-motion fallbacks everywhere.

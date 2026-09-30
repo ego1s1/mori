@@ -3,6 +3,7 @@ package com.mori.feature.reader.impl
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,6 +59,8 @@ internal fun Modifier.zoomPan(
      * skipped so the swipe pans (or does nothing) instead of paging.
      */
     swipeToTurn: Boolean = true,
+    /** Visible viewport size; pan clamps compare it against the content box. */
+    viewportSize: (() -> Size)? = null,
 ): Modifier = pointerInput(direction) {
     // Engage budget (~5dp: content starts
     // following well before full touch slop. zoneTaps voids holds on the
@@ -127,7 +130,7 @@ internal fun Modifier.zoomPan(
                     }
                     val snapshot = toScreen(centroidOf(pressed))
                     prevScreenCentroid = snapshot
-                    prevDist = spreadOf(pressed)
+                    prevDist = spreadOf(pressed) * getScale()
                     val joined = prevCount
                     prevCount = pressed.size
                     tracker.resetTracking()
@@ -205,7 +208,7 @@ internal fun Modifier.zoomPan(
                     // Pager owns this gesture: track baselines only, consume
                     // nothing, so its drag starts on unconsumed slop.
                     prevScreenCentroid = toScreen(centroidOf(pressed))
-                    prevDist = spreadOf(pressed)
+                    prevDist = spreadOf(pressed) * getScale()
                     continue
                 }
                 val multi = pressed.size > 1
@@ -237,11 +240,14 @@ internal fun Modifier.zoomPan(
                         val uAnchor = quickScale.anchor - center
                         val rawTarget = cur + uAnchor * (scaleNow - newScale) +
                             (screenCentroid - prevScreenCentroid)
+                        val viewport = viewportSize?.invoke() ?: Size(size.width.toFloat(), size.height.toFloat())
                         val target = clampPan(
                             rawTarget,
                             newScale,
                             size.width.toFloat(),
                             size.height.toFloat(),
+                            viewport.width,
+                            viewport.height,
                         )
                         if (target != cur || newScale != scaleNow) {
                             setScale(newScale)
@@ -253,17 +259,22 @@ internal fun Modifier.zoomPan(
                     }
                     quickScale.sampleSpan(dist)
                     prevScreenCentroid = screenCentroid
-                    prevDist = spreadOf(pressed)
+                    prevDist = spreadOf(pressed) * getScale()
                     continue
                 }
                 if (!multi && scaleNow <= 1f) {
                     // Fit: single-finger drags belong to the pager. Touch nothing.
                     prevScreenCentroid = toScreen(centroidOf(pressed))
-                    prevDist = spreadOf(pressed)
+                    prevDist = spreadOf(pressed) * getScale()
                     continue
                 }
                 val (localCentroid, dist) = centroidAndSpread(pressed)
-                val zoom = if (multi && prevDist > 0f) dist / prevDist else 1f
+                // Screen spread = local spread * scale: pointer coords are in
+                // the layer's scaled space, so comparing local spreads fed our
+                // own scale change back into the pinch ratio and the zoom
+                // flickered. Screen spread is feedback-free.
+                val screenSpread = dist * scaleNow
+                val zoom = if (multi && prevDist > 0f) screenSpread / prevDist else 1f
                 val targetScale = (scaleNow * zoom).coerceIn(1f, maxZoom)
                 val center = Offset(size.width / 2f, size.height / 2f)
                 // Screen-space, feedback-free: keep the content point under the
@@ -282,11 +293,14 @@ internal fun Modifier.zoomPan(
                     scaleNow = scaleNow,
                     targetScale = targetScale,
                 )
+                val viewport = viewportSize?.invoke() ?: Size(size.width.toFloat(), size.height.toFloat())
                 val target = clampPan(
                     rawTarget,
                     targetScale,
                     size.width.toFloat(),
                     size.height.toFloat(),
+                    viewport.width,
+                    viewport.height,
                 )
                 // Hard stop with fallback: the clamp drops excess, which
                 // accumulates toward the explicit turn below. A swipe that
@@ -324,19 +338,24 @@ internal fun Modifier.zoomPan(
                         clampedX = target.x,
                         horizontalPush = horizontal,
                     )
-                    if (edgeOvershoot >= edgeTurnExtraPx) {
+                    if (!turned && edgeOvershoot >= edgeTurnExtraPx) {
                         turned = true
                         onEdgeTurn(edgeTurnForward(rawTarget.x - target.x, direction))
                         for (change in pressed) {
                             change.consume()
                         }
-                        break
+                        // Keep owning the gesture to the lift: bailing here
+                        // leaves the tail unconsumed and the pager drags the
+                        // same swipe, advancing a second page.
+                        prevScreenCentroid = screenCentroid
+                        prevDist = screenSpread
+                        continue
                     }
                 } else {
                     edgeOvershoot = 0f
                 }
                 prevScreenCentroid = screenCentroid
-                prevDist = dist
+                prevDist = screenSpread
             }
         } finally {
             // Gesture over (or detector gone): the pager may scroll again.
@@ -420,7 +439,16 @@ internal fun flingTarget(
     scale: Float,
     widthPx: Float,
     heightPx: Float,
-): Offset = clampPan(start + velocityPxPerSec * FLING_GLIDE_SECONDS, scale, widthPx, heightPx)
+    viewportWidthPx: Float = widthPx,
+    viewportHeightPx: Float = heightPx,
+): Offset = clampPan(
+    start + velocityPxPerSec * FLING_GLIDE_SECONDS,
+    scale,
+    widthPx,
+    heightPx,
+    viewportWidthPx,
+    viewportHeightPx,
+)
 
 /** Maps a horizontal clamp overshoot to reading-direction travel. Pure for testability. */
 internal fun edgeTurnForward(overshootX: Float, direction: ReadingDirection): Boolean =
@@ -469,11 +497,24 @@ internal fun zoomPanTarget(
     return gNow - (gPrev - current) * ratio
 }
 
-/** Pan limits for width-fitted content: overflow halves each side. */
-internal fun clampPan(target: Offset, scale: Float, widthPx: Float, heightPx: Float): Offset {
+/**
+ * Pan limits for the scaled content inside the viewport: each axis may travel
+ * half the overflow, and an axis whose content does not overflow (e.g. a
+ * width-fitted page shorter than the viewport) cannot move at all. Content and
+ * viewport are separate because fit modes letterbox differently — treating the
+ * viewport as the content let vertically-shorter pages drift off-screen.
+ */
+internal fun clampPan(
+    target: Offset,
+    scale: Float,
+    widthPx: Float,
+    heightPx: Float,
+    viewportWidthPx: Float = widthPx,
+    viewportHeightPx: Float = heightPx,
+): Offset {
     if (scale <= 1f) return Offset.Zero
-    val maxX = widthPx * (scale - 1f) / 2f
-    val maxY = heightPx * (scale - 1f) / 2f
+    val maxX = ((widthPx * scale - viewportWidthPx) / 2f).coerceAtLeast(0f)
+    val maxY = ((heightPx * scale - viewportHeightPx) / 2f).coerceAtLeast(0f)
     return Offset(
         target.x.coerceIn(-maxX, maxX),
         target.y.coerceIn(-maxY, maxY),

@@ -7,6 +7,7 @@ object DetailTestTags {
     const val Hero = "detailHero"
     const val ReadButton = "detailRead"
     const val BookmarkButton = "detailBookmark"
+    const val OverflowButton = "detailOverflow"
     const val ShareButton = "detailShare"
     const val RefreshButton = "detailRefresh"
     const val RemoveButton = "detailRemove"

@@ -17,4 +17,11 @@ buildscript {
 allprojects {
     group = "com.mori"
     version = "1.0.0"
+
+    // Pulsar 1.3.0 transitively pulls androidx.core:core 1.17.0, which
+    // requires AGP 8.9.1+ (repo pins 8.7.3). Force the repo's 1.15.0: it
+    // already carries every vibrator/compat API Pulsar's haptics path uses.
+    configurations.all {
+        resolutionStrategy.force("androidx.core:core:1.15.0", "androidx.core:core-ktx:1.15.0")
+    }
 }

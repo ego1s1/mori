@@ -2,6 +2,9 @@ package com.mori.feature.reader.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -113,6 +116,7 @@ internal fun ReaderSettingsSheetContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
     ) {

@@ -78,6 +78,8 @@ class DetailScreenTest {
         val actions = mutableListOf<DetailAction>()
         setScreen(ready(), actions = actions)
 
+        // Secondary actions live in the overflow menu now.
+        composeTestRule.onNodeWithTag(DetailTestTags.OverflowButton).performClick()
         composeTestRule.onNodeWithTag(DetailTestTags.ShareButton).performClick()
 
         assert(actions.contains(DetailAction.Share))

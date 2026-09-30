@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,12 +98,18 @@ internal fun ReaderOverviewSheetContent(
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Text(
-        text = stringResource(R.string.reader_overview_title, currentPage, expandedCount),
-        style = MaterialTheme.typography.titleMedium,
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .windowInsetsPadding(WindowInsets.navigationBars),
+    ) {
+    Text(
+        text = stringResource(R.string.reader_overview_title, currentPage, expandedCount),
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .semantics { heading() },
     )
     LazyVerticalGrid(
         columns = GridCells.Adaptive(OVERVIEW_CELL_MIN),
@@ -130,6 +141,7 @@ internal fun ReaderOverviewSheetContent(
                 },
             )
         }
+    }
     }
 }
 

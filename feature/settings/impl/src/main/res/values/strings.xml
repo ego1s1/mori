@@ -49,11 +49,6 @@
     <string name="settings_card_privacy">Privacy</string>
     <string name="settings_applock_title">App lock</string>
     <string name="settings_applock_subtitle">Require biometric or device credential on launch</string>
-    <string name="settings_card_stats">Reading stats</string>
-    <string name="settings_stats_time">Time reading</string>
-    <string name="settings_stats_pages">Pages turned</string>
-    <string name="settings_stats_finished">Books finished</string>
-    <string name="settings_stats_sessions">Reading sessions</string>
     <string name="settings_card_storage">Storage</string>
     <string name="settings_storage_summary">%1$d comics • %2$s library • %3$s covers</string>
     <string name="settings_card_groups">Shelves</string>
@@ -83,4 +78,11 @@
     <string name="settings_about_licenses">Open-source licenses</string>
     <string name="settings_about_licenses_subtitle">Libraries this app is built with</string>
     <string name="settings_soon_badge">Soon</string>
+    <string name="settings_navigate_back">Back</string>
+    <string name="settings_hub_appearance_sub">Theme, colors, motion</string>
+    <string name="settings_hub_reader_sub">Direction, page fit, display</string>
+    <string name="settings_hub_shelves_sub">Organize books into shelves</string>
+    <string name="settings_hub_privacy_sub">App lock, incognito</string>
+    <string name="settings_hub_storage_sub">Library size, thumbnail cache</string>
+    <string name="settings_hub_about_sub">Version, licenses</string>
 </resources>

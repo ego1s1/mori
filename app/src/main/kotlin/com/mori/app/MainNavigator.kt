@@ -1,95 +1,193 @@
 package com.mori.app
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.FloatingToolbarScrollBehavior
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.rememberMoriHaptics
 
 /**
- * The floating navigator: Library, History and Settings destinations with
- * caffeine-style selected highlighting — the active tab is a wide pill
- * carrying icon and label, idle tabs are bare icons. Tab state lives in
- * [MainScreen] and every tap delegates out — no business logic here.
+ * Floating navigator: a vibrant [HorizontalFloatingToolbar] carrying the three
+ * destinations as pill [ToggleButton]s — the selected tab swaps to its filled
+ * icon and expands to reveal its label, idle tabs stay bare outlined icons
+ * (reference-app parity). The bar hides on scroll and rides above the system
+ * nav bar.
  *
- * Geometry is fully deterministic (M3 expressive 4dp grid): 48dp cells on a
- * 4dp gap inside 8x4dp chrome, so the bar always measures 56dp tall — the
- * [ResumeButton] circle matches that height exactly.
+ * Tab state lives in [MainScreen] and every tap delegates out — no business
+ * logic here.
  */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun MainNavigator(
     selectedTab: Int,
     onSelectTab: (Int) -> Unit,
+    scrollBehavior: FloatingToolbarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 0.dp,
-        shadowElevation = 3.dp,
+    val primary = MaterialTheme.colorScheme.primary
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
+    val expressive = LocalExpressiveMotionEnabled.current
+    val motionScheme = MaterialTheme.motionScheme
+
+    // The pill is one element of a caller-centred row (pill + resume); together
+    // they read as a single floating unit centred on the screen.
+    HorizontalFloatingToolbar(
+        expanded = true,
+        scrollBehavior = scrollBehavior,
+        colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(
+            toolbarContainerColor = primaryContainer,
+            toolbarContentColor = onPrimaryContainer,
+        ),
         modifier = modifier.testTag(MainTestTags.Navigator),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .padding(4.dp)
-                .selectableGroup(),
-        ) {
             NavDestination(
                 selected = selectedTab == 0,
                 onClick = { onSelectTab(0) },
-                icon = MoriIcons.MenuBook,
+                outlinedIcon = MoriIcons.MenuBookOutlined,
+                filledIcon = MoriIcons.MenuBook,
                 label = "Library",
-                contentDescription = "Library tab",
                 testTag = MainTestTags.LibraryTab,
+                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
+                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
             )
             NavDestination(
                 selected = selectedTab == 1,
                 onClick = { onSelectTab(1) },
-                icon = MoriIcons.History,
-                label = "History",
-                contentDescription = "History tab",
-                testTag = MainTestTags.HistoryTab,
+                outlinedIcon = MoriIcons.BarChartOutlined,
+                filledIcon = MoriIcons.BarChart,
+                label = "Stats",
+                testTag = MainTestTags.StatsTab,
+                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
+                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
             )
             NavDestination(
                 selected = selectedTab == 2,
                 onClick = { onSelectTab(2) },
-                icon = MoriIcons.Settings,
+                outlinedIcon = MoriIcons.SettingsOutlined,
+                filledIcon = MoriIcons.Settings,
                 label = "Settings",
-                contentDescription = "Settings tab",
                 testTag = MainTestTags.SettingsTab,
+                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
+                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
             )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+private fun toggleColors(
+    primary: androidx.compose.ui.graphics.Color,
+    onPrimary: androidx.compose.ui.graphics.Color,
+    primaryContainer: androidx.compose.ui.graphics.Color,
+    onPrimaryContainer: androidx.compose.ui.graphics.Color,
+) = ToggleButtonDefaults.toggleButtonColors(
+    containerColor = primaryContainer,
+    contentColor = onPrimaryContainer,
+    checkedContainerColor = primary,
+    checkedContentColor = onPrimary,
+)
+
+/**
+ * One destination: a circular [ToggleButton] that crossfades outlined↔filled on
+ * selection and expands to reveal its label, wrapped in a tooltip so icon-only
+ * tabs stay discoverable.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun NavDestination(
+    selected: Boolean,
+    onClick: () -> Unit,
+    outlinedIcon: ImageVector,
+    filledIcon: ImageVector,
+    label: String,
+    testTag: String,
+    colors: androidx.compose.material3.ToggleButtonColors,
+    expandSpec: () -> androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntSize>,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = rememberMoriHaptics()
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState(),
+    ) {
+        ToggleButton(
+            checked = selected,
+            onCheckedChange = {
+                haptics(MoriHaptic.Select)
+                onClick()
+            },
+            colors = colors,
+            shapes = ToggleButtonDefaults.shapes(CircleShape, CircleShape, CircleShape),
+            modifier = modifier
+                .height(56.dp)
+                .testTag(testTag)
+                .semantics { this.selected = selected },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Crossfade(targetState = selected, label = "navIcon") { isSelected ->
+                    if (isSelected) {
+                        Icon(filledIcon, contentDescription = label)
+                    } else {
+                        Icon(outlinedIcon, contentDescription = label)
+                    }
+                }
+                AnimatedVisibility(
+                    visible = selected,
+                    enter = expandHorizontally(animationSpec = expandSpec()),
+                    exit = shrinkHorizontally(animationSpec = expandSpec()),
+                ) {
+                    Text(
+                        text = label,
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.padding(start = ButtonDefaults.IconSpacing),
+                    )
+                }
+            }
         }
     }
 }
@@ -109,6 +207,7 @@ internal fun ResumeButton(
         onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         tonalElevation = 0.dp,
         shadowElevation = 3.dp,
         modifier = modifier
@@ -117,89 +216,13 @@ internal fun ResumeButton(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.size(56.dp),
         ) {
             Icon(
                 imageVector = MoriIcons.PlayArrow,
                 contentDescription = "Resume $title",
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(24.dp),
             )
-        }
-    }
-}
-
-@Composable
-private fun NavDestination(
-    selected: Boolean,
-    onClick: () -> Unit,
-    icon: ImageVector,
-    label: String,
-    contentDescription: String,
-    testTag: String,
-    modifier: Modifier = Modifier,
-) {
-    val container = when {
-        selected -> MaterialTheme.colorScheme.secondaryContainer
-        else -> Color.Transparent
-    }
-    val content = when {
-        selected -> MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val expressiveMotion = LocalExpressiveMotionEnabled.current
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .clip(CircleShape)
-            .clickable(onClick = onClick, role = Role.Tab)
-            .semantics { this.selected = selected }
-            .testTag(testTag)
-            .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-    ) {
-        // Indicator pill carries even insets on every side, so the highlight
-        // never sits closer to one bar edge than the others; the label only
-        // widens it, expanding in place with a fade.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .background(container, CircleShape)
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                // The visible label carries the name when shown; the icon
-                // only names itself for icon-only destinations.
-                contentDescription = if (selected) null else contentDescription,
-                tint = content,
-                modifier = Modifier.size(20.dp),
-            )
-            AnimatedVisibility(
-                visible = selected,
-                enter = if (expressiveMotion) {
-                    fadeIn(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                        expandHorizontally(animationSpec = MoriMotion.defaultSpatialSpec())
-                } else {
-                    fadeIn(animationSpec = MoriMotion.calmFade())
-                },
-                // Mirrors the enter pair (same specs, reversed): rapid tab
-                // hops retarget enter and exit identically instead of
-                // springing open and tweening shut.
-                exit = if (expressiveMotion) {
-                    fadeOut(animationSpec = MoriMotion.defaultEffectsSpec()) +
-                        shrinkHorizontally(animationSpec = MoriMotion.defaultSpatialSpec())
-                } else {
-                    fadeOut(animationSpec = MoriMotion.calmFade())
-                },
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = content,
-                    maxLines = 1,
-                )
-            }
         }
     }
 }

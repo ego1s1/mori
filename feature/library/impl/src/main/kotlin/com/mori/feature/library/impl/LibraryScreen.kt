@@ -9,6 +9,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,10 +39,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,11 +72,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.WindowWidthClass
 import com.mori.core.designsystem.windowWidthClass
 import com.mori.core.designsystem.MoriCoverArt
-import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriIcons
@@ -192,6 +196,8 @@ internal fun LibraryScreen(
     onChooseFolder: () -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val gridState = rememberLazyGridState()
     Scaffold(
         topBar = {
             val success = uiState as? LibraryUiState.Success
@@ -205,6 +211,7 @@ internal fun LibraryScreen(
                         success.query.copy(text = "") != LibraryQuery(),
                     onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
+                    scrollBehavior = scrollBehavior,
                 )
             } else {
                 LibraryTopBar(
@@ -212,6 +219,7 @@ internal fun LibraryScreen(
                     filterActive = false,
                     onSearchClick = {},
                     onAction = {},
+                    scrollBehavior = scrollBehavior,
                 )
             }
         },
@@ -221,7 +229,7 @@ internal fun LibraryScreen(
                 modifier = Modifier.testTag(LibraryTestTags.Snackbar),
             )
         },
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
         Surface(modifier = Modifier
             .fillMaxSize()
@@ -244,6 +252,7 @@ internal fun LibraryScreen(
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
                         onChooseFolder = onChooseFolder,
+                        gridState = gridState,
                     )
                     if (uiState.filterOpen) {
                         LibrarySortFilterSheet(
@@ -273,6 +282,7 @@ private fun LibraryContent(
     onComicLongClick: (String) -> Unit,
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
+    gridState: LazyGridState = rememberLazyGridState(),
 ) {
     // Centered well on expanded windows; phones stay full-bleed.
     MoriContentWell(modifier = modifier) {
@@ -287,6 +297,7 @@ private fun LibraryContent(
                 exit = MoriMotion.exit(MoriEnterKind.SEARCH),
             ) {
                 MoriProgressBar(
+                    contentDescription = stringResource(R.string.library_rescan_progress),
                     progress = {
                         val done = (progress?.done ?: 0).coerceAtMost(progress?.total ?: 1)
                         done.toFloat() / (progress?.total ?: 1)
@@ -345,6 +356,7 @@ private fun LibraryContent(
                 onReadClick = onReadClick,
                 onComicLongClick = onComicLongClick,
                 onChooseFolder = onChooseFolder,
+                gridState = gridState,
                 modifier = Modifier.weight(1f),
     )
         }
@@ -352,10 +364,10 @@ private fun LibraryContent(
 }
 
 /**
- * Static compact app bar: the bold brand title never moves and the background
- * never shifts while scrolling (reference-reader style). One bar, one color,
- * always. Search and filter ride as direct icon actions — no overflow menu;
- * rescans happen on launch and on pull-to-refresh.
+ * Collapsing screen header: the heavy 32sp display title shrinks to a compact
+ * bar as the grid scrolls, matching the reference app's header behaviour.
+ * Search and filter ride as direct icon actions — no overflow menu; rescans
+ * happen on launch and on pull-to-refresh.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -364,21 +376,22 @@ private fun LibraryTopBar(
     filterActive: Boolean,
     onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.library_title),
-                // Same emphasized screen-title role as Settings and
-                // History so sibling tabs match.
-                style = MoriEmphasized.headlineMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { heading() },
-            )
-        },
+    MoriCollapsingTopBar(
+        title = stringResource(R.string.library_title),
+        scrollBehavior = scrollBehavior,
         actions = {
+            IconButton(
+                onClick = { onAction(LibraryAction.Refresh) },
+                modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Refresh,
+                    contentDescription = stringResource(R.string.library_action_refresh),
+                )
+            }
             IconButton(
                 onClick = onSearchClick,
                 modifier = Modifier.testTag(LibraryTestTags.SearchToggle),
@@ -444,6 +457,7 @@ private fun LibraryBody(
     onComicLongClick: (String) -> Unit,
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
+    gridState: LazyGridState = rememberLazyGridState(),
 ) {
     // Only the launching card registers a shared element; null = plain grid.
     var launchingId by remember { mutableStateOf<String?>(null) }
@@ -476,11 +490,7 @@ private fun LibraryBody(
             bottom = FloatingChromeBottomReserve,
         )
     }
-    PullToRefreshBox(
-        isRefreshing = refreshing,
-        onRefresh = { onAction(LibraryAction.Refresh) },
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
                 searching = queryText.isNotBlank(),
@@ -499,6 +509,7 @@ private fun LibraryBody(
                     GRID_CELL_MIN
                 }
                 LazyVerticalGrid(
+                    state = gridState,
                     columns = GridCells.Adaptive(minCell),
                     contentPadding = gridPadding,
                     verticalArrangement = Arrangement.spacedBy(12.dp),

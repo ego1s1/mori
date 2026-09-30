@@ -1,5 +1,9 @@
 package com.mori.app
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.FloatingToolbarExitDirection
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -13,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class MainNavigatorTest {
@@ -29,6 +34,9 @@ class MainNavigatorTest {
                 MainNavigator(
                     selectedTab = selectedTab,
                     onSelectTab = onSelectTab,
+                    scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
+                        FloatingToolbarExitDirection.Bottom,
+                    ),
                 )
             }
         }
@@ -40,16 +48,16 @@ class MainNavigatorTest {
 
         composeTestRule.onNodeWithTag(MainTestTags.Navigator).assertExists()
         composeTestRule.onNodeWithTag(MainTestTags.LibraryTab).assertIsSelected()
-        composeTestRule.onNodeWithTag(MainTestTags.HistoryTab).assertIsNotSelected()
+        composeTestRule.onNodeWithTag(MainTestTags.StatsTab).assertIsNotSelected()
         composeTestRule.onNodeWithTag(MainTestTags.SettingsTab).assertIsNotSelected()
     }
 
     @Test
-    fun historySitsBetweenLibraryAndSettings() {
+    fun statsSitsBetweenLibraryAndSettings() {
         val order = mutableListOf<Int>()
         setPill(selectedTab = 1, onSelectTab = order::add)
 
-        composeTestRule.onNodeWithTag(MainTestTags.HistoryTab).assertIsSelected()
+        composeTestRule.onNodeWithTag(MainTestTags.StatsTab).assertIsSelected()
         composeTestRule.onNodeWithTag(MainTestTags.SettingsTab).performClick()
 
         assertEquals(listOf(2), order)

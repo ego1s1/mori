@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,10 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -83,12 +80,14 @@ import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriErrorCard
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriScrimPill
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.exit
 import com.mori.core.model.ComicError
 import com.mori.core.model.PageFit
@@ -244,7 +243,7 @@ private fun ReaderContent(
 
     val rtl = state.direction == ReadingDirection.RIGHT_TO_LEFT
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberMoriHaptics()
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
     val contentScope = rememberCoroutineScope()
@@ -310,7 +309,7 @@ private fun ReaderContent(
     // Tactile ticks while scrubbing through pages.
     LaunchedEffect(state.pageIndex, scrubbing) {
         if (scrubbing) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptics(MoriHaptic.FrequentTick)
         }
     }
 
@@ -518,6 +517,7 @@ private fun ReaderContent(
                 pageCount = state.pageCount,
                 direction = state.direction,
                 pageFit = state.pageFit,
+                cropMargins = state.cropMargins,
                 sliderInteraction = sliderInteraction,
                 onAction = onChromeAction,
                 onScrubChange = { chromeScrubHeld = it },
@@ -696,6 +696,7 @@ private fun ReaderBottomChrome(
     pageCount: Int,
     direction: ReadingDirection,
     pageFit: PageFit,
+    cropMargins: Boolean,
     sliderInteraction: MutableInteractionSource,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -939,6 +940,11 @@ private fun ReaderBottomChrome(
                 )
             }
             val cropLabel = stringResource(R.string.reader_crop_margins)
+            val cropState = if (cropMargins) {
+                stringResource(R.string.reader_crop_subtitle)
+            } else {
+                stringResource(R.string.reader_crop_title)
+            }
             IconButton(
                 onClick = { onAction(ReaderAction.ToggleCrop) },
                 modifier = Modifier
@@ -946,6 +952,7 @@ private fun ReaderBottomChrome(
                     .testTag(ReaderTestTags.CropButton)
                     .semantics {
                         onClick(label = cropLabel, action = null)
+                        stateDescription = cropState
                     },
             ) {
                 Icon(

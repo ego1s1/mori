@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
@@ -56,6 +58,7 @@ internal fun ComicCard(
     // progress save still refreshes the captured resume index.
     val click = remember(comic.id, comic.lastPageIndex, comic.error, onRead) { { onRead(comic) } }
     val longClick = remember(comic.id, onDetails) { { onDetails(comic) } }
+    val bookmarkedLabel = stringResource(R.string.library_card_bookmarked)
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -118,6 +121,9 @@ internal fun ComicCard(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
+                            .semantics {
+                                stateDescription = bookmarkedLabel
+                            }
                             .testTag(LibraryTestTags.bookmarkBadgeFor(comic.id)),
                     ) {
                         Icon(
@@ -151,8 +157,7 @@ internal fun ComicCard(
                         progress = { comic.progress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 6.dp)
-                            .height(3.dp),
+                            .padding(top = 6.dp),
                     )
                 }
             }

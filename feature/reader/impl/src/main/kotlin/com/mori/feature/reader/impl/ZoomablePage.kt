@@ -38,6 +38,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -158,6 +159,15 @@ internal fun ZoomablePage(
         val heightPx = remember(density, maxHeight) {
             with(density) { maxHeight.toPx() }.coerceAtLeast(1f)
         }
+        // Content box height after fit: width-fitted art shorter than the
+        // viewport is letterboxed, so its vertical pan bound is zero. Using
+        // the viewport here let such pages drift off-screen.
+        val contentHeightPx = remember(density, maxWidth, maxHeight, artAspect, pageFit) {
+            when (pageFit) {
+                PageFit.HEIGHT -> heightPx
+                else -> minOf(heightPx, widthPx / artAspect)
+            }
+        }
         // Latest zoom toggle: the gesture loop below is keyed on direction/width only,
         // so it must read scale through a ref instead of a stale closure. Zooming in
         // centers the tap point clamped to the pan
@@ -166,7 +176,15 @@ internal fun ZoomablePage(
         // landing can read the live viewport size.
         val latestZoomToggle = rememberUpdatedState { tap: Offset, center: Offset ->
             val target = zoomTargetForTap(scale)
-            val targetOffset = zoomOffsetForTap(tap, center, target, widthPx, heightPx)
+            val targetOffset = zoomOffsetForTap(
+                tap,
+                center,
+                target,
+                widthPx,
+                contentHeightPx,
+                widthPx,
+                heightPx,
+            )
             if (!expressiveMotion) {
                 zoomJob?.cancel()
                 motionJob?.cancel()
@@ -268,6 +286,7 @@ internal fun ZoomablePage(
                     onPinchingChange = onPinchingChange,
                     quickScale = quickScale,
                     swipeToTurn = swipeToTurn,
+                    viewportSize = { Size(widthPx, heightPx) },
                     onFlingEnd = { velocity ->
                         // Release momentum: ease out over the
                         // velocity-projected target inside the same clamp
@@ -275,7 +294,15 @@ internal fun ZoomablePage(
                         // fresh touch cancels it via onCancelMotion. Calm
                         // motion snaps instead of gliding.
                         if (scale > 1f) {
-                            val target = flingTarget(offset, velocity, scale, widthPx, heightPx)
+                            val target = flingTarget(
+                                offset,
+                                velocity,
+                                scale,
+                                widthPx,
+                                contentHeightPx,
+                                widthPx,
+                                heightPx,
+                            )
                             if (!expressiveMotion) {
                                 offset = target
                             } else {
@@ -526,14 +553,15 @@ internal fun zoomOffsetForTap(
     targetScale: Float,
     widthPx: Float,
     heightPx: Float,
+    viewportWidthPx: Float = widthPx,
+    viewportHeightPx: Float = heightPx,
 ): Offset {
     if (targetScale <= 1f) return Offset.Zero
-    val maxX = widthPx * (targetScale - 1f) / 2f
-    val maxY = heightPx * (targetScale - 1f) / 2f
-    return Offset(
-        ((center.x - tap.x) * targetScale).coerceIn(-maxX, maxX),
-        ((center.y - tap.y) * targetScale).coerceIn(-maxY, maxY),
+    val desired = Offset(
+        (center.x - tap.x) * targetScale,
+        (center.y - tap.y) * targetScale,
     )
+    return clampPan(desired, targetScale, widthPx, heightPx, viewportWidthPx, viewportHeightPx)
 }
 
 /** Longest-side bound for reader page decodes (~10MB worst case in ARGB_8888). */

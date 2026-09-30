@@ -2,7 +2,6 @@ package com.mori.app
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
@@ -10,9 +9,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +20,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.FloatingToolbarExitDirection
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,12 +45,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.LocalNavAnimatedVisibilityScope
-import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriMotion
-import com.mori.core.designsystem.enter
-import com.mori.core.designsystem.exit
 import com.mori.core.model.ResumeTarget
-import com.mori.feature.history.impl.HistoryTabContent
+import com.mori.feature.stats.impl.StatsTabContent
 import com.mori.feature.library.impl.LibraryTabContent
 import com.mori.feature.onboarding.api.OnboardingRoute
 import com.mori.feature.settings.impl.SettingsTabContent
@@ -108,12 +109,16 @@ fun NavGraphBuilder.mainScreen(
 }
 
 /**
- * Main viewport: Library, History and Settings are separate tab destinations
+ * Main viewport: Library, Stats and Settings are separate tab destinations
  * under one floating navigator — no swipe pager. Tabs switch with a smooth
  * directional glide and each keeps its state (grid scroll position survives
  * a settings visit), so the heavy settings page never composes mid-gesture.
  * The system back gesture jumps home to the library instead of leaving.
  */
+@OptIn(
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+)
 @Composable
 internal fun MainScreen(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
@@ -161,6 +166,15 @@ internal fun MainScreen(
 
     // Single floating navigator for all tabs (destinations + resume); the
     // library's action toolbar floats above it. No bottom bar.
+    //
+    // The navigator stays pinned: like the reference app, the scroll behavior
+    // exists for the toolbar's internal animation contract but is never wired
+    // to scroll input, so the pill can never rest half-sunk or stuck hidden.
+    // (Hide-on-scroll + settle-snaps were tried; any rest state other than
+    // fully shown reads as broken layout on a small floating pill.)
+    val toolbarScrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
+        FloatingToolbarExitDirection.Bottom,
+    )
     Scaffold(
         // Edge-to-edge bottom: content draws behind the system nav bar while
         // both floating elements clear it; top and sides stay inset.
@@ -213,10 +227,7 @@ internal fun MainScreen(
                             onComicLongClick = onComicLongClick,
                             onResumeAvailable = { if (it != resume) resume = it },
                         )
-                        HISTORY_TAB -> HistoryTabContent(
-                            onReadClick = handleReadClick,
-                            onComicLongClick = onComicLongClick,
-                        )
+                        STATS_TAB -> StatsTabContent()
                         else -> SettingsTabContent(
                             onLicensesClick = onLicensesClick,
                             appVersion = BuildConfig.VERSION_NAME,
@@ -224,38 +235,48 @@ internal fun MainScreen(
                     }
                 }
             }
-            AnimatedVisibility(
-                visible = true,
-                enter = MoriMotion.enter(MoriEnterKind.TOOLBAR),
-                exit = MoriMotion.exit(MoriEnterKind.TOOLBAR),
+            // No enter/exit animation: this bar is always on screen, and replaying
+            // a slide-up whenever MainScreen re-enters composition (e.g. returning
+            // from the reader) left it visibly low for a beat before it settled.
+            // The nav-bar inset animates back in as the reader's hidden system
+            // bars return; reading it live made the bar sit low for a beat and
+            // snap up. Track the running maximum of the live inset so the bar
+            // keeps its settled height across that transition.
+            val liveNavBottom = WindowInsets.safeDrawing
+                .only(WindowInsetsSides.Bottom)
+                .asPaddingValues()
+                .calculateBottomPadding()
+            val latchedNavBottom = rememberSaveable { mutableFloatStateOf(liveNavBottom.value) }
+            SideEffect {
+                if (liveNavBottom.value > latchedNavBottom.floatValue) {
+                    latchedNavBottom.floatValue = liveNavBottom.value
+                }
+            }
+            val navBottom = maxOf(liveNavBottom.value, latchedNavBottom.floatValue).dp
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
-                    )
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = navBottom + 16.dp),
             ) {
+                // Pill + resume are centred together as one unit, so the
+                // group's centroid sits on the screen centre.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.align(Alignment.Center),
                 ) {
                     MainNavigator(
                         selectedTab = selectedTab,
                         onSelectTab = { tab ->
                             selectedTab = tab
                         },
+                        scrollBehavior = toolbarScrollBehavior,
                     )
-                    AnimatedVisibility(
-                        visible = resume != null,
-                        enter = MoriMotion.enter(MoriEnterKind.FAB),
-                        exit = MoriMotion.exit(MoriEnterKind.FAB),
-                    ) {
-                        resume?.let { target ->
-                            ResumeButton(
-                                title = target.title,
-                                onClick = { handleReadClick(target.comicId, target.pageIndex) },
-                            )
-                        }
+                    resume?.let { target ->
+                        ResumeButton(
+                            title = target.title,
+                            onClick = { handleReadClick(target.comicId, target.pageIndex) },
+                        )
                     }
                 }
             }
@@ -264,5 +285,5 @@ internal fun MainScreen(
 }
 
 private const val LIBRARY_TAB = 0
-private const val HISTORY_TAB = 1
+private const val STATS_TAB = 1
 private const val SETTINGS_TAB = 2

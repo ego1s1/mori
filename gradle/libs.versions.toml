@@ -14,7 +14,10 @@ xz = "1.9"
 robolectric = "4.14.1"
 androidxTestCore = "1.6.1"
 exifinterface = "1.3.7"
-composeBom = "2024.10.01"
+composeBom = "2025.06.00"
+# M3 Expressive: FloatingToolbar / ToggleButton / FlexibleTopAppBar ship in the
+# 1.4.0-alpha line; 1.4.0 stable dropped them again.
+material3Expressive = "1.4.0-alpha15"
 navigationCompose = "2.8.4"
 lifecycle = "2.8.6"
 activityCompose = "1.9.3"
@@ -31,6 +34,7 @@ documentfile = "1.0.1"
 binaryCompatibilityValidator = "0.17.0"
 coreSplashscreen = "1.0.1"
 biometric = "1.1.0"
+pulsar = "1.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,7 +60,7 @@ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Expressive" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
@@ -80,6 +84,9 @@ androidx-documentfile = { group = "androidx.documentfile", name = "documentfile"
 
 # Images
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+
+# Haptics (Pulsar SDK, MIT, minSdk 24 matches app)
+pulsar = { group = "com.swmansion", name = "pulsar", version.ref = "pulsar" }
 
 # Licenses UI
 aboutlibraries-compose = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibraries" }

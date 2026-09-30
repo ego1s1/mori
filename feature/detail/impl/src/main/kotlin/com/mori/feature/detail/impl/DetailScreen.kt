@@ -24,13 +24,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -49,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -65,6 +69,7 @@ import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
@@ -115,7 +120,7 @@ internal fun DetailRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun DetailScreen(
     uiState: DetailUiState,
@@ -125,15 +130,19 @@ internal fun DetailScreen(
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val titleFont = LocalAppFonts.current.topBarTitle
     Scaffold(
         topBar = {
             val readyComic = (uiState as? DetailUiState.Ready)?.comic
             if (readyComic != null) {
-                MediumTopAppBar(
+                LargeFlexibleTopAppBar(
+                    scrollBehavior = scrollBehavior,
                     title = {
                         Text(
                             text = readyComic.title,
-                            maxLines = 1,
+                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     },
@@ -151,8 +160,14 @@ internal fun DetailScreen(
                     },
                 )
             } else {
-                MediumTopAppBar(
-                    title = { Text(stringResource(R.string.detail_title)) },
+                LargeFlexibleTopAppBar(
+                    scrollBehavior = scrollBehavior,
+                    title = {
+                        Text(
+                            text = stringResource(R.string.detail_title),
+                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
@@ -162,7 +177,7 @@ internal fun DetailScreen(
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHost) },
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
         Surface(modifier = Modifier
             .fillMaxSize()
@@ -241,26 +256,62 @@ private fun DetailTopActions(
                 ),
             )
         }
-        IconButton(
-            onClick = { onAction(DetailAction.Share) },
-            modifier = Modifier.testTag(DetailTestTags.ShareButton),
-        ) {
-            Icon(
-                imageVector = MoriIcons.Share,
-                contentDescription = stringResource(R.string.detail_action_share),
-            )
-        }
-        IconButton(
-            onClick = { onAction(DetailAction.Refresh) },
-            modifier = Modifier.testTag(DetailTestTags.RefreshButton),
-        ) {
-            Icon(imageVector = MoriIcons.Refresh, contentDescription = stringResource(R.string.detail_action_rescan))
-        }
-        IconButton(
-            onClick = { onAction(DetailAction.AskRemove) },
-            modifier = Modifier.testTag(DetailTestTags.RemoveButton),
-        ) {
-            Icon(imageVector = MoriIcons.Delete, contentDescription = stringResource(R.string.detail_action_remove_comic))
+        // Secondary actions ride an overflow: M3 Expressive keeps 1-2
+        // essential actions in the app bar.
+        var menuOpen by remember { mutableStateOf(false) }
+        Box {
+            IconButton(
+                onClick = { menuOpen = true },
+                modifier = Modifier.testTag(DetailTestTags.OverflowButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.MoreVert,
+                    contentDescription = stringResource(R.string.detail_action_more),
+                )
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.detail_action_share)) },
+                    leadingIcon = { Icon(MoriIcons.Share, contentDescription = null) },
+                    onClick = {
+                        menuOpen = false
+                        onAction(DetailAction.Share)
+                    },
+                    modifier = Modifier.testTag(DetailTestTags.ShareButton),
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.detail_action_rescan)) },
+                    leadingIcon = { Icon(MoriIcons.Refresh, contentDescription = null) },
+                    onClick = {
+                        menuOpen = false
+                        onAction(DetailAction.Refresh)
+                    },
+                    modifier = Modifier.testTag(DetailTestTags.RefreshButton),
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.detail_action_remove_comic),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            MoriIcons.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onAction(DetailAction.AskRemove)
+                    },
+                    modifier = Modifier.testTag(DetailTestTags.RemoveButton),
+                )
+            }
         }
     }
 }
@@ -510,8 +561,19 @@ private fun RemoveDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.detail_remove_title)) },
-        text = { Text(stringResource(R.string.detail_remove_body, title)) },
+        title = {
+            Text(
+                text = stringResource(R.string.detail_remove_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.detail_remove_body, title),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
@@ -539,7 +601,12 @@ private fun ShelvesDialog(
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = { onAction(DetailAction.CloseShelves) },
-        title = { Text(stringResource(R.string.detail_shelves_title)) },
+        title = {
+            Text(
+                text = stringResource(R.string.detail_shelves_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),

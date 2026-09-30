@@ -4,6 +4,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.UserCollection
@@ -67,6 +68,9 @@ interface ComicsRepository {
 
     /** Reactive reading aggregates for stats surfaces. */
     fun observeReadingStats(): Flow<ReadingStats>
+
+    /** Raw reading sessions, newest first, for per-day stats surfaces. */
+    fun observeReadingSessions(): Flow<List<ReadingSession>>
 
     /** User shelves with book counts, ordered by creation. */
     fun observeCollections(): Flow<List<UserCollection>>

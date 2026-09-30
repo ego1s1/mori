@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">Stats</string>
+    <string name="stats_range_week">7D</string>
+    <string name="stats_range_month">30D</string>
+    <string name="stats_range_year">1Y</string>
+    <string name="stats_total_time">Time reading</string>
+    <string name="stats_total_pages">Pages turned</string>
+    <string name="stats_total_finished">Books finished</string>
+    <string name="stats_total_sessions">Sessions</string>
+    <string name="stats_chart_title">Reading time</string>
+    <string name="stats_streak_title">Streak</string>
+    <string name="stats_streak_current">%1$d days</string>
+    <string name="stats_streak_longest">Longest: %1$d days</string>
+    <string name="stats_top_books">Most read</string>
+    <string name="stats_top_book_detail">%1$s • %2$d pages</string>
+    <string name="stats_empty_title">No reading yet</string>
+    <string name="stats_empty_body">Open a comic and your reading stats will build up here.</string>
+</resources>

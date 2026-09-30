@@ -20,6 +20,7 @@ import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
 import com.mori.core.model.ImportStatus
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.UserCollection
@@ -260,6 +261,21 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                 booksFinished = finished,
             )
         }.distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+
+    override fun observeReadingSessions(): Flow<List<ReadingSession>> =
+        sessionDao.observeAll()
+            .map { rows ->
+                rows.map { row ->
+                    ReadingSession(
+                        comicId = row.comicId,
+                        startedAt = row.startedAt,
+                        endedAt = row.endedAt,
+                        pagesTurned = row.pagesTurned,
+                    )
+                }.sortedByDescending { it.startedAt }
+            }
+            .distinctUntilChanged()
             .flowOn(Dispatchers.Default)
 
     override fun observeCollections(): Flow<List<UserCollection>> =

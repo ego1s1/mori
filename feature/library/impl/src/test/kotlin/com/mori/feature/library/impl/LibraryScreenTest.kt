@@ -86,13 +86,14 @@ class LibraryScreenTest {
         setScreen(success())
 
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).assertIsDisplayed()
+        // Header title renders before the bar collapses on scroll.
+        composeTestRule.onNodeWithText("Library").assertIsDisplayed()
         // The continue shelf pushes cards below the short test viewport fold.
         composeTestRule.onNodeWithTag(LibraryTestTags.Grid).performTouchInput {
             swipeUp()
         }
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("a")).assertIsDisplayed()
         composeTestRule.onNodeWithTag(LibraryTestTags.cardFor("b")).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Library").assertIsDisplayed()
     }
 
     @Test

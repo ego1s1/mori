@@ -1,9 +1,14 @@
 package com.mori.feature.settings.impl
 
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -28,40 +35,45 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
-import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSliderRow
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.common.formatBytes
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
-import com.mori.core.model.ReadingStats
 import com.mori.core.model.UserCollection
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
@@ -101,6 +113,7 @@ private fun SettingsRouteContent(
     )
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsScreen(
     uiState: SettingsUiState,
@@ -123,37 +136,35 @@ internal fun SettingsScreen(
             )
         }
     }
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHost,
-                modifier = Modifier.testTag(SettingsTestTags.Snackbar),
-            )
-        },
-    ) { padding ->
-        Surface(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
-            when (uiState) {
-                SettingsUiState.Loading -> MoriLoading()
+    Surface(modifier = modifier.fillMaxSize()) {
+        when (uiState) {
+            SettingsUiState.Loading -> MoriLoading()
 
-                is SettingsUiState.Ready -> SettingsContent(
-                    theme = uiState.theme,
-                    reader = uiState.reader,
-                    motion = uiState.motion,
-                    storage = uiState.storage,
-                    stats = uiState.stats,
-                    appLock = uiState.appLock,
-                    groups = uiState.groups,
-                    groupDialog = uiState.groupDialog,
-                    onAction = onAction,
-                    onLicensesClick = onLicensesClick,
-                    appVersion = appVersion,
-                )
-            }
+            is SettingsUiState.Ready -> SettingsContent(
+                theme = uiState.theme,
+                reader = uiState.reader,
+                motion = uiState.motion,
+                storage = uiState.storage,
+                appLock = uiState.appLock,
+                groups = uiState.groups,
+                groupDialog = uiState.groupDialog,
+                onAction = onAction,
+                onLicensesClick = onLicensesClick,
+                appVersion = appVersion,
+                snackbarHost = snackbarHost,
+            )
         }
     }
+}
+
+/** Hub categories, each opening a detail screen. Order is the hub order. */
+enum class SettingsCategory {
+    APPEARANCE,
+    READER,
+    SHELVES,
+    PRIVACY,
+    STORAGE,
+    ABOUT,
 }
 
 @Composable
@@ -162,7 +173,6 @@ internal fun SettingsContent(
     reader: ReaderPreferences,
     motion: MotionStyle,
     storage: StorageUsage?,
-    stats: ReadingStats,
     appLock: Boolean = false,
     groups: List<UserCollection> = emptyList(),
     groupDialog: GroupDialog? = null,
@@ -170,24 +180,250 @@ internal fun SettingsContent(
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
     modifier: Modifier = Modifier,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+) {
+    var category by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
+    val haptics = rememberMoriHaptics()
+    BackHandler(enabled = category != null) { category = null }
+    val categoryEnter = MoriMotion.enter(MoriEnterKind.FADE)
+    val categoryExit = MoriMotion.exit(MoriEnterKind.FADE)
+    AnimatedContent(
+        targetState = category,
+        transitionSpec = { categoryEnter togetherWith categoryExit },
+        label = "settingsCategory",
+        modifier = modifier,
+    ) { selected ->
+        if (selected == null) {
+            SettingsScaffold(
+                title = stringResource(R.string.settings_title),
+                snackbarHost = snackbarHost,
+                contentTag = SettingsTestTags.Content,
+            ) {
+                SettingsCategory.entries.forEach { entry ->
+                    HubRow(
+                        category = entry,
+                        onClick = {
+                            haptics(MoriHaptic.Select)
+                            category = entry
+                        },
+                    )
+                }
+            }
+        } else {
+            SettingsScaffold(
+                title = categoryTitle(selected),
+                navigationBack = { category = null },
+                snackbarHost = snackbarHost,
+                contentTag = SettingsTestTags.categoryFor(selected),
+            ) {
+                when (selected) {
+                    SettingsCategory.APPEARANCE -> AppearanceSection(
+                        theme = theme,
+                        motion = motion,
+                        onAction = onAction,
+                    )
+                    SettingsCategory.READER -> ReaderSection(
+                        reader = reader,
+                        onAction = onAction,
+                    )
+                    SettingsCategory.SHELVES -> ShelvesSection(
+                        groups = groups,
+                        groupDialog = groupDialog,
+                        onAction = onAction,
+                    )
+                    SettingsCategory.PRIVACY -> PrivacySection(
+                        appLock = appLock,
+                        incognito = reader.incognito,
+                        onAction = onAction,
+                    )
+                    SettingsCategory.STORAGE -> StorageSection(
+                        storage = storage,
+                        onAction = onAction,
+                    )
+                    SettingsCategory.ABOUT -> AboutSection(
+                        appVersion = appVersion,
+                        onLicensesClick = onLicensesClick,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Shared scaffold for the hub and every detail screen: collapsing title,
+ * optional back navigation, snackbar, and bottom reserve for the floating
+ * navigator.
+ *
+ * Uses enter-always: the header hides on swipe up but returns on any swipe
+ * down. exitUntilCollapsed sticks fully off-screen with this M3 Expressive
+ * bar and never comes back.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScaffold(
+    title: String,
+    snackbarHost: SnackbarHostState,
+    contentTag: String,
+    modifier: Modifier = Modifier,
+    navigationBack: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    // Enter-always: the header hides on swipe up but returns on any swipe
+    // down. exitUntilCollapsed scrolled fully off this bar and stuck there.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val contentScroll = rememberScrollState()
+    Scaffold(
+        topBar = {
+            MoriCollapsingTopBar(
+                title = title,
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    if (navigationBack != null) {
+                        IconButton(onClick = navigationBack) {
+                            Icon(
+                                imageVector = MoriIcons.Back,
+                                contentDescription = stringResource(R.string.settings_navigate_back),
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        // Always attached: gating on canScroll created a one-way trap — once
+        // the connection detached, nothing could ever re-expand the bar.
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHost,
+                modifier = Modifier.testTag(SettingsTestTags.Snackbar),
+            )
+        },
+    ) { padding ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(contentScroll)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    // Reserve the floating navigator's height so the last row
+                    // never scrolls underneath it.
+                    .padding(bottom = FloatingChromeBottomReserve)
+                    .testTag(contentTag),
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/** One hub row: icon, title, subtitle, chevron. 72dp expressive target. */
+@Composable
+private fun HubRow(
+    category: SettingsCategory,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier
+            .fillMaxWidth()
+            .sizeIn(minHeight = 72.dp)
+            .testTag(SettingsTestTags.categoryFor(category)),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+            ) {
+                Icon(
+                    imageVector = categoryIcon(category),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+            ) {
+                Text(
+                    text = categoryTitle(category),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = categorySubtitle(category),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = MoriIcons.Forward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun categoryTitle(category: SettingsCategory): String = stringResource(
+    when (category) {
+        SettingsCategory.APPEARANCE -> R.string.settings_card_appearance
+        SettingsCategory.READER -> R.string.settings_card_reader
+        SettingsCategory.SHELVES -> R.string.settings_card_groups
+        SettingsCategory.PRIVACY -> R.string.settings_card_privacy
+        SettingsCategory.STORAGE -> R.string.settings_card_storage
+        SettingsCategory.ABOUT -> R.string.settings_card_about
+    },
+)
+
+@Composable
+private fun categorySubtitle(category: SettingsCategory): String = stringResource(
+    when (category) {
+        SettingsCategory.APPEARANCE -> R.string.settings_hub_appearance_sub
+        SettingsCategory.READER -> R.string.settings_hub_reader_sub
+        SettingsCategory.SHELVES -> R.string.settings_hub_shelves_sub
+        SettingsCategory.PRIVACY -> R.string.settings_hub_privacy_sub
+        SettingsCategory.STORAGE -> R.string.settings_hub_storage_sub
+        SettingsCategory.ABOUT -> R.string.settings_hub_about_sub
+    },
+)
+
+private fun categoryIcon(category: SettingsCategory): ImageVector = when (category) {
+    SettingsCategory.APPEARANCE -> MoriIcons.Palette
+    SettingsCategory.READER -> MoriIcons.MenuBook
+    SettingsCategory.SHELVES -> MoriIcons.Shelves
+    SettingsCategory.PRIVACY -> MoriIcons.PrivacyLock
+    SettingsCategory.STORAGE -> MoriIcons.Storage
+    SettingsCategory.ABOUT -> MoriIcons.Info
+}
+
+@Composable
+private fun AppearanceSection(
+    theme: ThemePreferences,
+    motion: MotionStyle,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .testTag(SettingsTestTags.Content),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        Text(
-            text = stringResource(R.string.settings_title),
-            // Screen-title role shared with onboarding + licenses:
-            // emphasized headline, never display scale.
-            style = MoriEmphasized.headlineMedium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        )
-
-        MoriSectionCard(title = stringResource(R.string.settings_card_appearance)) {
             OptionLabel(stringResource(R.string.settings_theme))
             SegmentedChoiceRow(
                 options = listOf(
@@ -258,9 +494,19 @@ internal fun SettingsContent(
                 onDynamic = { onAction(SettingsAction.SetDynamicColor(true)) },
                 onScheme = { onAction(SettingsAction.SetColorScheme(it)) },
             )
-        }
+    }
+}
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_reader)) {
+@Composable
+private fun ReaderSection(
+    reader: ReaderPreferences,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
             OptionLabel(stringResource(R.string.settings_direction))
             SegmentedChoiceRow(
                 options = listOf(
@@ -329,12 +575,6 @@ internal fun SettingsContent(
                 onCheckedChange = { onAction(SettingsAction.ToggleKeepScreenOn) },
             )
             MoriSettingSwitch(
-                title = stringResource(R.string.settings_incognito_title),
-                subtitle = stringResource(R.string.settings_incognito_subtitle),
-                checked = reader.incognito,
-                onCheckedChange = { onAction(SettingsAction.ToggleIncognito) },
-            )
-            MoriSettingSwitch(
                 title = stringResource(R.string.settings_crop_title),
                 subtitle = stringResource(R.string.settings_crop_subtitle),
                 checked = reader.cropMargins,
@@ -387,9 +627,19 @@ internal fun SettingsContent(
                     Text(stringResource(R.string.settings_filter_reset))
                 }
             }
-        }
+    }
+}
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_storage)) {
+@Composable
+private fun StorageSection(
+    storage: StorageUsage?,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
             if (storage != null) {
                 Text(
                     text = stringResource(
@@ -414,9 +664,20 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
+    }
+}
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_groups)) {
+@Composable
+private fun ShelvesSection(
+    groups: List<UserCollection>,
+    groupDialog: GroupDialog?,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
             if (groups.isEmpty()) {
                 Text(
                     text = stringResource(R.string.settings_groups_empty),
@@ -440,44 +701,50 @@ internal fun SettingsContent(
             ) {
                 Text(stringResource(R.string.settings_groups_create))
             }
-        }
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_stats)) {
-            StatRow(
-                label = stringResource(R.string.settings_stats_time),
-                value = formatReadingDuration(stats.totalDurationMs),
-            )
-            StatRow(
-                label = stringResource(R.string.settings_stats_pages),
-                value = stats.totalPagesTurned.toString(),
-            )
-            StatRow(
-                label = stringResource(R.string.settings_stats_finished),
-                value = stats.booksFinished.toString(),
-            )
-            StatRow(
-                label = stringResource(R.string.settings_stats_sessions),
-                value = stats.totalSessions.toString(),
-            )
-        }
+        GroupDialogHost(
+            dialog = groupDialog,
+            onAction = onAction,
+        )
+    }
+}
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_privacy)) {
+@Composable
+private fun PrivacySection(
+    appLock: Boolean,
+    incognito: Boolean,
+    onAction: (SettingsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
             MoriSettingSwitch(
                 title = stringResource(R.string.settings_applock_title),
                 subtitle = stringResource(R.string.settings_applock_subtitle),
                 checked = appLock,
                 onCheckedChange = { onAction(SettingsAction.ToggleAppLock) },
             )
-        }
-
-        MoriSectionCard(title = stringResource(R.string.settings_card_soon)) {
-            PlaceholderRow(
-                title = stringResource(R.string.settings_soon_sync),
-                subtitle = stringResource(R.string.settings_soon_sync_subtitle),
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_incognito_title),
+                subtitle = stringResource(R.string.settings_incognito_subtitle),
+                checked = incognito,
+                onCheckedChange = { onAction(SettingsAction.ToggleIncognito) },
             )
-        }
+    }
+}
 
-        MoriSectionCard(title = stringResource(R.string.settings_card_about)) {
+@Composable
+private fun AboutSection(
+    appVersion: String,
+    onLicensesClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
             PlaceholderRow(
                 title = stringResource(R.string.settings_about_app),
                 subtitle = stringResource(R.string.settings_about_version, appVersion),
@@ -513,14 +780,10 @@ internal fun SettingsContent(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GroupDialogHost(
-            dialog = groupDialog,
-            onAction = onAction,
-        )
+            PlaceholderRow(
+                title = stringResource(R.string.settings_soon_sync),
+                subtitle = stringResource(R.string.settings_soon_sync_subtitle),
+            )
     }
 }
 
@@ -643,8 +906,19 @@ private fun GroupDialogHost(
         )
         is GroupDialog.Delete -> AlertDialog(
             onDismissRequest = { onAction(SettingsAction.CloseGroupDialog) },
-            title = { Text(stringResource(R.string.settings_group_delete_title)) },
-            text = { Text(stringResource(R.string.settings_group_delete_body, dialog.name)) },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_group_delete_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.settings_group_delete_body, dialog.name),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = { onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId)) },
@@ -681,7 +955,12 @@ private fun GroupNameDialog(
     var name by remember(initial) { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
         text = {
             OutlinedTextField(
                 value = name,
@@ -709,45 +988,6 @@ private fun GroupNameDialog(
         },
         modifier = modifier.testTag(SettingsTestTags.GroupDialog),
     )
-}
-
-@Composable
-private fun StatRow(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-/** Compact duration: 45s, 12m, 3h 20m. Pure for testability. */
-internal fun formatReadingDuration(totalMs: Long): String {
-    val totalSeconds = (totalMs.coerceAtLeast(0L) / 1000L)
-    val hours = totalSeconds / 3600L
-    val minutes = (totalSeconds % 3600L) / 60L
-    val seconds = totalSeconds % 60L
-    return when {
-        hours > 0L -> "${hours}h ${minutes}m"
-        minutes > 0L -> "${minutes}m"
-        else -> "${seconds}s"
-    }
 }
 
 @Composable

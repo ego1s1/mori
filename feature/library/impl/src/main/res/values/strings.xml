@@ -3,6 +3,7 @@
     <string name="library_title">Library</string>
     <string name="library_search_label">Search title, series, number</string>
     <string name="library_action_search">Search library</string>
+    <string name="library_action_refresh">Rescan library</string>
     <string name="library_action_close_search">Close search</string>
     <string name="library_action_sort_filter">Sort and filter</string>
     <string name="library_empty_title">Your library is empty</string>
@@ -22,6 +23,7 @@
     <string name="library_card_pages_left">%1$d left</string>
     <string name="library_card_read">Read %1$s</string>
     <string name="library_card_details">Comic details</string>
+    <string name="library_card_bookmarked">Bookmarked</string>
     <string name="library_sheet_filter">Filter</string>
     <string name="library_sheet_shelf">Shelf</string>
     <string name="library_sheet_sort_by">Sort by</string>
@@ -37,4 +39,5 @@
     <string name="library_sort_unfinished_first">Unfinished first</string>
     <string name="library_snack_index_failed">Couldn\'t index %1$d file(s). Check the files and rescan.</string>
     <string name="library_snack_rescan_failed">Rescan failed. Try again.</string>
+    <string name="library_rescan_progress">Scanning library</string>
 </resources>

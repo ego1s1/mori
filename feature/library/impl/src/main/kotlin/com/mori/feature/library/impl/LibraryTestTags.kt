@@ -7,6 +7,7 @@ object LibraryTestTags {
     const val SearchToggle = "librarySearchToggle"
     const val SearchField = "librarySearchField"
     const val FilterButton = "libraryFilterButton"
+    const val RefreshButton = "libraryRefreshButton"
     const val SortFilterSheet = "librarySortFilterSheet"
     const val EmptyState = "libraryEmpty"
     const val EmptyRescan = "libraryEmptyRescan"

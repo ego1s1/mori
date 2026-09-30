@@ -14,4 +14,6 @@ object SettingsTestTags {
     fun segmentFor(label: String) = "settingsSegment_$label"
 
     fun groupRow(id: Long): String = "settingsGroup:$id"
+
+    fun categoryFor(category: SettingsCategory): String = "settingsCategory:${category.name}"
 }

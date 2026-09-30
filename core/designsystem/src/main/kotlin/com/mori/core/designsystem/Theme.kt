@@ -3,7 +3,10 @@ package com.mori.core.designsystem
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -226,12 +229,16 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
     }
 }
 
+/** True-black mode active: components flatten to plain surface. */
+val LocalAmoled = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 /**
  * Mori theme: Material 3 Expressive, dark-first gallery aesthetic with dynamic color.
  *
  * Surfaces use tonal roles (never raw colors); components consume only
  * `MaterialTheme.colorScheme` / `typography` / `shapes`.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MoriTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -249,10 +256,16 @@ fun MoriTheme(
     }
     val scheme = if (amoled && darkTheme) baseScheme.amoled() else baseScheme
 
-    MaterialTheme(
-        colorScheme = scheme,
-        typography = MoriTypography,
-        shapes = MoriShapes,
-        content = content,
-    )
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalAppFonts provides appFonts(),
+        LocalAmoled provides (amoled && darkTheme),
+    ) {
+        MaterialExpressiveTheme(
+            colorScheme = scheme,
+            typography = MoriTypography,
+            shapes = MoriShapes,
+            motionScheme = MotionScheme.expressive(),
+            content = content,
+        )
+    }
 }

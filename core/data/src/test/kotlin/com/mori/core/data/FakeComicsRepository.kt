@@ -173,6 +173,18 @@ internal class FakeComicsRepository(
             ),
         )
 
+    override fun observeReadingSessions(): Flow<List<com.mori.core.model.ReadingSession>> =
+        kotlinx.coroutines.flow.flowOf(
+            sessions.map { (comicId, durationMs, pages) ->
+                com.mori.core.model.ReadingSession(
+                    comicId = comicId,
+                    startedAt = 0L,
+                    endedAt = durationMs,
+                    pagesTurned = pages,
+                )
+            },
+        )
+
     override suspend fun clearThumbnailCache() {
     }
 

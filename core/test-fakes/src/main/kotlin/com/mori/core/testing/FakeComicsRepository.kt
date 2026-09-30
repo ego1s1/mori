@@ -9,6 +9,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.UserCollection
@@ -218,6 +219,18 @@ class FakeComicsRepository(
                 totalPagesTurned = list.sumOf { it.pagesTurned },
                 booksFinished = 0,
             )
+        }
+
+    override fun observeReadingSessions(): Flow<List<ReadingSession>> =
+        snapshotSessions.map { list ->
+            list.map { record ->
+                ReadingSession(
+                    comicId = record.comicId,
+                    startedAt = record.startedAt,
+                    endedAt = record.endedAt,
+                    pagesTurned = record.pagesTurned,
+                )
+            }
         }
 
     data class SessionRecord(

@@ -3,14 +3,19 @@ package com.mori.core.designsystem
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 
 /**
  * Settings row switch: the whole row toggles with switch semantics, so text
@@ -25,13 +30,18 @@ fun MoriSettingSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberMoriHaptics()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .sizeIn(minHeight = 56.dp)
             .toggleable(
                 value = checked,
-                onValueChange = onCheckedChange,
+                onValueChange = { next ->
+                    haptics(if (next) MoriHaptic.ToggleOn else MoriHaptic.ToggleOff)
+                    onCheckedChange(next)
+                },
                 role = Role.Switch,
             ),
     ) {
@@ -51,6 +61,17 @@ fun MoriSettingSwitch(
         Switch(
             checked = checked,
             onCheckedChange = null,
+            thumbContent = if (checked) {
+                {
+                    Icon(
+                        imageVector = MoriIcons.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            } else {
+                null
+            },
         )
     }
 }
