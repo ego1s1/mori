@@ -1,16 +1,11 @@
 package com.mori.feature.settings.impl
 
 
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,12 +46,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -65,6 +58,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
@@ -95,7 +93,6 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharedFlow
 
 @Composable
@@ -189,6 +186,10 @@ enum class SettingsCategory {
     ABOUT,
 }
 
+private const val SettingsHubRoute = "hub"
+private const val SettingsDetailRoute = "detail/{name}"
+private const val SettingsDetailArg = "name"
+
 @Composable
 internal fun SettingsContent(
     theme: ThemePreferences,
@@ -204,64 +205,59 @@ internal fun SettingsContent(
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var category by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
     val haptics = rememberMoriHaptics()
     val expressiveMotion = LocalExpressiveMotionEnabled.current
-    BackHandler(enabled = category != null) { category = null }
-    // Predictive-back preview: the detail shrinks with the gesture instead of
-    // snapping on release; commit pops to the hub, cancel settles back. Same
-    // shift-aside language as the MainScreen tab preview.
-    val backPreview = remember { Animatable(0f) }
-    PredictiveBackHandler(enabled = category != null) { progress ->
-        try {
-            progress.collect { backPreview.snapTo(it.progress) }
-            category = null
-            backPreview.snapTo(0f)
-        } catch (e: CancellationException) {
-            backPreview.animateTo(
-                0f,
-                animationSpec = if (expressiveMotion) {
-                    MoriMotion.defaultSpatialSpec()
-                } else {
-                    MoriMotion.calmFade()
-                },
-            )
-            throw e
-        }
-    }
-    // Tomato slide + parallax, driven by MoriMotion tokens: pushing a detail
-    // slides the full width in over a 1/4 parallax fade-out; popping reverses
-    // it. Calm motion keeps the plain fade. RTL-aware via layout direction.
-    val layoutDir = LocalLayoutDirection.current
-    AnimatedContent(
-        targetState = category,
-        transitionSpec = {
-            val sign = if (layoutDir == LayoutDirection.Ltr) 1 else -1
+    val rtl = LocalLayoutDirection.current != LayoutDirection.Ltr
+    // Nested backstack like the reference app: the system predictive-back
+    // gesture scrubs the pop transition natively, so no custom back preview,
+    // snap, or BackHandler lives here — the NavHost owns hub<->detail.
+    // Push mirrors Tomato: full-width slide-in over a 1/4 parallax fade-out;
+    // pop reverses it. Calm motion keeps the plain fade.
+    val settingsNav = rememberNavController()
+    NavHost(
+        navController = settingsNav,
+        startDestination = SettingsHubRoute,
+        enterTransition = {
             if (!expressiveMotion) {
-                fadeIn(animationSpec = MoriMotion.calmFade()) togetherWith
-                    fadeOut(animationSpec = MoriMotion.calmFade())
-            } else if (targetState != null) {
-                (fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
-                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) { sign * it }) togetherWith
-                    (fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
-                        slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) { sign * -it / 4 })
+                fadeIn(animationSpec = MoriMotion.calmFade())
             } else {
-                (fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
-                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) { sign * -it / 4 }) togetherWith
-                    (fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
-                        slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) { sign * it })
+                slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) {
+                    if (rtl) -it else it
+                }
             }
         },
-        label = "settingsCategory",
-        modifier = modifier.graphicsLayer {
-            val pull = backPreview.value
-            translationX = pull * size.width * 0.08f
-            val settle = 1f - 0.02f * pull
-            scaleX = settle
-            scaleY = settle
+        exitTransition = {
+            if (!expressiveMotion) {
+                fadeOut(animationSpec = MoriMotion.calmFade())
+            } else {
+                fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
+                    slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) {
+                        if (rtl) it / 4 else -it / 4
+                    }
+            }
         },
-    ) { selected ->
-        if (selected == null) {
+        popEnterTransition = {
+            if (!expressiveMotion) {
+                fadeIn(animationSpec = MoriMotion.calmFade())
+            } else {
+                fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
+                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) {
+                        if (rtl) it / 4 else -it / 4
+                    }
+            }
+        },
+        popExitTransition = {
+            if (!expressiveMotion) {
+                fadeOut(animationSpec = MoriMotion.calmFade())
+            } else {
+                slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) {
+                    if (rtl) -it else it
+                }
+            }
+        },
+        modifier = modifier,
+    ) {
+        composable(SettingsHubRoute) {
             SettingsScaffold(
                 title = stringResource(R.string.settings_title),
                 snackbarHost = snackbarHost,
@@ -272,15 +268,22 @@ internal fun SettingsContent(
                         category = entry,
                         onClick = {
                             haptics(MoriHaptic.Select)
-                            category = entry
+                            settingsNav.navigate("detail/${entry.name}")
                         },
                     )
                 }
             }
-        } else {
+        }
+        composable(
+            route = SettingsDetailRoute,
+            arguments = listOf(navArgument(SettingsDetailArg) { type = NavType.StringType }),
+        ) { detailEntry ->
+            val selected = detailEntry.arguments?.getString(SettingsDetailArg)?.let { name ->
+                runCatching { SettingsCategory.valueOf(name) }.getOrNull()
+            } ?: return@composable
             SettingsScaffold(
                 title = categoryTitle(selected),
-                navigationBack = { category = null },
+                navigationBack = { settingsNav.popBackStack() },
                 snackbarHost = snackbarHost,
                 contentTag = SettingsTestTags.categoryFor(selected),
             ) {
