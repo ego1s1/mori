@@ -417,7 +417,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         StorageUsage(
             comicCount = dao.count().toInt(),
             libraryBytes = 0L,
-            coversBytes = dirBytes(coversDir) + dirBytes(linkedDir) + dirBytes(coilDir),
+            coversBytes = dirBytes(coversDir) + dirBytes(coilDir),
+            cacheBytes = dirBytes(linkedDir),
         )
     }
 

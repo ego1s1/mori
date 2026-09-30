@@ -216,7 +216,7 @@ class SettingsScreenTest {
         }
         openCategory(SettingsCategory.STORAGE)
 
-        composeTestRule.onNodeWithText("2 comics • 2 KB library • 512 B covers").assertExists()
+        composeTestRule.onNodeWithText("2 comics • 0 B read cache • 512 B covers").assertExists()
         // Below-fold content only measures once scrolled into view under Robolectric.
         composeTestRule.onNodeWithText("Clear thumbnail cache").performScrollTo()
         composeTestRule.onNodeWithText("Clear thumbnail cache").performClick()

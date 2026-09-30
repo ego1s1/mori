@@ -1,7 +1,6 @@
 package com.mori.core.designsystem
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
 /**
@@ -40,24 +38,14 @@ fun MoriSettingRow(
     iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     trailing: @Composable () -> Unit = {},
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = 72.dp),
-    ) {
+    // Click lives on the Surface (same node as an optional test tag), like
+    // HubRow — a clickable inner row splits tag and action across nodes.
+    @Composable
+    fun RowContent() {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (onClick != null) {
-                        Modifier.clickable(onClick = onClick, role = Role.Button)
-                    } else {
-                        Modifier
-                    },
-                )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Box(
@@ -90,6 +78,28 @@ fun MoriSettingRow(
                 )
             }
             trailing()
+        }
+    }
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = modifier
+                .fillMaxWidth()
+                .sizeIn(minHeight = 72.dp),
+        ) {
+            RowContent()
+        }
+    } else {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = modifier
+                .fillMaxWidth()
+                .sizeIn(minHeight = 72.dp),
+        ) {
+            RowContent()
         }
     }
 }

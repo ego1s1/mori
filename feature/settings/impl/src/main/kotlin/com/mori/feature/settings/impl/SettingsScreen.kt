@@ -714,10 +714,12 @@ private fun StorageSection(
         modifier = modifier.fillMaxWidth(),
     ) {
             if (storage != null) {
-                // Finance-card hero: the library size is the content, set big
-                // in the Flex display face with the action beneath it.
+                // Finance-card hero: everything the app holds on disk. Covers
+                // plus the transient read cache (materialized working copies),
+                // reported on separate lines so one comic's read cache can
+                // never again read as "covers".
                 Text(
-                    text = formatBytes(storage.libraryBytes),
+                    text = formatBytes(storage.coversBytes + storage.cacheBytes),
                     style = MaterialTheme.typography.displaySmall.copy(
                         fontFamily = LocalAppFonts.current.topBarTitle,
                     ),
@@ -727,7 +729,7 @@ private fun StorageSection(
                     text = stringResource(
                         R.string.settings_storage_summary,
                         storage.comicCount,
-                        formatBytes(storage.libraryBytes),
+                        formatBytes(storage.cacheBytes),
                         formatBytes(storage.coversBytes),
                     ),
                     style = MaterialTheme.typography.bodyMedium,
