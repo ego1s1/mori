@@ -46,10 +46,12 @@ import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriTheme
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.ScreenTitleLineHeight
 import com.mori.core.designsystem.ScreenTitleSize
 import com.mori.core.designsystem.ThemePreviews
@@ -248,12 +250,16 @@ private fun RangeSelector(
     modifier: Modifier = Modifier,
 ) {
     val options = StatsRange.entries
+    val haptics = rememberMoriHaptics()
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             val selected = option == range
             SegmentedButton(
                 selected = selected,
-                onClick = { onSelect(option) },
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    onSelect(option)
+                },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 label = {
                     Text(

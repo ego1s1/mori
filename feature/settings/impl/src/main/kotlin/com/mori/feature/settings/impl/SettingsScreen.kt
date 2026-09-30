@@ -143,8 +143,13 @@ internal fun SettingsScreen(
 ) {
     val clearedMessage = stringResource(R.string.settings_cache_cleared)
     val failedMessage = stringResource(R.string.settings_cache_failed)
+    val haptics = rememberMoriHaptics()
     LaunchedEffect(events) {
         events?.collect { event ->
+            when (event) {
+                SettingsEvent.CacheCleared -> haptics(MoriHaptic.Confirm)
+                SettingsEvent.CacheClearFailed -> haptics(MoriHaptic.Reject)
+            }
             snackbarHost.showSnackbar(
                 when (event) {
                     SettingsEvent.CacheCleared -> clearedMessage
@@ -748,6 +753,7 @@ private fun ShelvesSection(
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberMoriHaptics()
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
@@ -767,7 +773,10 @@ private fun ShelvesSection(
                 )
             }
             OutlinedButton(
-                onClick = { onAction(SettingsAction.OpenCreateGroup) },
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    onAction(SettingsAction.OpenCreateGroup)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .sizeIn(minHeight = 48.dp)
@@ -815,6 +824,7 @@ private fun AboutSection(
     onLicensesClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberMoriHaptics()
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
@@ -862,7 +872,10 @@ private fun AboutSection(
                 title = stringResource(R.string.settings_about_licenses),
                 subtitle = stringResource(R.string.settings_about_licenses_subtitle),
                 icon = MoriIcons.Info,
-                onClick = onLicensesClick,
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    onLicensesClick()
+                },
                 modifier = Modifier.testTag(SettingsTestTags.LicensesRow),
                 trailing = {
                     Icon(
@@ -910,12 +923,16 @@ private fun SegmentedChoiceRow(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberMoriHaptics()
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().sizeIn(minHeight = 48.dp)) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             SegmentedButton(
                 selected = selected,
-                onClick = { onSelect(index) },
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    onSelect(index)
+                },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 // Emphasized face marks selection (M3E selection cue).
                 label = {
@@ -952,13 +969,20 @@ private fun GroupRow(
         icon = MoriIcons.Shelves,
         modifier = modifier.testTag(SettingsTestTags.groupRow(group.id)),
         trailing = {
-            IconButton(onClick = onRename) {
+            val haptics = rememberMoriHaptics()
+            IconButton(onClick = {
+                haptics(MoriHaptic.Select)
+                onRename()
+            }) {
                 Icon(
                     imageVector = MoriIcons.Edit,
                     contentDescription = stringResource(R.string.settings_group_rename_title),
                 )
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = {
+                haptics(MoriHaptic.Select)
+                onDelete()
+            }) {
                 Icon(
                     imageVector = MoriIcons.Delete,
                     contentDescription = stringResource(R.string.settings_group_delete_title),
@@ -1017,8 +1041,12 @@ private fun GroupDialogHost(
                 )
             },
             confirmButton = {
+                val haptics = rememberMoriHaptics()
                 Button(
-                    onClick = { onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId)) },
+                    onClick = {
+                        haptics(MoriHaptic.Confirm)
+                        onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId))
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -1071,8 +1099,12 @@ private fun GroupNameDialog(
             )
         },
         confirmButton = {
+            val haptics = rememberMoriHaptics()
             Button(
-                onClick = { onConfirm(name) },
+                onClick = {
+                    haptics(MoriHaptic.Confirm)
+                    onConfirm(name)
+                },
                 enabled = name.isNotBlank(),
                 modifier = Modifier.testTag(SettingsTestTags.GroupConfirm),
             ) {
