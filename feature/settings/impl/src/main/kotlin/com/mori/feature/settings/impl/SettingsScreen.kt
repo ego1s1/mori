@@ -28,6 +28,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,13 +68,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriSettingRow
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriSettingSwitch
@@ -659,12 +665,14 @@ private fun ReaderSection(
                 label = stringResource(R.string.settings_filter_brightness),
                 value = reader.displayFilter.brightness,
                 valueRange = -1f..1f,
+                valueText = percentText(reader.displayFilter.brightness),
                 onValueChange = { onAction(SettingsAction.SetDisplayBrightness(it)) },
             )
             MoriSliderRow(
                 label = stringResource(R.string.settings_filter_night),
                 value = reader.displayFilter.nightTint,
                 valueRange = 0f..1f,
+                valueText = percentText(reader.displayFilter.nightTint),
                 onValueChange = { onAction(SettingsAction.SetDisplayNightTint(it)) },
             )
             MoriSettingSwitch(
@@ -698,6 +706,15 @@ private fun StorageSection(
         modifier = modifier.fillMaxWidth(),
     ) {
             if (storage != null) {
+                // Finance-card hero: the library size is the content, set big
+                // in the Flex display face with the action beneath it.
+                Text(
+                    text = formatBytes(storage.libraryBytes),
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = LocalAppFonts.current.topBarTitle,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Text(
                     text = stringResource(
                         R.string.settings_storage_summary,
@@ -710,7 +727,7 @@ private fun StorageSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = { onAction(SettingsAction.ClearThumbnailCache) },
                 modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
             ) {
@@ -802,46 +819,70 @@ private fun AboutSection(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-            PlaceholderRow(
-                title = stringResource(R.string.settings_about_app),
-                subtitle = stringResource(R.string.settings_about_version, appVersion),
-            )
+            // Cardfolio hero: cookie app-mark plus Flex headline name and
+            // version. Cookies stay on heroes only, never on rows.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.large)
-                    .clickable(
-                        onClickLabel = stringResource(R.string.settings_about_licenses),
-                        onClick = onLicensesClick,
-                        role = Role.Button,
-                    )
-                    .testTag(SettingsTestTags.LicensesRow)
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(36.dp),
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                ) {
                     Text(
-                        text = stringResource(R.string.settings_about_licenses),
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = stringResource(R.string.settings_about_app),
+                        style = MoriEmphasized.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = stringResource(R.string.settings_about_licenses_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(R.string.settings_about_version, appVersion),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontFamily = LocalAppFonts.current.topBarTitle,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
-                Icon(
-                    imageVector = MoriIcons.Forward,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
+            MoriSettingRow(
+                title = stringResource(R.string.settings_about_licenses),
+                subtitle = stringResource(R.string.settings_about_licenses_subtitle),
+                icon = MoriIcons.Info,
+                onClick = onLicensesClick,
+                modifier = Modifier.testTag(SettingsTestTags.LicensesRow),
+                trailing = {
+                    Icon(
+                        imageVector = MoriIcons.Forward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
             PlaceholderRow(
                 title = stringResource(R.string.settings_soon_sync),
                 subtitle = stringResource(R.string.settings_soon_sync_subtitle),
             )
     }
+}
+
+/** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
+private fun percentText(value: Float): String {
+    val percent = (value * 100).toInt()
+    return "$percent%"
 }
 
 @Composable
@@ -851,7 +892,7 @@ private fun OptionLabel(
 ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleMedium,
+        style = MoriEmphasized.titleSmall,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier,
     )
@@ -871,11 +912,22 @@ private fun SegmentedChoiceRow(
 ) {
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().sizeIn(minHeight = 48.dp)) {
         options.forEachIndexed { index, label ->
+            val selected = index == selectedIndex
             SegmentedButton(
-                selected = index == selectedIndex,
+                selected = selected,
                 onClick = { onSelect(index) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                label = { Text(label) },
+                // Emphasized face marks selection (M3E selection cue).
+                label = {
+                    Text(
+                        text = label,
+                        style = if (selected) {
+                            MoriEmphasized.labelLarge
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                    )
+                },
                 modifier = Modifier.testTag(SettingsTestTags.segmentFor(label)),
             )
         }
@@ -894,39 +946,27 @@ private fun GroupRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .testTag(SettingsTestTags.groupRow(group.id)),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = group.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.settings_groups_count, group.bookCount),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = onRename) {
-            Icon(
-                imageVector = MoriIcons.Edit,
-                contentDescription = stringResource(R.string.settings_group_rename_title),
-            )
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = MoriIcons.Delete,
-                contentDescription = stringResource(R.string.settings_group_delete_title),
-                tint = MaterialTheme.colorScheme.error,
-            )
-        }
-    }
+    MoriSettingRow(
+        title = group.name,
+        subtitle = stringResource(R.string.settings_groups_count, group.bookCount),
+        icon = MoriIcons.Shelves,
+        modifier = modifier.testTag(SettingsTestTags.groupRow(group.id)),
+        trailing = {
+            IconButton(onClick = onRename) {
+                Icon(
+                    imageVector = MoriIcons.Edit,
+                    contentDescription = stringResource(R.string.settings_group_rename_title),
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = MoriIcons.Delete,
+                    contentDescription = stringResource(R.string.settings_group_delete_title),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+    )
 }
 
 /** Create/rename/delete dialogs for shelves. Null renders nothing. */
@@ -977,18 +1017,19 @@ private fun GroupDialogHost(
                 )
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = { onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId)) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
                     modifier = Modifier.testTag(SettingsTestTags.GroupDeleteConfirm),
                 ) {
-                    Text(
-                        text = stringResource(R.string.settings_group_delete_confirm),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    Text(text = stringResource(R.string.settings_group_delete_confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(SettingsAction.CloseGroupDialog) }) {
+                FilledTonalButton(onClick = { onAction(SettingsAction.CloseGroupDialog) }) {
                     Text(stringResource(R.string.settings_dialog_cancel))
                 }
             },
@@ -1030,7 +1071,7 @@ private fun GroupNameDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { onConfirm(name) },
                 enabled = name.isNotBlank(),
                 modifier = Modifier.testTag(SettingsTestTags.GroupConfirm),
@@ -1039,7 +1080,7 @@ private fun GroupNameDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            FilledTonalButton(onClick = onDismiss) {
                 Text(stringResource(R.string.settings_dialog_cancel))
             }
         },
