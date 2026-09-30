@@ -93,7 +93,7 @@ internal fun LibraryMenuContent(
                 subtitle = stringResource(R.string.library_card_pages_left, comic.pagesLeft),
                 icon = MoriIcons.PlayArrow,
                 onClick = {
-                    haptics(MoriHaptic.Select)
+                    haptics(MoriHaptic.PrimaryAction)
                     onReadClick(comic.id, comic.lastPageIndex)
                 },
                 modifier = Modifier.testTag(LibraryTestTags.MenuRead),

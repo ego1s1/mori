@@ -752,7 +752,7 @@ private fun ReaderBottomChrome(
                 val scrubHaptics = rememberMoriHaptics()
                 LaunchedEffect(scrub) {
                     if (scrub != null) {
-                        scrubHaptics(MoriHaptic.Detent)
+                        scrubHaptics(MoriHaptic.FrequentTick)
                     }
                 }
                 Surface(

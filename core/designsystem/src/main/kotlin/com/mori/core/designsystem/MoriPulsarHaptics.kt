@@ -8,17 +8,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.swmansion.pulsar.Pulsar
 import com.swmansion.pulsar.presets.PresetsWrapper
+import com.swmansion.pulsar.types.CompatibilityMode
 
 /**
  * Pulsar-backed player for [MoriHaptic] events.
  *
- * Pulsar 1.3.0 (`com.swmansion:pulsar`) resolves each system preset through
- * the OEM-tuned path with graceful fallbacks on older devices, which is what
- * gives the crisp feeling on Pixel/Samsung flagships. The mapping preserves
- * native semantics (selection stays selection, toggles stay toggles) so the
- * feel matches platform expectations rather than inventing new textures.
+ * Pulsar 1.3.0 (`com.swmansion:pulsar`, MIT — credited in the licenses
+ * screen) resolves each system preset through the OEM-tuned path with
+ * graceful fallbacks on older devices, which is what gives the crisp feeling
+ * on Pixel/Samsung flagships. Every semantic event gets its own weight
+ * instead of one shared tap:
+ *
+ * | Event | Preset | Feel |
+ * |---|---|---|
+ * | Select | systemSelection | light selection blip |
+ * | Tick | systemSegmentTick | discrete step |
+ * | FrequentTick | systemSegmentFrequentTick | light scrub ticks |
+ * | ToggleOn/Off | systemToggleOn/Off | distinct on/off |
+ * | Confirm | systemNotificationSuccess | success chime |
+ * | PrimaryAction | systemImpactMedium | firm CTA thud |
+ * | Reject | systemNotificationError | error buzz |
+ * | LongPress | systemLongPress | deep press |
  *
  * Boundaries, per the Pulsar skill:
+ * - Capability tiers: below [CompatibilityMode.LIMITED_SUPPORT] (budget
+ *   actuators, no amplitude control) everything routes to the framework
+ *   mapping, which degrades gracefully instead of buzzing blindly.
  * - Pulsar's `getPresets()` requires an `Activity` context (it casts). If the
  *   ambient context is not an Activity, or playback throws, we fall back to
  *   the framework [HapticFeedback.perform] mapping — every flow stays usable
@@ -27,7 +42,7 @@ import com.swmansion.pulsar.presets.PresetsWrapper
  *   haptics toggle and capability tiers are respected as-is.
  * - Bounded presets only. No `RealtimeComposer` here: none of our current
  *   events (tabs, toggles, slider release, scrub ticks) need live modulation.
- * - Must be called from the click handler, not composition or LaunchedEffect.
+ * - Must be called from the click handler, not composition or `LaunchedEffect`.
  */
 @Composable
 fun rememberMoriHaptics(): (MoriHaptic) -> Unit {
@@ -39,9 +54,17 @@ fun rememberMoriHaptics(): (MoriHaptic) -> Unit {
         val activity = context as? Activity ?: return@remember null
         runCatching { Pulsar(activity) }.getOrNull()
     }
-    return remember(pulsar, framework) {
+    // Tier once per instance: budget devices take the framework path below.
+    val pulsarCapable = remember(pulsar) {
+        runCatching {
+            (pulsar?.hapticSupport() ?: CompatibilityMode.NO_SUPPORT) >=
+                CompatibilityMode.LIMITED_SUPPORT
+        }.getOrDefault(false)
+    }
+    return remember(pulsar, framework, pulsarCapable) {
         { event ->
             val played = runCatching {
+                if (!pulsarCapable) return@runCatching false
                 val presets = pulsar?.getPresets() ?: return@runCatching false
                 event.playWith(presets)
                 true
@@ -63,8 +86,8 @@ private fun MoriHaptic.playWith(presets: PresetsWrapper) {
         MoriHaptic.ToggleOff -> presets.systemToggleOff()
         MoriHaptic.Tick -> presets.systemSegmentTick()
         MoriHaptic.FrequentTick -> presets.systemSegmentFrequentTick()
-        MoriHaptic.Detent -> presets.systemPrimitiveTick()
-        MoriHaptic.Confirm -> presets.systemConfirm()
+        MoriHaptic.Confirm -> presets.systemNotificationSuccess()
+        MoriHaptic.PrimaryAction -> presets.systemImpactMedium()
         MoriHaptic.Reject -> presets.systemNotificationError()
         MoriHaptic.LongPress -> presets.systemLongPress()
     }
