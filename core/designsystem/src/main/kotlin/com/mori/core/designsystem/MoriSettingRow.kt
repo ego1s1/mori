@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -36,6 +37,7 @@ fun MoriSettingRow(
     onClick: (() -> Unit)? = null,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    minHeight: Dp = 72.dp,
     trailing: @Composable () -> Unit = {},
 ) {
     // Click lives on the Surface (same node as an optional test tag), like
@@ -87,7 +89,7 @@ fun MoriSettingRow(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = modifier
                 .fillMaxWidth()
-                .sizeIn(minHeight = 72.dp),
+                .sizeIn(minHeight = minHeight),
         ) {
             RowContent()
         }
@@ -97,7 +99,7 @@ fun MoriSettingRow(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = modifier
                 .fillMaxWidth()
-                .sizeIn(minHeight = 72.dp),
+                .sizeIn(minHeight = minHeight),
         ) {
             RowContent()
         }

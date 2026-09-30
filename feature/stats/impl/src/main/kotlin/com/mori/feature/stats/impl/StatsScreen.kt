@@ -49,8 +49,6 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriTheme
-import com.mori.core.designsystem.ScreenTitleLineHeight
-import com.mori.core.designsystem.ScreenTitleSize
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.DailyReadingStat
 import com.mori.core.model.ReadingStats
@@ -224,9 +222,7 @@ private fun StatCard(
         Text(
             text = value,
             style = MaterialTheme.typography.displaySmall.copy(
-                fontFamily = LocalAppFonts.current.topBarTitle,
-                fontSize = ScreenTitleSize,
-                lineHeight = ScreenTitleLineHeight,
+                fontFamily = LocalAppFonts.current.displayFlex,
             ),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -314,9 +310,7 @@ private fun StreakCard(
         Text(
             text = stringResource(R.string.stats_streak_current, streak.current),
             style = MaterialTheme.typography.displaySmall.copy(
-                fontFamily = LocalAppFonts.current.topBarTitle,
-                fontSize = ScreenTitleSize,
-                lineHeight = ScreenTitleLineHeight,
+                fontFamily = LocalAppFonts.current.displayFlex,
             ),
             color = MaterialTheme.colorScheme.onSurface,
         )

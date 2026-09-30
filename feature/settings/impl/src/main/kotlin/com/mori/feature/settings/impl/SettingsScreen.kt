@@ -55,6 +55,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
@@ -729,7 +730,7 @@ private fun StorageSection(
                 Text(
                     text = formatBytes(storage.coversBytes + storage.cacheBytes),
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontFamily = LocalAppFonts.current.topBarTitle,
+                        fontFamily = LocalAppFonts.current.displayFlex,
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -910,33 +911,88 @@ private fun AboutSection(
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    Text(
-                        text = stringResource(R.string.settings_about_developer),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_about_handle),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clickable(
-                            onClickLabel = stringResource(R.string.settings_about_handle),
-                            onClick = {
-                                haptics(MoriHaptic.Select)
-                                context.openUrl(AboutLinks.DEVELOPER)
-                            },
-                            role = Role.Button,
-                        ),
-                    )
                 }
             }
             }
             }
             RevealRow(visible = revealed > 1) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.tertiaryContainer),
+                    ) {
+                        Text(
+                            text = "PS",
+                            style = MoriEmphasized.headlineSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_about_developer),
+                            style = MoriEmphasized.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.clickable(
+                                onClickLabel = stringResource(R.string.settings_about_handle),
+                                onClick = {
+                                    haptics(MoriHaptic.Select)
+                                    context.openUrl(AboutLinks.DEVELOPER)
+                                },
+                                role = Role.Button,
+                            ),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_github_mark),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_about_handle),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontFamily = LocalAppFonts.current.topBarTitle,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            }
+            RevealRow(visible = revealed > 2) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_github),
                 subtitle = stringResource(R.string.settings_about_github_subtitle),
                 icon = MoriIcons.Code,
+                minHeight = 56.dp,
                 onClick = {
                     haptics(MoriHaptic.Select)
                     context.openUrl(AboutLinks.REPOSITORY)
@@ -950,11 +1006,12 @@ private fun AboutSection(
                 },
             )
             }
-            RevealRow(visible = revealed > 2) {
+            RevealRow(visible = revealed > 3) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_issue),
                 subtitle = stringResource(R.string.settings_about_issue_subtitle),
                 icon = MoriIcons.BugReport,
+                minHeight = 56.dp,
                 onClick = {
                     haptics(MoriHaptic.Select)
                     context.openUrl(AboutLinks.ISSUES)
@@ -968,11 +1025,12 @@ private fun AboutSection(
                 },
             )
             }
-            RevealRow(visible = revealed > 3) {
+            RevealRow(visible = revealed > 4) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_changelog),
                 subtitle = stringResource(R.string.settings_about_changelog_subtitle),
                 icon = MoriIcons.NewReleases,
+                minHeight = 56.dp,
                 onClick = {
                     haptics(MoriHaptic.Select)
                     context.openUrl(AboutLinks.RELEASES)
@@ -986,11 +1044,12 @@ private fun AboutSection(
                 },
             )
             }
-            RevealRow(visible = revealed > 4) {
+            RevealRow(visible = revealed > 5) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_privacy),
                 subtitle = stringResource(R.string.settings_about_privacy_subtitle),
                 icon = MoriIcons.PrivacyLock,
+                minHeight = 56.dp,
                 onClick = {
                     haptics(MoriHaptic.Select)
                     privacyOpen = true
@@ -1004,11 +1063,12 @@ private fun AboutSection(
                 },
             )
             }
-            RevealRow(visible = revealed > 5) {
+            RevealRow(visible = revealed > 6) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_licenses),
                 subtitle = stringResource(R.string.settings_about_licenses_subtitle),
                 icon = MoriIcons.Info,
+                minHeight = 56.dp,
                 onClick = {
                     haptics(MoriHaptic.Select)
                     onLicensesClick()
@@ -1023,10 +1083,6 @@ private fun AboutSection(
                 },
             )
             }
-            PlaceholderRow(
-                title = stringResource(R.string.settings_soon_sync),
-                subtitle = stringResource(R.string.settings_soon_sync_subtitle),
-            )
     }
     if (privacyOpen) {
         AlertDialog(
@@ -1087,8 +1143,8 @@ private fun RevealRow(
     }
 }
 
-/** Hero + five link rows revealed one beat apart. */
-private const val AboutRevealSteps = 6
+/** Hero, dev card, and five link rows revealed one beat apart. */
+private const val AboutRevealSteps = 7
 
 /** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
 private fun percentText(value: Float): String {
@@ -1300,44 +1356,6 @@ private fun GroupNameDialog(
         },
         modifier = modifier.testTag(SettingsTestTags.GroupDialog),
     )
-}
-
-@Composable
-private fun PlaceholderRow(
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Text(
-                text = stringResource(R.string.settings_soon_badge),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            )
-        }
-    }
 }
 
 @ThemePreviews

@@ -23,6 +23,8 @@ data class AppFonts(
     val topBarTitle: FontFamily,
     /** Regular + semibold pair used inside annotated strings. */
     val annotatedString: FontFamily,
+    /** Widest, heaviest display face for hero numerals. */
+    val displayFlex: FontFamily,
 )
 
 /** Roboto Flex, weight 900 at 112.5% width — the widest, heaviest display face. */
@@ -35,6 +37,20 @@ private val RobotoFlexTopBar = FontFamily(
             FontVariation.width(112.5f),
             FontVariation.grade(0),
             FontVariation.opticalSizing(32.sp),
+        ),
+    ),
+)
+
+/** Roboto Flex, weight 900 at 125% width — hero numerals at display sizes. */
+private val RobotoFlexDisplay = FontFamily(
+    Font(
+        resId = R.font.roboto_flex,
+        weight = FontWeight.Black,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(900),
+            FontVariation.width(125f),
+            FontVariation.grade(0),
+            FontVariation.opticalSizing(48.sp),
         ),
     ),
 )
@@ -67,6 +83,7 @@ private val RobotoFlexAnnotated = FontFamily(
 internal fun appFonts(): AppFonts = AppFonts(
     topBarTitle = RobotoFlexTopBar,
     annotatedString = RobotoFlexAnnotated,
+    displayFlex = RobotoFlexDisplay,
 )
 
 /** Display faces for the current theme; read by screen headers. */

@@ -193,11 +193,12 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun placeholdersRenderAsSoon() {
+    fun aboutDevCardRenders() {
         setFullScreen()
         openCategory(SettingsCategory.ABOUT)
 
-        composeTestRule.onNodeWithText("Cloud sync").assertExists()
+        composeTestRule.onNodeWithText("Priyanshu Sharma").assertExists()
+        composeTestRule.onNodeWithText("@ego1s1").assertExists()
     }
 
     @Test

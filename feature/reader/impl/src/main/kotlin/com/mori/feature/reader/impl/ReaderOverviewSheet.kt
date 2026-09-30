@@ -263,15 +263,8 @@ private fun OverviewThumb(
                     }
                     else -> Unit
                 }
-                // Page number survives cropping: scrim pill anchored top-start,
-                // clear of the bottom-docked retry.
-                MoriScrimPill(
-                    text = pageNumber.toString(),
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(6.dp),
-                )
+                // The selected ring alone marks the current page; no number
+                // pill competes with the artwork.
             }
         }
     }

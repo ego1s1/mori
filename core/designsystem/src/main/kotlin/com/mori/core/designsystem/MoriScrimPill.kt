@@ -7,13 +7,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
  * One-line label on a translucent scrim, for text drawn over artwork
- * (page counters, remaining-count badges). The scrim uses the scheme scrim
- * role so it tracks the theme instead of pinning raw black.
+ * (page counters, remaining-count badges). Text is fixed white: theme roles
+ * like inverseOnSurface turn dark-on-black in dark mode and vanish.
  */
 @Composable
 fun MoriScrimPill(
@@ -30,7 +31,7 @@ fun MoriScrimPill(
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.inverseOnSurface,
+            color = Color.White,
             maxLines = 1,
             modifier = Modifier.padding(contentPadding),
         )
