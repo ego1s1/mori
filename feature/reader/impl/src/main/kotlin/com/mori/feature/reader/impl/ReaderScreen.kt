@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -279,10 +280,11 @@ private fun ReaderContent(
             onAction(ReaderAction.HideChrome)
         }
     }
-    // Tactile ticks while scrubbing through pages.
+    // Tactile wheel while scrubbing through pages: one crisp detent per
+    // settled page.
     LaunchedEffect(state.pageIndex, scrubbing) {
         if (scrubbing) {
-            haptics(MoriHaptic.FrequentTick)
+            haptics(MoriHaptic.Detent)
         }
     }
 
@@ -567,7 +569,7 @@ private fun ReaderTopBar(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
                         Color.Transparent,
                     ),
                 ),
@@ -592,18 +594,17 @@ private fun ReaderTopBar(
                     bottom = 8.dp,
                 ),
         ) {
-            IconButton(onClick = onBackClick) {
+            FilledTonalIconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = MoriIcons.Back,
                     contentDescription = stringResource(R.string.reader_back),
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title.ifBlank { stringResource(R.string.reader_untitled) },
                     style = MoriEmphasized.headlineSmall,
-                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    color = OnScrim,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.semantics { heading() },
@@ -612,7 +613,7 @@ private fun ReaderTopBar(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.8f),
+                        color = OnScrim.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -623,7 +624,7 @@ private fun ReaderTopBar(
             } else {
                 stringResource(R.string.reader_bookmark)
             }
-            IconButton(
+            FilledTonalIconButton(
                 onClick = onBookmarkClick,
                 modifier = Modifier
                     .testTag(ReaderTestTags.Bookmark)
@@ -635,7 +636,6 @@ private fun ReaderTopBar(
                 Icon(
                     imageVector = if (bookmarked) MoriIcons.Bookmark else MoriIcons.BookmarkBorder,
                     contentDescription = bookmarkLabel,
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
                 )
             }
             // Incognito indicator: decorative badge, announced once for
@@ -644,7 +644,7 @@ private fun ReaderTopBar(
                 Icon(
                     imageVector = MoriIcons.Incognito,
                     contentDescription = stringResource(R.string.reader_incognito_on),
-                    tint = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.9f),
+                    tint = OnScrim.copy(alpha = 0.9f),
                     modifier = Modifier
                         .padding(end = 12.dp)
                         .size(24.dp)
@@ -703,7 +703,7 @@ private fun ReaderBottomChrome(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
                     ),
                 ),
             )
@@ -730,8 +730,8 @@ private fun ReaderBottomChrome(
                     onClick = { onAction(leadingAction.first) },
                     enabled = isNavigationEnabled(leadingAction.first, pageIndex, pageCount),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     ),
                     modifier = Modifier
                         .size(CHROME_CONTROL_SIZE)
@@ -822,8 +822,8 @@ private fun ReaderBottomChrome(
                     onClick = { onAction(trailingAction.first) },
                     enabled = isNavigationEnabled(trailingAction.first, pageIndex, pageCount),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     ),
                     modifier = Modifier
                         .size(CHROME_CONTROL_SIZE)
@@ -873,7 +873,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.ScreenRotation,
                     contentDescription = directionLabel,
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
+                    tint = OnScrim,
                 )
             }
             val fitLabel = stringResource(R.string.reader_page_fit)
@@ -902,7 +902,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.FitScreen,
                     contentDescription = fitLabel,
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
+                    tint = OnScrim,
                 )
             }
             val cropLabel = stringResource(R.string.reader_crop_margins)
@@ -924,7 +924,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.Crop,
                     contentDescription = cropLabel,
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
+                    tint = OnScrim,
                 )
             }
             IconButton(
@@ -936,7 +936,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.GridView,
                     contentDescription = stringResource(R.string.reader_overview_button),
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
+                    tint = OnScrim,
                 )
             }
             IconButton(
@@ -948,7 +948,7 @@ private fun ReaderBottomChrome(
                 Icon(
                     imageVector = MoriIcons.Settings,
                     contentDescription = stringResource(R.string.reader_settings),
-                    tint = MaterialTheme.colorScheme.inverseOnSurface,
+                    tint = OnScrim,
                 )
             }
         }
@@ -991,9 +991,15 @@ private const val CHROME_AUTO_HIDE_MS = 3000L
 /** Delay before hiding system bars after chrome settles (show stays instant). */
 private const val CHROME_SETTLE_DELAY_MS = 120L
 
-/** Predictive-back shrink at full gesture progress (subtle bed pull). */
 /** Touch target for chrome controls (M3 minimum, down from 56dp). */
 private val CHROME_CONTROL_SIZE = 48.dp
+
+/**
+ * Chrome floats over comic art on near-black scrims in any theme, so its
+ * content is fixed white instead of a theme role (inverseOnSurface turns
+ * dark-on-black in dark mode and vanishes).
+ */
+private val OnScrim = Color.White
 
 /** Content width cap on expanded windows (M3 readability guidance). */
 private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp

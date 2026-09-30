@@ -24,6 +24,11 @@ class MoriHapticsTest {
     }
 
     @Test
+    fun detentIsACrispTick() {
+        assertEquals(HapticFeedbackType.SegmentTick, MoriHaptic.Detent.type())
+    }
+
+    @Test
     fun completionAndFailureAreDistinct() {
         assertEquals(HapticFeedbackType.Confirm, MoriHaptic.Confirm.type())
         assertEquals(HapticFeedbackType.Reject, MoriHaptic.Reject.type())

@@ -34,6 +34,9 @@ enum class MoriHaptic {
     /** Frequent steps while scrubbing (pages, percentages). */
     FrequentTick,
 
+    /** One crisp detent: a tactile-wheel click per discrete step. */
+    Detent,
+
     /** An action completed: refresh done, shelf created, cache cleared. */
     Confirm,
 
@@ -54,6 +57,7 @@ fun MoriHaptic.type(): HapticFeedbackType = when (this) {
     MoriHaptic.ToggleOff -> HapticFeedbackType.ToggleOff
     MoriHaptic.Tick -> HapticFeedbackType.SegmentTick
     MoriHaptic.FrequentTick -> HapticFeedbackType.SegmentFrequentTick
+    MoriHaptic.Detent -> HapticFeedbackType.SegmentTick
     MoriHaptic.Confirm -> HapticFeedbackType.Confirm
     MoriHaptic.Reject -> HapticFeedbackType.Reject
     MoriHaptic.LongPress -> HapticFeedbackType.LongPress

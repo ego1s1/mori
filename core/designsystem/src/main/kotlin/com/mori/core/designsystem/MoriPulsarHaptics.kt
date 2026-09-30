@@ -63,6 +63,7 @@ private fun MoriHaptic.playWith(presets: PresetsWrapper) {
         MoriHaptic.ToggleOff -> presets.systemToggleOff()
         MoriHaptic.Tick -> presets.systemSegmentTick()
         MoriHaptic.FrequentTick -> presets.systemSegmentFrequentTick()
+        MoriHaptic.Detent -> presets.systemPrimitiveTick()
         MoriHaptic.Confirm -> presets.systemConfirm()
         MoriHaptic.Reject -> presets.systemNotificationError()
         MoriHaptic.LongPress -> presets.systemLongPress()
