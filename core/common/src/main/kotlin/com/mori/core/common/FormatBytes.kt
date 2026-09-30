@@ -29,3 +29,18 @@ fun formatPercent(value: Float): String {
     val percent = (value * 100).toInt()
     return "$percent%"
 }
+
+/**
+ * Compact duration: 45s, 12m, 3h 20m.
+ */
+fun formatDuration(totalMs: Long): String {
+    val totalSeconds = totalMs.coerceAtLeast(0L) / 1000L
+    val hours = totalSeconds / 3600L
+    val minutes = (totalSeconds % 3600L) / 60L
+    val seconds = totalSeconds % 60L
+    return when {
+        hours > 0L -> "${hours}h ${minutes}m"
+        minutes > 0L -> "${minutes}m"
+        else -> "${seconds}s"
+    }
+}

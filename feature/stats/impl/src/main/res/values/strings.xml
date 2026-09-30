@@ -9,6 +9,7 @@
     <string name="stats_total_finished">Books finished</string>
     <string name="stats_total_sessions">Sessions</string>
     <string name="stats_chart_title">Reading time</string>
+    <string name="stats_chart_desc">Bar chart of daily reading time</string>
     <string name="stats_streak_title">Streak</string>
     <string name="stats_streak_current">%1$d days</string>
     <string name="stats_streak_longest">Longest: %1$d days</string>

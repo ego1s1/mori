@@ -33,18 +33,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.LocalAppFonts
+import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.common.formatDuration
 import com.mori.core.designsystem.MoriChoiceGroup
 import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
-import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
@@ -153,6 +158,7 @@ private fun StatsContent(
                     RangeSelector(range = state.range, onSelect = { onAction(StatsAction.SelectRange(it)) })
                     ReadingBarChart(
                         buckets = state.buckets,
+                        contentDescription = stringResource(R.string.stats_chart_desc),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp)
@@ -166,7 +172,10 @@ private fun StatsContent(
             }
             if (state.topBooks.isNotEmpty()) {
                 item("topHeader") {
-                    SectionHeading(stringResource(R.string.stats_top_books))
+                    SectionHeading(
+                        text = stringResource(R.string.stats_top_books),
+                        modifier = Modifier.testTag(StatsTestTags.TopBooks),
+                    )
                 }
                 items(state.topBooks, key = { it.comic.id }) { book ->
                     TopBookRow(book = book)
@@ -220,20 +229,7 @@ private fun StatCard(
     modifier: Modifier = Modifier,
 ) {
     MoriSectionCard(modifier = modifier.testTag(StatsTestTags.totalFor(label))) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontFamily = LocalAppFonts.current.displayFlex,
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        HeroNumber(value = value, label = label)
     }
 }
 
@@ -267,13 +263,19 @@ private fun rangeLabel(range: StatsRange): String = stringResource(
 @Composable
 private fun ReadingBarChart(
     buckets: List<DailyReadingStat>,
+    contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
     val barColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
     if (buckets.isEmpty()) return
     val maxDuration = buckets.maxOf { it.durationMs }.coerceAtLeast(1L)
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier.semantics {
+            this.contentDescription = contentDescription
+            this.role = Role.Image
+        },
+    ) {
         val count = buckets.size
         val slot = size.width / count
         val barWidth = (slot * 0.6f).coerceAtLeast(2f)
@@ -308,15 +310,31 @@ private fun StreakCard(
         title = stringResource(R.string.stats_streak_title),
         modifier = modifier.testTag(StatsTestTags.Streak),
     ) {
+        HeroNumber(
+            value = stringResource(R.string.stats_streak_current, streak.current),
+            label = stringResource(R.string.stats_streak_longest, streak.longest),
+        )
+    }
+}
+
+/** Hero numeral + caption shared by stat and streak cards. */
+@Composable
+private fun HeroNumber(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = stringResource(R.string.stats_streak_current, streak.current),
+            text = value,
             style = MaterialTheme.typography.displaySmall.copy(
                 fontFamily = LocalAppFonts.current.displayFlex,
             ),
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
         )
         Text(
-            text = stringResource(R.string.stats_streak_longest, streak.longest),
+            text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
@@ -358,7 +376,7 @@ private fun TopBookRow(
                     formatDuration(book.durationMs),
                     book.pagesTurned,
                 ),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -369,23 +387,10 @@ private fun TopBookRow(
 private fun SectionHeading(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleMedium,
+        style = MoriEmphasized.titleSmall,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier.padding(horizontal = 4.dp),
     )
-}
-
-/** Compact duration: 45s, 12m, 3h 20m. */
-internal fun formatDuration(totalMs: Long): String {
-    val totalSeconds = totalMs.coerceAtLeast(0L) / 1000L
-    val hours = totalSeconds / 3600L
-    val minutes = (totalSeconds % 3600L) / 60L
-    val seconds = totalSeconds % 60L
-    return when {
-        hours > 0L -> "${hours}h ${minutes}m"
-        minutes > 0L -> "${minutes}m"
-        else -> "${seconds}s"
-    }
 }
 
 @ThemePreviews

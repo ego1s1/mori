@@ -117,6 +117,5 @@ class StatsViewModelTest {
 
         assertEquals(listOf("a"), top.map { it.comic.id })
         assertEquals(30_000L, top[0].durationMs)
-        assertEquals(true, top.isNotEmpty())
     }
 }
