@@ -61,16 +61,12 @@ fun MoriSettingSwitch(
         Switch(
             checked = checked,
             onCheckedChange = null,
-            thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = MoriIcons.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                null
+            thumbContent = {
+                Icon(
+                    imageVector = if (checked) MoriIcons.Check else MoriIcons.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
             },
         )
     }
