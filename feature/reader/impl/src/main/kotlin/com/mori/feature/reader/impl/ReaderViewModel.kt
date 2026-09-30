@@ -304,7 +304,7 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.HideChrome -> chrome.value = chrome.value.copy(visible = false)
             ReaderAction.NextPage -> moveBy(1)
             ReaderAction.PrevPage -> moveBy(-1)
-            is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false, animated = false)
+            is ReaderAction.SeekPage -> moveTo(action.index, hideChrome = false, animated = action.animated)
             is ReaderAction.PageChanged -> {
                 // Stale or out-of-range pager events (split rebuilds,
                 // removed-comic Error states) never write navigation or

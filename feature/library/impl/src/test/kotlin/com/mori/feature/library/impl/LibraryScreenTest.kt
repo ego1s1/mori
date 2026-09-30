@@ -363,6 +363,10 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuDelete).assertExists()
 
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuDetails).performClick()
+        // Details navigates after a beat so the sheet exit + cover morph
+        // read cleanly instead of overlapping.
+        composeTestRule.mainClock.advanceTimeBy(300)
+        composeTestRule.waitForIdle()
         assert(detailsId == "b")
 
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuBookmark).performClick()

@@ -29,17 +29,18 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Text
@@ -54,7 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
@@ -77,6 +78,7 @@ import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.WindowWidthClass
 import com.mori.core.designsystem.windowWidthClass
 import com.mori.core.designsystem.MoriCoverArt
+import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriHaptic
@@ -289,6 +291,7 @@ internal fun LibraryScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LibraryContent(
     comics: List<Comic>,
@@ -327,15 +330,22 @@ private fun LibraryContent(
             }
             // Persistent search: always visible, never toggled. IME Search
             // dismisses the keyboard; the clear button empties the query.
+            // Bold M3E search container: filled, 48dp morphing shape, 64dp
+            // target, Flex input — closer to a docked search bar than a form
+            // field.
             val haptics = rememberMoriHaptics()
             val keyboard = LocalSoftwareKeyboardController.current
             val focusManager = LocalFocusManager.current
-            OutlinedTextField(
+            TextField(
                 value = query.text,
                 onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
-                label = { Text(stringResource(R.string.library_search_label)) },
+                placeholder = { Text(stringResource(R.string.library_search_label)) },
                 leadingIcon = {
-                    Icon(imageVector = MoriIcons.Search, contentDescription = null)
+                    Icon(
+                        imageVector = MoriIcons.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 },
                 trailingIcon = {
                     if (query.text.isNotEmpty()) {
@@ -354,6 +364,7 @@ private fun LibraryContent(
                     }
                 },
                 singleLine = true,
+                textStyle = MoriEmphasized.bodyLarge,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
@@ -361,15 +372,18 @@ private fun LibraryContent(
                         focusManager.clearFocus()
                     },
                 ),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = OutlinedTextFieldDefaults.colors(
+                shape = MaterialTheme.shapes.extraExtraLarge,
+                colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(top = 8.dp)
+                    .sizeIn(minHeight = 64.dp)
                     .testTag(LibraryTestTags.SearchField),
             )
             LibraryBody(

@@ -23,6 +23,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.MoriLoadingIndicator
 import com.mori.core.designsystem.MoriScrimPill
 import androidx.compose.material3.Surface
@@ -104,8 +112,36 @@ internal fun ReaderOverviewSheetContent(
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
     Text(
-        text = stringResource(R.string.reader_overview_title, currentPage, expandedCount),
-        style = MaterialTheme.typography.titleLarge,
+        text = buildAnnotatedString {
+            withStyle(
+                SpanStyle(
+                    fontFamily = LocalAppFonts.current.topBarTitle,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 28.sp,
+                ),
+            ) {
+                append(stringResource(R.string.reader_overview_pages))
+            }
+            append("  ")
+            withStyle(
+                SpanStyle(
+                    fontFamily = LocalAppFonts.current.topBarTitle,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                append(
+                    stringResource(
+                        R.string.reader_overview_count,
+                        currentPage,
+                        expandedCount,
+                    ),
+                )
+            }
+        },
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
@@ -136,7 +172,14 @@ internal fun ReaderOverviewSheetContent(
                 cropMargins = cropMargins,
                 selected = archive == currentArchiveIndex,
                 onClick = {
-                    onAction(ReaderAction.SeekPage(expandedForArchive.getOrElse(archive) { archive }))
+                    // Animated seek glides on the page-turn curve (unified
+                    // with button turns); the sheet exits over the glide.
+                    onAction(
+                        ReaderAction.SeekPage(
+                            expandedForArchive.getOrElse(archive) { archive },
+                            animated = true,
+                        ),
+                    )
                     onAction(ReaderAction.CloseOverview)
                 },
             )

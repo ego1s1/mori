@@ -147,7 +147,7 @@ internal fun DetailScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        FilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -169,7 +169,7 @@ internal fun DetailScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        FilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -424,7 +424,7 @@ private fun DetailContent(
                     },
                 )
             }
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = { onAction(DetailAction.OpenShelves) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -436,68 +436,11 @@ private fun DetailContent(
 
         MetadataRows(comic = comic)
 
-        if (comic.error == null && comic.pageCount > 0) {
-            Text(text = stringResource(R.string.detail_section_pages), style = MaterialTheme.typography.titleMedium)
-            // Windowed strip: huge books collapse to ±window around the
-            // current page behind an overflow chip instead of instantiating
-            // hundreds of chips up front. LazyRow still virtualizes the
-            // expanded list; the window only bounds initial work and gives
-            // screen readers a sane item count.
-            var stripExpanded by remember(comic.id) { mutableStateOf(false) }
-            val window = PAGE_STRIP_WINDOW
-            val indices = remember(comic.id, comic.pageCount, comic.lastPageIndex, stripExpanded) {
-                if (stripExpanded || comic.pageCount <= window * 2 + 1) {
-                    (0 until comic.pageCount).toList()
-                } else {
-                    val start = (comic.lastPageIndex - window).coerceAtLeast(0)
-                    val end = (comic.lastPageIndex + window).coerceAtMost(comic.pageCount - 1)
-                    (start..end).toList()
-                }
-            }
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag(DetailTestTags.PageStrip),
-            ) {
-                items(indices.size, key = { indices[it] }, contentType = { "page" }) { slot ->
-                    val index = indices[slot]
-                    val chipDescription = if (index == comic.lastPageIndex) {
-                        stringResource(R.string.detail_page_chip_current, index + 1)
-                    } else {
-                        stringResource(R.string.detail_page_chip, index + 1)
-                    }
-                    FilterChip(
-                        selected = index == comic.lastPageIndex,
-                        onClick = { onReadClick(comic.id, index) },
-                        label = { Text("${index + 1}") },
-                        modifier = Modifier
-                            .testTag(DetailTestTags.pageChip(index))
-                            // State (not content) description: the label and
-                            // selected state stay announced by the chip.
-                            .semantics { stateDescription = chipDescription },
-                    )
-                }
-                if (!stripExpanded && comic.pageCount > window * 2 + 1) {
-                    item(key = "overflow", contentType = "overflow") {
-                        FilterChip(
-                            selected = false,
-                            onClick = { stripExpanded = true },
-                            label = { Text(stringResource(R.string.detail_pages_show_all, comic.pageCount)) },
-                        )
-                    }
-                }
-            }
-        }
     }
 }
     }
 
 private val EXPANDED_CONTENT_MAX_WIDTH = 840.dp
-
-/** Pages shown on each side of the current page before the strip collapses. */
-private const val PAGE_STRIP_WINDOW = 30
 
 @Composable
 private fun MetadataRows(comic: Comic, modifier: Modifier = Modifier) {

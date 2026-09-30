@@ -15,7 +15,7 @@ sealed interface ReaderAction {
     data object PrevPage : ReaderAction
 
     /** Jump to a 0-based page (slider scrub, page overview). */
-    data class SeekPage(val index: Int) : ReaderAction
+    data class SeekPage(val index: Int, val animated: Boolean = false) : ReaderAction
 
     /** The pager settled on a 0-based page (swipe). */
     data class PageChanged(val index: Int) : ReaderAction

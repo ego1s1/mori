@@ -124,19 +124,6 @@ class DetailScreenTest {
     }
 
     @Test
-    fun pageStripJumpOpensPage() {
-        var opened: Pair<String, Int>? = null
-        setScreen(ready(), onReadClick = { id, index -> opened = id to index })
-
-        // The strip sits below the fold; scroll it into view first (Robolectric only
-        // measures never-visible lazy content once scrolled to).
-        composeTestRule.onNodeWithTag(DetailTestTags.PageStrip).performScrollTo()
-        composeTestRule.onNodeWithTag(DetailTestTags.pageChip(0)).performClick()
-
-        assert(opened == ("a" to 0))
-    }
-
-    @Test
     fun errorCardOffersRetryAndRemove() {
         val actions = mutableListOf<DetailAction>()
         setScreen(ready(error = ComicError.CORRUPT), actions = actions)

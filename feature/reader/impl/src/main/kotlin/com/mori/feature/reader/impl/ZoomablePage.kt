@@ -25,6 +25,7 @@ import com.mori.core.designsystem.MoriLoadingIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -373,6 +374,11 @@ private fun PageArt(
         )
         val painterState by painter.state.collectAsStateWithLifecycle()
         val painterSuccess = painterState is AsyncImagePainter.State.Success
+        val artAlpha by animateFloatAsState(
+            targetValue = if (painterSuccess) 1f else 0f,
+            animationSpec = MoriMotion.defaultEffectsSpec(),
+            label = "artAlpha",
+        )
         LaunchedEffect(painterSuccess) {
             onLoadedChange(painterSuccess)
         }
@@ -393,7 +399,13 @@ private fun PageArt(
                 painter = painter,
                 contentDescription = stringResource(R.string.reader_page_art, pageNumber),
                 colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        // Decoded art eases in on the effects curve instead of
+                        // popping: same arrival language as every overlay.
+                        alpha = artAlpha
+                    },
             )
             // Deep-zoom sharpness: past 2x a higher-resolution decode fades
             // in over the base art (same key family, Coil-cached). The base
