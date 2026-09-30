@@ -2,8 +2,14 @@ package com.mori.feature.settings.impl
 
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,15 +53,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
+import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriEnterKind
 import com.mori.core.designsystem.MoriHaptic
@@ -79,6 +89,7 @@ import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharedFlow
 
 @Composable
@@ -184,14 +195,60 @@ internal fun SettingsContent(
 ) {
     var category by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
     val haptics = rememberMoriHaptics()
+    val expressiveMotion = LocalExpressiveMotionEnabled.current
     BackHandler(enabled = category != null) { category = null }
-    val categoryEnter = MoriMotion.enter(MoriEnterKind.FADE)
-    val categoryExit = MoriMotion.exit(MoriEnterKind.FADE)
+    // Predictive-back preview: the detail shrinks with the gesture instead of
+    // snapping on release; commit pops to the hub, cancel settles back. Same
+    // shift-aside language as the MainScreen tab preview.
+    val backPreview = remember { Animatable(0f) }
+    PredictiveBackHandler(enabled = category != null) { progress ->
+        try {
+            progress.collect { backPreview.snapTo(it.progress) }
+            category = null
+            backPreview.snapTo(0f)
+        } catch (e: CancellationException) {
+            backPreview.animateTo(
+                0f,
+                animationSpec = if (expressiveMotion) {
+                    MoriMotion.defaultSpatialSpec()
+                } else {
+                    MoriMotion.calmFade()
+                },
+            )
+            throw e
+        }
+    }
+    // Tomato slide + parallax, driven by MoriMotion tokens: pushing a detail
+    // slides the full width in over a 1/4 parallax fade-out; popping reverses
+    // it. Calm motion keeps the plain fade. RTL-aware via layout direction.
+    val layoutDir = LocalLayoutDirection.current
     AnimatedContent(
         targetState = category,
-        transitionSpec = { categoryEnter togetherWith categoryExit },
+        transitionSpec = {
+            val sign = if (layoutDir == LayoutDirection.Ltr) 1 else -1
+            if (!expressiveMotion) {
+                fadeIn(animationSpec = MoriMotion.calmFade()) togetherWith
+                    fadeOut(animationSpec = MoriMotion.calmFade())
+            } else if (targetState != null) {
+                (fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
+                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) { sign * it }) togetherWith
+                    (fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
+                        slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) { sign * -it / 4 })
+            } else {
+                (fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
+                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) { sign * -it / 4 }) togetherWith
+                    (fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
+                        slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) { sign * it })
+            }
+        },
         label = "settingsCategory",
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            val pull = backPreview.value
+            translationX = pull * size.width * 0.08f
+            val settle = 1f - 0.02f * pull
+            scaleX = settle
+            scaleY = settle
+        },
     ) { selected ->
         if (selected == null) {
             SettingsScaffold(
