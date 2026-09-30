@@ -85,7 +85,7 @@ fun SchemePickerRow(
             key(choice) {
                 val onSchemeClick = remember(choice) { { onScheme(choice) } }
                 PhoneMockup(
-                    label = choice.name.lowercase().replaceFirstChar { it.uppercase() },
+                    label = choice.displayName,
                     selected = isSchemeSelected(theme.dynamicColor, theme.colorScheme, choice),
                     onClick = onSchemeClick,
                     darkTheme = darkTheme,

@@ -198,6 +198,62 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = SunsetColors.SecondaryDark,
                 tertiary = SunsetColors.TertiaryDark,
             )
+            ColorSchemeChoice.CATPPUCCIN -> presetDarkScheme(
+                primary = CatppuccinColors.PrimaryDark,
+                onPrimary = CatppuccinColors.OnPrimaryDark,
+                primaryContainer = CatppuccinColors.ContainerDark,
+                onPrimaryContainer = CatppuccinColors.OnContainerDark,
+                secondary = CatppuccinColors.SecondaryDark,
+                tertiary = CatppuccinColors.TertiaryDark,
+            )
+            ColorSchemeChoice.NORD -> presetDarkScheme(
+                primary = NordColors.PrimaryDark,
+                onPrimary = NordColors.OnPrimaryDark,
+                primaryContainer = NordColors.ContainerDark,
+                onPrimaryContainer = NordColors.OnContainerDark,
+                secondary = NordColors.SecondaryDark,
+                tertiary = NordColors.TertiaryDark,
+            )
+            ColorSchemeChoice.GRUVBOX -> presetDarkScheme(
+                primary = GruvboxColors.PrimaryDark,
+                onPrimary = GruvboxColors.OnPrimaryDark,
+                primaryContainer = GruvboxColors.ContainerDark,
+                onPrimaryContainer = GruvboxColors.OnContainerDark,
+                secondary = GruvboxColors.SecondaryDark,
+                tertiary = GruvboxColors.TertiaryDark,
+            )
+            ColorSchemeChoice.DRACULA -> presetDarkScheme(
+                primary = DraculaColors.PrimaryDark,
+                onPrimary = DraculaColors.OnPrimaryDark,
+                primaryContainer = DraculaColors.ContainerDark,
+                onPrimaryContainer = DraculaColors.OnContainerDark,
+                secondary = DraculaColors.SecondaryDark,
+                tertiary = DraculaColors.TertiaryDark,
+            )
+            ColorSchemeChoice.TOKYO_NIGHT -> presetDarkScheme(
+                primary = TokyoNightColors.PrimaryDark,
+                onPrimary = TokyoNightColors.OnPrimaryDark,
+                primaryContainer = TokyoNightColors.ContainerDark,
+                onPrimaryContainer = TokyoNightColors.OnContainerDark,
+                secondary = TokyoNightColors.SecondaryDark,
+                tertiary = TokyoNightColors.TertiaryDark,
+            )
+            ColorSchemeChoice.EVERFOREST -> presetDarkScheme(
+                primary = EverforestColors.PrimaryDark,
+                onPrimary = EverforestColors.OnPrimaryDark,
+                primaryContainer = EverforestColors.ContainerDark,
+                onPrimaryContainer = EverforestColors.OnContainerDark,
+                secondary = EverforestColors.SecondaryDark,
+                tertiary = EverforestColors.TertiaryDark,
+            )
+            ColorSchemeChoice.MONOCHROME -> presetDarkScheme(
+                primary = MonochromeColors.PrimaryDark,
+                onPrimary = MonochromeColors.OnPrimaryDark,
+                primaryContainer = MonochromeColors.ContainerDark,
+                onPrimaryContainer = MonochromeColors.OnContainerDark,
+                secondary = MonochromeColors.SecondaryDark,
+                tertiary = MonochromeColors.TertiaryDark,
+            )
         }
     }
     return when (choice) {
@@ -225,6 +281,62 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             onPrimaryContainer = SunsetColors.OnContainerLight,
             secondary = SunsetColors.SecondaryLight,
             tertiary = SunsetColors.TertiaryLight,
+        )
+        ColorSchemeChoice.CATPPUCCIN -> presetLightScheme(
+            primary = CatppuccinColors.PrimaryLight,
+            onPrimary = CatppuccinColors.OnPrimaryLight,
+            primaryContainer = CatppuccinColors.ContainerLight,
+            onPrimaryContainer = CatppuccinColors.OnContainerLight,
+            secondary = CatppuccinColors.SecondaryLight,
+            tertiary = CatppuccinColors.TertiaryLight,
+        )
+        ColorSchemeChoice.NORD -> presetLightScheme(
+            primary = NordColors.PrimaryLight,
+            onPrimary = NordColors.OnPrimaryLight,
+            primaryContainer = NordColors.ContainerLight,
+            onPrimaryContainer = NordColors.OnContainerLight,
+            secondary = NordColors.SecondaryLight,
+            tertiary = NordColors.TertiaryLight,
+        )
+        ColorSchemeChoice.GRUVBOX -> presetLightScheme(
+            primary = GruvboxColors.PrimaryLight,
+            onPrimary = GruvboxColors.OnPrimaryLight,
+            primaryContainer = GruvboxColors.ContainerLight,
+            onPrimaryContainer = GruvboxColors.OnContainerLight,
+            secondary = GruvboxColors.SecondaryLight,
+            tertiary = GruvboxColors.TertiaryLight,
+        )
+        ColorSchemeChoice.DRACULA -> presetLightScheme(
+            primary = DraculaColors.PrimaryLight,
+            onPrimary = DraculaColors.OnPrimaryLight,
+            primaryContainer = DraculaColors.ContainerLight,
+            onPrimaryContainer = DraculaColors.OnContainerLight,
+            secondary = DraculaColors.SecondaryLight,
+            tertiary = DraculaColors.TertiaryLight,
+        )
+        ColorSchemeChoice.TOKYO_NIGHT -> presetLightScheme(
+            primary = TokyoNightColors.PrimaryLight,
+            onPrimary = TokyoNightColors.OnPrimaryLight,
+            primaryContainer = TokyoNightColors.ContainerLight,
+            onPrimaryContainer = TokyoNightColors.OnContainerLight,
+            secondary = TokyoNightColors.SecondaryLight,
+            tertiary = TokyoNightColors.TertiaryLight,
+        )
+        ColorSchemeChoice.EVERFOREST -> presetLightScheme(
+            primary = EverforestColors.PrimaryLight,
+            onPrimary = EverforestColors.OnPrimaryLight,
+            primaryContainer = EverforestColors.ContainerLight,
+            onPrimaryContainer = EverforestColors.OnContainerLight,
+            secondary = EverforestColors.SecondaryLight,
+            tertiary = EverforestColors.TertiaryLight,
+        )
+        ColorSchemeChoice.MONOCHROME -> presetLightScheme(
+            primary = MonochromeColors.PrimaryLight,
+            onPrimary = MonochromeColors.OnPrimaryLight,
+            primaryContainer = MonochromeColors.ContainerLight,
+            onPrimaryContainer = MonochromeColors.OnContainerLight,
+            secondary = MonochromeColors.SecondaryLight,
+            tertiary = MonochromeColors.TertiaryLight,
         )
     }
 }

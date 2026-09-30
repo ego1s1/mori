@@ -74,6 +74,125 @@ fun ColorSchemeChoice.previewColor(): Color = when (this) {
     ColorSchemeChoice.OCEAN -> OceanColors.PrimaryLight
     ColorSchemeChoice.FOREST -> ForestColors.PrimaryLight
     ColorSchemeChoice.SUNSET -> SunsetColors.PrimaryLight
+    ColorSchemeChoice.CATPPUCCIN -> CatppuccinColors.PrimaryLight
+    ColorSchemeChoice.NORD -> NordColors.PrimaryLight
+    ColorSchemeChoice.GRUVBOX -> GruvboxColors.PrimaryLight
+    ColorSchemeChoice.DRACULA -> DraculaColors.PrimaryLight
+    ColorSchemeChoice.TOKYO_NIGHT -> TokyoNightColors.PrimaryLight
+    ColorSchemeChoice.EVERFOREST -> EverforestColors.PrimaryLight
+    ColorSchemeChoice.MONOCHROME -> MonochromeColors.PrimaryLight
+}
+
+/** Catppuccin Mocha (dark) / Latte (light) accents. */
+internal object CatppuccinColors {
+    val PrimaryLight = Color(0xFF8839EF)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFE9DCFF)
+    val OnContainerLight = Color(0xFF241B3D)
+    val SecondaryLight = Color(0xFF5C5F77)
+    val TertiaryLight = Color(0xFF179299)
+    val PrimaryDark = Color(0xFFCBA6F7)
+    val OnPrimaryDark = Color(0xFF3A2A5E)
+    val ContainerDark = Color(0xFF4A3A75)
+    val OnContainerDark = Color(0xFFE9DEF8)
+    val SecondaryDark = Color(0xFFBAC2DE)
+    val TertiaryDark = Color(0xFF94E2D5)
+}
+
+/** Nord frost accents on polar-night surfaces. */
+internal object NordColors {
+    val PrimaryLight = Color(0xFF5E81AC)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFD8E4F0)
+    val OnContainerLight = Color(0xFF1A2B3D)
+    val SecondaryLight = Color(0xFF4C566A)
+    val TertiaryLight = Color(0xFF4A7D78)
+    val PrimaryDark = Color(0xFF88C0D0)
+    val OnPrimaryDark = Color(0xFF12242C)
+    val ContainerDark = Color(0xFF2A4A56)
+    val OnContainerDark = Color(0xFFD8EEF3)
+    val SecondaryDark = Color(0xFF81A7C9)
+    val TertiaryDark = Color(0xFF8FBCBB)
+}
+
+/** Gruvbox warm retro accents. */
+internal object GruvboxColors {
+    val PrimaryLight = Color(0xFFB57614)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFF2DCAE)
+    val OnContainerLight = Color(0xFF3D2A00)
+    val SecondaryLight = Color(0xFF076678)
+    val TertiaryLight = Color(0xFFAF3A03)
+    val PrimaryDark = Color(0xFFFABD2F)
+    val OnPrimaryDark = Color(0xFF3A2700)
+    val ContainerDark = Color(0xFF6E5200)
+    val OnContainerDark = Color(0xFFFFE7B3)
+    val SecondaryDark = Color(0xFF83A598)
+    val TertiaryDark = Color(0xFFFE8019)
+}
+
+/** Dracula purple/pink/green accents. */
+internal object DraculaColors {
+    val PrimaryLight = Color(0xFF6440A5)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFE4D7FB)
+    val OnContainerLight = Color(0xFF241640)
+    val SecondaryLight = Color(0xFFA24D8F)
+    val TertiaryLight = Color(0xFF1F7A3D)
+    val PrimaryDark = Color(0xFFBD93F9)
+    val OnPrimaryDark = Color(0xFF2E1B4D)
+    val ContainerDark = Color(0xFF4A3573)
+    val OnContainerDark = Color(0xFFE9DCFF)
+    val SecondaryDark = Color(0xFFFF79C6)
+    val TertiaryDark = Color(0xFF50FA7B)
+}
+
+/** Tokyo Night neon accents. */
+internal object TokyoNightColors {
+    val PrimaryLight = Color(0xFF34548A)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFD9E4F5)
+    val OnContainerLight = Color(0xFF16294A)
+    val SecondaryLight = Color(0xFF5A6C8D)
+    val TertiaryLight = Color(0xFF0F7B9C)
+    val PrimaryDark = Color(0xFFBB9AF7)
+    val OnPrimaryDark = Color(0xFF241B4D)
+    val ContainerDark = Color(0xFF443A75)
+    val OnContainerDark = Color(0xFFE6DEFF)
+    val SecondaryDark = Color(0xFF7AA2F7)
+    val TertiaryDark = Color(0xFF7DCFFF)
+}
+
+/** Everforest muted green accents. */
+internal object EverforestColors {
+    val PrimaryLight = Color(0xFF4C7A5D)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFD5E8D5)
+    val OnContainerLight = Color(0xFF14291C)
+    val SecondaryLight = Color(0xFF5E6F5B)
+    val TertiaryLight = Color(0xFF8C5A72)
+    val PrimaryDark = Color(0xFFA7C080)
+    val OnPrimaryDark = Color(0xFF1E2A12)
+    val ContainerDark = Color(0xFF3A4A2A)
+    val OnContainerDark = Color(0xFFDFECCD)
+    val SecondaryDark = Color(0xFF7FBBB3)
+    val TertiaryDark = Color(0xFFD699B6)
+}
+
+/** Pure grayscale accents, zero hue. */
+internal object MonochromeColors {
+    val PrimaryLight = Color(0xFF212121)
+    val OnPrimaryLight = Color(0xFFFFFFFF)
+    val ContainerLight = Color(0xFFE2E2E2)
+    val OnContainerLight = Color(0xFF141414)
+    val SecondaryLight = Color(0xFF5A5A5A)
+    val TertiaryLight = Color(0xFF8A8A8A)
+    val PrimaryDark = Color(0xFFE0E0E0)
+    val OnPrimaryDark = Color(0xFF1A1A1A)
+    val ContainerDark = Color(0xFF333333)
+    val OnContainerDark = Color(0xFFEDEDED)
+    val SecondaryDark = Color(0xFFB0B0B0)
+    val TertiaryDark = Color(0xFF8A8A8A)
 }
 
 // Tonal derivation for scheme roles M3 baseline would otherwise supply.
