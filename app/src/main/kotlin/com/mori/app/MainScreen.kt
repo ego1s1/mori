@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -242,7 +243,12 @@ internal fun MainScreen(
             // bars return; reading it live made the bar sit low for a beat and
             // snap up. Track the running maximum of the live inset so the bar
             // keeps its settled height across that transition.
-            val liveNavBottom = WindowInsets.safeDrawing
+            //
+            // The source is navigationBars, never safeDrawing: safeDrawing
+            // includes the IME, so opening search latched keyboard height and
+            // parked the pill mid-screen until restart. The clamp below is
+            // belt-and-braces so no inset spike can ever lift the bar again.
+            val liveNavBottom = WindowInsets.navigationBars
                 .only(WindowInsetsSides.Bottom)
                 .asPaddingValues()
                 .calculateBottomPadding()
@@ -253,6 +259,7 @@ internal fun MainScreen(
                 }
             }
             val navBottom = maxOf(liveNavBottom.value, latchedNavBottom.floatValue).dp
+                .coerceAtMost(MaxChromeBottomInset)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -287,3 +294,6 @@ internal fun MainScreen(
 private const val LIBRARY_TAB = 0
 private const val STATS_TAB = 1
 private const val SETTINGS_TAB = 2
+
+/** Ceiling for the floating chrome offset: nav bars never need more. */
+private val MaxChromeBottomInset = 120.dp

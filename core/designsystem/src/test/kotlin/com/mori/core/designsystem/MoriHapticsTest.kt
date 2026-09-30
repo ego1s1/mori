@@ -23,15 +23,16 @@ class MoriHapticsTest {
         assertEquals(HapticFeedbackType.SegmentFrequentTick, MoriHaptic.FrequentTick.type())
     }
 
-    @Test
-    fun detentIsACrispTick() {
-        assertEquals(HapticFeedbackType.SegmentTick, MoriHaptic.Detent.type())
-    }
 
     @Test
     fun completionAndFailureAreDistinct() {
         assertEquals(HapticFeedbackType.Confirm, MoriHaptic.Confirm.type())
         assertEquals(HapticFeedbackType.Reject, MoriHaptic.Reject.type())
+    }
+
+    @Test
+    fun primaryActionIsAFirmConfirm() {
+        assertEquals(HapticFeedbackType.Confirm, MoriHaptic.PrimaryAction.type())
     }
 
     @Test

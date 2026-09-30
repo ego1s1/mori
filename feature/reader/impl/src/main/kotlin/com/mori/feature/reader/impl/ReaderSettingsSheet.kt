@@ -12,13 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mori.core.designsystem.MoriChoiceGroup
+import com.mori.core.designsystem.MoriChoiceOption
+import com.mori.core.designsystem.MoriEmphasized
+import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
 import com.mori.core.designsystem.MoriSliderRow
@@ -85,6 +85,12 @@ internal fun ReaderSettingsSheet(
     }
 }
 
+/** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
+private fun percentText(value: Float): String {
+    val percent = (value * 100).toInt()
+    return "$percent%"
+}
+
 /** Sheet body content, exposed for testing. */
 @Composable
 internal fun ReaderSettingsSheetContent(
@@ -127,58 +133,62 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_direction),
-            style = MaterialTheme.typography.titleMedium,
+            style = MoriEmphasized.titleSmall,
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = direction == ReadingDirection.LEFT_TO_RIGHT,
-                onClick = { onAction(ReaderAction.SetDirection(ReadingDirection.LEFT_TO_RIGHT)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                label = { Text(stringResource(R.string.reader_direction_ltr)) },
-            )
-            SegmentedButton(
-                selected = direction == ReadingDirection.RIGHT_TO_LEFT,
-                onClick = { onAction(ReaderAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                label = { Text(stringResource(R.string.reader_direction_rtl)) },
-            )
-        }
+        MoriChoiceGroup(
+            options = listOf(
+                MoriChoiceOption(label = stringResource(R.string.reader_direction_ltr)),
+                MoriChoiceOption(label = stringResource(R.string.reader_direction_rtl)),
+            ),
+            selectedIndex = if (direction == ReadingDirection.LEFT_TO_RIGHT) 0 else 1,
+            onSelect = {
+                onAction(
+                    ReaderAction.SetDirection(
+                        if (it == 0) ReadingDirection.LEFT_TO_RIGHT else ReadingDirection.RIGHT_TO_LEFT,
+                    ),
+                )
+            },
+        )
 
         Text(
             text = stringResource(R.string.reader_sheet_fit),
-            style = MaterialTheme.typography.titleMedium,
+            style = MoriEmphasized.titleSmall,
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = pageFit == PageFit.WIDTH,
-                onClick = { onAction(ReaderAction.SetPageFit(PageFit.WIDTH)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text(stringResource(R.string.reader_fit_width)) },
-            )
-            SegmentedButton(
-                selected = pageFit == PageFit.HEIGHT,
-                onClick = { onAction(ReaderAction.SetPageFit(PageFit.HEIGHT)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text(stringResource(R.string.reader_fit_height)) },
-            )
-            SegmentedButton(
-                selected = pageFit == PageFit.ORIGINAL,
-                onClick = { onAction(ReaderAction.SetPageFit(PageFit.ORIGINAL)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text(stringResource(R.string.reader_fit_original)) },
-            )
-        }
+        MoriChoiceGroup(
+            options = listOf(
+                MoriChoiceOption(label = stringResource(R.string.reader_fit_width)),
+                MoriChoiceOption(label = stringResource(R.string.reader_fit_height)),
+                MoriChoiceOption(label = stringResource(R.string.reader_fit_original)),
+            ),
+            selectedIndex = when (pageFit) {
+                PageFit.WIDTH -> 0
+                PageFit.HEIGHT -> 1
+                PageFit.ORIGINAL -> 2
+            },
+            onSelect = {
+                onAction(
+                    ReaderAction.SetPageFit(
+                        when (it) {
+                            1 -> PageFit.HEIGHT
+                            2 -> PageFit.ORIGINAL
+                            else -> PageFit.WIDTH
+                        },
+                    ),
+                )
+            },
+        )
 
         MoriSettingSwitch(
             title = stringResource(R.string.reader_crop_title),
             subtitle = stringResource(R.string.reader_crop_subtitle),
             checked = cropMargins,
             onCheckedChange = { onAction(ReaderAction.ToggleCrop) },
+            icon = MoriIcons.Crop,
         )
 
         Text(
             text = stringResource(R.string.reader_sheet_zones),
-            style = MaterialTheme.typography.titleMedium,
+            style = MoriEmphasized.titleSmall,
         )
         TapZoneLegend(direction = direction)
         MoriSettingSwitch(
@@ -213,6 +223,7 @@ internal fun ReaderSettingsSheetContent(
             subtitle = stringResource(R.string.reader_incognito_subtitle),
             checked = incognito,
             onCheckedChange = { onAction(ReaderAction.ToggleIncognito) },
+            icon = MoriIcons.Incognito,
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_counter_title),
@@ -229,7 +240,7 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_dual),
-            style = MaterialTheme.typography.titleMedium,
+            style = MoriEmphasized.titleSmall,
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_dual_title),
@@ -248,7 +259,7 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_display),
-            style = MaterialTheme.typography.titleMedium,
+            style = MoriEmphasized.titleSmall,
         )
         Text(
             text = stringResource(R.string.reader_display_scope),
@@ -259,6 +270,7 @@ internal fun ReaderSettingsSheetContent(
             label = stringResource(R.string.reader_filter_brightness),
             value = previewBrightness,
             valueRange = -1f..1f,
+            valueText = percentText(previewBrightness),
             onValueChange = { previewBrightness = it },
             onValueChangeFinished = { onAction(ReaderAction.SetFilterBrightness(previewBrightness)) },
         )
@@ -266,6 +278,7 @@ internal fun ReaderSettingsSheetContent(
             label = stringResource(R.string.reader_filter_night),
             value = previewNightTint,
             valueRange = 0f..1f,
+            valueText = percentText(previewNightTint),
             onValueChange = { previewNightTint = it },
             onValueChangeFinished = { onAction(ReaderAction.SetFilterNightTint(previewNightTint)) },
         )
@@ -282,7 +295,7 @@ internal fun ReaderSettingsSheetContent(
             onCheckedChange = { onAction(ReaderAction.ToggleFilterInvert) },
         )
         if (hasFilterOverride) {
-            TextButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
+            FilledTonalButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
                 Text(stringResource(R.string.reader_filter_reset))
             }
         }

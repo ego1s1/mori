@@ -203,8 +203,12 @@ internal fun ResumeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberMoriHaptics()
     Surface(
-        onClick = onClick,
+        onClick = {
+            haptics(MoriHaptic.PrimaryAction)
+            onClick()
+        },
         shape = CircleShape,
         color = MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
