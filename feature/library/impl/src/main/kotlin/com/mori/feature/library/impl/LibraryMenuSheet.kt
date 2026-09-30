@@ -24,6 +24,7 @@ import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriSettingRow
 import com.mori.core.designsystem.MoriSheet
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.model.Comic
 import kotlinx.coroutines.launch
@@ -112,7 +113,7 @@ internal fun LibraryMenuContent(
                     // Let the sheet exit before pushing: the shared-element
                     // cover morph needs a clean stage, not an overlap.
                     scope.launch {
-                        kotlinx.coroutines.delay(200)
+                        kotlinx.coroutines.delay(MoriMotion.ExitScreenMs.toLong())
                         onDetailsClick(comic.id)
                     }
                 },

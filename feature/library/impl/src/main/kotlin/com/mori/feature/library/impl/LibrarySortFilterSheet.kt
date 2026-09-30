@@ -21,6 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mori.core.designsystem.MoriChoiceGroup
+import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.LibraryFilter
@@ -113,36 +115,22 @@ internal fun LibrarySortFilterContent(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            LibraryFilter.entries.forEach { filter ->
-                FilterChip(
-                    selected = query.filter == filter,
-                    onClick = { onAction(LibraryAction.FilterSelected(filter)) },
-                    label = { Text(filterLabel(filter)) },
-                )
-            }
-        }
+        MoriChoiceGroup(
+            options = LibraryFilter.entries.map { MoriChoiceOption(label = filterLabel(it)) },
+            selectedIndex = LibraryFilter.entries.indexOf(query.filter),
+            onSelect = { onAction(LibraryAction.FilterSelected(LibraryFilter.entries[it])) },
+        )
 
         Text(
             text = stringResource(R.string.library_sheet_sort_by),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            LibrarySortOrder.entries.forEach { sort ->
-                FilterChip(
-                    selected = query.sortOrder == sort,
-                    onClick = { onAction(LibraryAction.SortSelected(sort)) },
-                    label = { Text(sortLabel(sort)) },
-                )
-            }
-        }
+        MoriChoiceGroup(
+            options = LibrarySortOrder.entries.map { MoriChoiceOption(label = sortLabel(it)) },
+            selectedIndex = LibrarySortOrder.entries.indexOf(query.sortOrder),
+            onSelect = { onAction(LibraryAction.SortSelected(LibrarySortOrder.entries[it])) },
+        )
 
         MoriSettingSwitch(
             title = stringResource(R.string.library_sheet_hide_errors),

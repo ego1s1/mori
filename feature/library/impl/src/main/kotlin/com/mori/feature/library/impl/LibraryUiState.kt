@@ -26,10 +26,8 @@ sealed interface LibraryUiState {
          * one entry per non-empty shelf plus a trailing unsorted section.
          * Empty when the flat grid applies.
          */
-        val sections: List<ShelfSection> = emptyList(),
-    ) : LibraryUiState {
-        val isEmpty: Boolean get() = comics.isEmpty()
-    }
+         val sections: List<ShelfSection> = emptyList(),
+    ) : LibraryUiState
 }
 
 /**

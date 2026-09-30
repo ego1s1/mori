@@ -5,13 +5,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -123,9 +122,11 @@ internal fun ComicCard(
                 } else if (comic.bookmarked) {
                     // Same scrim language as the pages-left pill: tonal
                     // containers wash out on bright covers, black does not.
-                    Surface(
+                    MoriScrimPill(
+                        text = "",
+                        icon = MoriIcons.Bookmark,
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+                        contentPadding = PaddingValues(6.dp),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
@@ -133,19 +134,7 @@ internal fun ComicCard(
                                 stateDescription = bookmarkedLabel
                             }
                             .testTag(LibraryTestTags.bookmarkBadgeFor(comic.id)),
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.Bookmark,
-                            // Decorative: the card's read action already names
-                            // the book, so a bare "favorite" would announce
-                            // without state.
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.inverseOnSurface,
-                            modifier = Modifier
-                                .padding(6.dp)
-                                .size(16.dp),
-                        )
-                    }
+                    )
                 }
             }
 

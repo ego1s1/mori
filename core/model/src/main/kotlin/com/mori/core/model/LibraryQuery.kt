@@ -23,4 +23,7 @@ data class LibraryQuery(
     val sortOrder: LibrarySortOrder = LibrarySortOrder.RECENTLY_ADDED,
     val filter: LibraryFilter = LibraryFilter.ALL,
     val hideErrors: Boolean = false,
-)
+) {
+    /** True when any control beyond the text field diverges from defaults. */
+    fun hasActiveFilters(): Boolean = this != copy(text = "")
+}

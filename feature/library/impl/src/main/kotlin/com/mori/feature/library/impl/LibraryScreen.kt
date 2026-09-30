@@ -33,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -44,7 +43,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -77,7 +75,6 @@ import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.WindowWidthClass
 import com.mori.core.designsystem.windowWidthClass
-import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
@@ -112,21 +109,6 @@ fun LibraryTabContent(
         modifier = modifier,
         viewModel = hiltViewModel(),
         onResumeAvailable = onResumeAvailable,
-    )
-}
-
-@Composable
-internal fun LibraryRoute(
-    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel = hiltViewModel(),
-) {
-    LibraryRouteContent(
-        onReadClick = onReadClick,
-        onComicLongClick = onComicLongClick,
-        modifier = modifier,
-        viewModel = viewModel,
     )
 }
 
@@ -225,7 +207,7 @@ internal fun LibraryScreen(
                     // the Tune icon: with the chips row gone, the grid alone
                     // must show that a filter is active.
                     filterActive = success.selectedCollectionId != null ||
-                        success.query.copy(text = "") != LibraryQuery(),
+                        success.query.hasActiveFilters(),
                     onAction = onAction,
                     scrollBehavior = scrollBehavior,
                 )

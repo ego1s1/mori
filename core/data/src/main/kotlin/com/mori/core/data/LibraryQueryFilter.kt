@@ -33,9 +33,12 @@ fun List<Comic>.applyQuery(query: LibraryQuery): List<Comic> {
     return when (query.sortOrder) {
         LibrarySortOrder.RECENTLY_ADDED -> result.sortedByDescending { it.createdAt }
         LibrarySortOrder.RECENTLY_READ -> result.sortedByDescending { it.updatedAt }
-        LibrarySortOrder.TITLE -> result.sortedWith(
-            compareBy<Comic>({ it.title.lowercase() }, { it.series?.lowercase().orEmpty() }),
-        )
+        LibrarySortOrder.TITLE -> result
+            .map { comic ->
+                comic to (comic.title.lowercase() to (comic.series?.lowercase().orEmpty()))
+            }
+            .sortedWith(compareBy({ it.second.first }, { it.second.second }))
+            .map { it.first }
         LibrarySortOrder.UNFINISHED_FIRST -> result.sortedWith(
             compareBy<Comic> { it.isFinished }.thenByDescending { it.updatedAt },
         )
