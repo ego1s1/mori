@@ -19,9 +19,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -41,17 +38,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.LocalAppFonts
+import com.mori.core.designsystem.MoriChoiceGroup
+import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriCollapsingTopBar
 import com.mori.core.designsystem.MoriContentWell
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEmphasized
-import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriTheme
-import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.ScreenTitleLineHeight
 import com.mori.core.designsystem.ScreenTitleSize
 import com.mori.core.designsystem.ThemePreviews
@@ -250,31 +247,14 @@ private fun RangeSelector(
     modifier: Modifier = Modifier,
 ) {
     val options = StatsRange.entries
-    val haptics = rememberMoriHaptics()
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, option ->
-            val selected = option == range
-            SegmentedButton(
-                selected = selected,
-                onClick = {
-                    haptics(MoriHaptic.Select)
-                    onSelect(option)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                label = {
-                    Text(
-                        text = rangeLabel(option),
-                        style = if (selected) {
-                            MoriEmphasized.labelLarge
-                        } else {
-                            MaterialTheme.typography.labelLarge
-                        },
-                    )
-                },
-                modifier = Modifier.testTag(StatsTestTags.rangeFor(option)),
-            )
-        }
-    }
+    val tagForLabel = options.associate { rangeLabel(it) to StatsTestTags.rangeFor(it) }
+    MoriChoiceGroup(
+        options = options.map { MoriChoiceOption(label = rangeLabel(it)) },
+        selectedIndex = options.indexOf(range),
+        onSelect = { onSelect(options[it]) },
+        modifier = modifier,
+        testTagFor = { tagForLabel.getValue(it) },
+    )
 }
 
 @Composable

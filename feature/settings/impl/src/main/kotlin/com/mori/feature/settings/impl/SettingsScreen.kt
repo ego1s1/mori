@@ -32,9 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -502,6 +499,7 @@ private fun AppearanceSection(
                     stringResource(R.string.settings_theme_light),
                     stringResource(R.string.settings_theme_dark),
                 ),
+                icons = listOf(MoriIcons.Contrast, MoriIcons.LightMode, MoriIcons.DarkMode),
                 selectedIndex = when (theme.mode) {
                     ThemeMode.SYSTEM -> 0
                     ThemeMode.LIGHT -> 1
@@ -545,6 +543,7 @@ private fun AppearanceSection(
                     stringResource(R.string.settings_motion_expressive),
                     stringResource(R.string.settings_motion_calm),
                 ),
+                icons = listOf(MoriIcons.Animation, MoriIcons.Spa),
                 selectedIndex = if (motion == MotionStyle.EXPRESSIVE) 0 else 1,
                 onSelect = {
                     onAction(
@@ -917,9 +916,9 @@ private fun OptionLabel(
 }
 
 /**
- * Single-choice segmented row: the M3 control for option choices, shared
- * with the onboarding and reader sheets. Selection semantics keep the
- * tests on tags, not pixels.
+ * Single-choice pill group: connected morphing toggle buttons with optional
+ * icons, Flex-emphasized selection. Selection semantics keep the tests on
+ * tags, not pixels.
  */
 @Composable
 private fun SegmentedChoiceRow(
@@ -927,33 +926,17 @@ private fun SegmentedChoiceRow(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    icons: List<ImageVector?>? = null,
 ) {
-    val haptics = rememberMoriHaptics()
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().sizeIn(minHeight = 48.dp)) {
-        options.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
-            SegmentedButton(
-                selected = selected,
-                onClick = {
-                    haptics(MoriHaptic.Select)
-                    onSelect(index)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                // Emphasized face marks selection (M3E selection cue).
-                label = {
-                    Text(
-                        text = label,
-                        style = if (selected) {
-                            MoriEmphasized.labelLarge
-                        } else {
-                            MaterialTheme.typography.labelLarge
-                        },
-                    )
-                },
-                modifier = Modifier.testTag(SettingsTestTags.segmentFor(label)),
-            )
-        }
-    }
+    MoriChoiceGroup(
+        options = options.mapIndexed { index, label ->
+            MoriChoiceOption(label = label, icon = icons?.getOrNull(index))
+        },
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
+        modifier = modifier,
+        testTagFor = SettingsTestTags::segmentFor,
+    )
 }
 
 /**
