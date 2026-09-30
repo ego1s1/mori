@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Settings row switch: the whole row toggles with switch semantics, so text
  * taps and TalkBack gestures flip the setting — not just the thumb itself.
- * An optional leading icon renders the Tomato row language (48dp tonal
+ * An optional leading icon renders a tonal leading container
  * container). Shared by app settings and the reader sheet.
  */
 @Composable

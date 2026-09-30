@@ -19,10 +19,6 @@ private fun TextStyle.emphasized(weight: FontWeight = FontWeight.Bold) =
     copy(fontFamily = HeadingFlex, fontWeight = weight)
 
 object MoriEmphasized {
-    val displayLarge = base.displayLarge.emphasized()
-    val displayMedium = base.displayMedium.emphasized()
-    val displaySmall = base.displaySmall.emphasized()
-    val headlineLarge = base.headlineLarge.emphasized()
     val headlineMedium = base.headlineMedium.emphasized()
     val headlineSmall = base.headlineSmall.emphasized()
     val titleLarge = base.titleLarge.emphasized()
@@ -30,8 +26,5 @@ object MoriEmphasized {
     val titleSmall = base.titleSmall.emphasized()
     val bodyLarge = base.bodyLarge.emphasized(FontWeight.SemiBold)
     val bodyMedium = base.bodyMedium.emphasized(FontWeight.SemiBold)
-    val bodySmall = base.bodySmall.emphasized(FontWeight.SemiBold)
     val labelLarge = base.labelLarge.emphasized()
-    val labelMedium = base.labelMedium.emphasized()
-    val labelSmall = base.labelSmall.emphasized()
 }

@@ -80,7 +80,7 @@ val MoriTypography = baseline.copy(
     labelSmall = baseline.labelSmall.heading(),
 )
 
-/** Screen-title size shared by every collapsing top bar (32sp/32sp). */
+/** Screen-title size shared by every collapsing top bar (28sp/28sp). */
 val ScreenTitleSize = 28.sp
 
 /** Screen-title line height, matched to [ScreenTitleSize] for tight display leading. */

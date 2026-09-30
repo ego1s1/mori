@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
  * display-filter channels.
  *
  * While scrubbing, quantized ticks fire at most once per twentieth of the
- * range (Tomato's segmented scrub language); release lands a single tick.
+ * range in fixed quanta; release lands a single tick.
  */
 @Composable
 fun MoriSliderRow(

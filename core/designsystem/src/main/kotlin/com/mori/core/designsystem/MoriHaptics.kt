@@ -14,9 +14,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
  * waveform here — custom waveforms ignore user settings and vary wildly
  * across actuators.
  *
- * Usage: `val haptics = LocalHapticFeedback.current` then
- * `haptics.perform(MoriHaptic.TabSelect)` inside the click handler, not in
- * composition or `LaunchedEffect`.
+ * Usage: `val haptics = rememberMoriHaptics()` then `haptics(MoriHaptic.Select)`
+ * inside the click handler, not in `LaunchedEffect`. The framework mapping
+ * below is the graceful-degradation path; Pulsar presets win on capable
+ * devices (see `rememberMoriHaptics`).
  */
 enum class MoriHaptic {
     /** Tab, chip, segmented option, FAB, or card selected. */
@@ -50,6 +51,11 @@ enum class MoriHaptic {
 /**
  * Pure mapping from semantic event to platform effect. Pure so it stays
  * unit-testable without a device or Robolectric.
+ *
+ * Deliberate collapses: Tick shares Select's tick and PrimaryAction shares
+ * Confirm's pulse here — the framework has no finer rungs. Pulsar preserves
+ * the full distinctions (see `rememberMoriHaptics`), so flagships and budget
+ * devices intentionally feel different weights for the same event.
  */
 fun MoriHaptic.type(): HapticFeedbackType = when (this) {
     MoriHaptic.Select -> HapticFeedbackType.SegmentTick

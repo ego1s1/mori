@@ -14,10 +14,10 @@ import com.mori.core.model.MotionStyle
 
 /**
  * M3 Expressive motion tokens: physics springs for spatial changes, emphasized easings
- * for transitions. The full MotionScheme API needs material3 1.4+, so the skill's
+ * for transitions. The full MotionScheme API needs material3 1.4+, so the M3E motion scheme's
  * spatial/effects spec system is implemented directly here with stable spring APIs.
  *
- * Speed table (per skill): fast = small components (switches, chips), default =
+ * Speed table (per M3E guidance): fast = small components (switches, chips), default =
  * buttons/cards/chrome, slow = sheets/dialogs/navigation. Effects specs (color/alpha)
  * never bounce; spatial specs bounce lightly in expressive mode.
  *
@@ -31,7 +31,7 @@ import com.mori.core.model.MotionStyle
  * | Step fade-through                | spring   | spatial + effects    | FADE_THROUGH     |
  * | Content arrival fades            | spring   | effects              | FADE             |
  * | Page-turn glide                  | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
- * | Double-tap zoom glide            | 500ms    | EaseInOutQuad        | zoomSpec         |
+ * | Double-tap zoom glide            | 500ms    | EaseInOutQuad        | zoomStateSpec  |
  * | Pan fling glide                  | 500ms    | EaseOutQuad          | flingSpec        |
  * | Edge pan hop                     | 180ms    | EmphasizedDecelerate | pageTurnSpec     |
  * | Calm fallback (any fade)         | 200ms    | Emphasized           | calmFade         |
@@ -104,13 +104,9 @@ object MoriMotion {
     fun pageTurnSpec(): FiniteAnimationSpec<Float> =
         tween(durationMillis = PAGE_TURN_MS, easing = EmphasizedDecelerate)
 
-    /** Double-tap zoom glide: fixed-time in-out quad. */
-    fun zoomSpec(): FiniteAnimationSpec<Float> =
-        tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EaseInOutQuad)
-
     /**
      * In-out quad tween for combined zoom state (scale + offset driven as one
-     * Animatable so retargets stay seamless).
+     * Animatable so retargets stay seamless). Also serves double-tap zoom.
      */
     fun <T> zoomStateSpec(): FiniteAnimationSpec<T> =
         tween(durationMillis = DOUBLE_TAP_ZOOM_MS, easing = EaseInOutQuad)

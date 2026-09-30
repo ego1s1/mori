@@ -75,20 +75,20 @@ fun MoriCoverArt(
                 modifier = Modifier.fillMaxSize(),
             )
             if (painterState !is AsyncImagePainter.State.Success) {
-                Icon(
-                    imageVector = MoriIcons.MenuBook,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(40.dp),
-                )
+                CoverPlaceholder()
             }
         } else {
-            Icon(
-                imageVector = MoriIcons.MenuBook,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(40.dp),
-            )
+            CoverPlaceholder()
         }
     }
+}
+
+@Composable
+private fun CoverPlaceholder() {
+    Icon(
+        imageVector = MoriIcons.MenuBook,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(40.dp),
+    )
 }

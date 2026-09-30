@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun moriTopBarColors(amoled: Boolean = LocalAmoled.current): TopAppBarColors =
+fun moriTopBarColors(): TopAppBarColors =
     TopAppBarDefaults.topAppBarColors(
         containerColor = Color.Transparent,
         scrolledContainerColor = Color.Transparent,

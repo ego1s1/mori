@@ -121,13 +121,14 @@ private fun StatsContent(
     MoriContentWell(modifier = modifier) {
         if (state.totals.totalSessions == 0) {
             MoriEmptyState(
-                icon = MoriIcons.History,
+                icon = MoriIcons.BarChart,
                 title = stringResource(R.string.stats_empty_title),
                 body = stringResource(R.string.stats_empty_body),
                 actionLabel = null,
                 onAction = null,
-                bottomPadding = FloatingChromeBottomReserve,
-                modifier = Modifier.testTag(StatsTestTags.EmptyState),
+                modifier = Modifier
+                    .testTag(StatsTestTags.EmptyState)
+                    .padding(bottom = FloatingChromeBottomReserve),
             )
             return@MoriContentWell
         }

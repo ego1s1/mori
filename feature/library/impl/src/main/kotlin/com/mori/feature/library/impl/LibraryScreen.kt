@@ -734,8 +734,9 @@ private fun LibraryEmptyState(
             stringResource(R.string.library_empty_rescan)
         },
         onAction = if (rescue) onChooseFolder else onRefresh,
-        modifier = modifier.testTag(LibraryTestTags.EmptyState),
-        bottomPadding = FloatingChromeBottomReserve,
+        modifier = modifier
+            .testTag(LibraryTestTags.EmptyState)
+            .padding(bottom = FloatingChromeBottomReserve),
         actionTestTag = if (rescue) {
             LibraryTestTags.EmptyChooseFolder
         } else {

@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.BarChart
@@ -27,7 +26,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MenuBook
@@ -70,7 +68,6 @@ object MoriIcons {
     val ExpandMore = Icons.Rounded.ExpandMore
     val FitScreen = Icons.Rounded.FitScreen
     val GridView = Icons.Rounded.GridView
-    val History = Icons.Rounded.History
     val MenuBook = Icons.Rounded.MenuBook
     val MoreVert = Icons.Rounded.MoreVert
     val NewReleases = Icons.Rounded.NewReleases
@@ -100,7 +97,6 @@ object MoriIcons {
     // Navigation-toolbar pairs: outlined for idle tabs, filled for selected,
     // crossfaded on selection like the reference app's bottom toolbar.
     val MenuBookOutlined = Icons.Outlined.MenuBook
-    val HistoryOutlined = Icons.Outlined.History
     val BarChartOutlined = Icons.Outlined.BarChart
     val SettingsOutlined = Icons.Outlined.Settings
 }

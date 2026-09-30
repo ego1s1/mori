@@ -1,7 +1,6 @@
 package com.mori.feature.library.impl
 
 import androidx.lifecycle.SavedStateHandle
-import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
@@ -10,7 +9,7 @@ import com.mori.core.model.UserCollection
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
-import com.mori.core.testing.awaitWhere
+import com.mori.core.testing.awaitAs
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -72,11 +71,11 @@ class LibraryViewModelTest {
         )
         val viewModel = viewModel(repository)
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             // Management lives in Settings: create directly on the fake.
             val id = repository.createCollection("Favorites")
             repository.addToCollection(id, "a")
-            val sectioned = awaitSuccessWhere { it.sections.size == 2 }
+            val sectioned = awaitAs<LibraryUiState.Success> { it.sections.size == 2 }
             assertEquals(id, sectioned.sections[0].collection?.id)
             assertEquals(listOf("a"), sectioned.sections[0].comics.map { it.id })
             assertEquals(null, sectioned.sections[1].collection)
@@ -84,17 +83,17 @@ class LibraryViewModelTest {
             assertEquals(false, sectioned.sections[0].collapsed)
 
             viewModel.onAction(LibraryAction.ToggleShelfCollapsed(id))
-            val collapsed = awaitSuccessWhere {
+            val collapsed = awaitAs<LibraryUiState.Success> {
                 it.sections.firstOrNull { it.id == id }?.collapsed == true
             }
             assertEquals(true, collapsed.sections[0].collapsed)
 
             // Chip filter still narrows to members; clearing restores all.
             viewModel.onAction(LibraryAction.SelectCollection(id))
-            val selected = awaitSuccessWhere { it.selectedCollectionId == id && it.comics.map { c -> c.id } == listOf("a") }
+            val selected = awaitAs<LibraryUiState.Success> { it.selectedCollectionId == id && it.comics.map { c -> c.id } == listOf("a") }
             assertEquals(true, selected.sections.isEmpty())
             viewModel.onAction(LibraryAction.SelectCollection(null))
-            awaitSuccessWhere { it.selectedCollectionId == null && it.comics.size == 2 }
+            awaitAs<LibraryUiState.Success> { it.selectedCollectionId == null && it.comics.size == 2 }
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -108,7 +107,7 @@ class LibraryViewModelTest {
             ),
         )
         viewModel(repository).uiState.test {
-            val success = awaitSuccess()
+            val success = awaitAs<LibraryUiState.Success>()
             assertEquals(2, success.comics.size)
         }
     }
@@ -140,9 +139,9 @@ class LibraryViewModelTest {
         )
         val viewModel = viewModel(repository)
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.SearchTextChanged("app"))
-            val filtered = awaitSuccessWhere { it.comics.map { comic -> comic.id } == listOf("a") }
+            val filtered = awaitAs<LibraryUiState.Success> { it.comics.map { comic -> comic.id } == listOf("a") }
             assertEquals(listOf("a"), filtered.comics.map { it.id })
         }
     }
@@ -151,11 +150,11 @@ class LibraryViewModelTest {
     fun sortAndFilterUpdateQuery() = runTest {
         val viewModel = viewModel()
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.SortSelected(LibrarySortOrder.TITLE))
             viewModel.onAction(LibraryAction.FilterSelected(LibraryFilter.FINISHED))
             viewModel.onAction(LibraryAction.ToggleHideErrors(true))
-            val state = awaitSuccessWhere {
+            val state = awaitAs<LibraryUiState.Success> {
                 it.query.sortOrder == LibrarySortOrder.TITLE &&
                     it.query.filter == LibraryFilter.FINISHED &&
                     it.query.hideErrors
@@ -220,7 +219,7 @@ class LibraryViewModelTest {
         )
         preferences.setSourceTreeUri("content://tree/linked")
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.Refresh)
             // Refresh completes synchronously in tests; assert the settled
             // value directly (emission-awaiting hangs with nested stateIn).
@@ -255,7 +254,7 @@ class LibraryViewModelTest {
             // progress tick already forwarded — no race with the clear.
             // (The first Success may already carry it, so await the
             // predicate directly instead of awaiting twice.)
-            val progress = awaitSuccessWhere { it.indexProgress != null }
+            val progress = awaitAs<LibraryUiState.Success> { it.indexProgress != null }
             assertEquals(0, progress.indexProgress?.done)
             assertEquals(2, progress.indexProgress?.total)
             repository.indexGate?.complete(Unit)
@@ -274,7 +273,7 @@ class LibraryViewModelTest {
         preferences.setSourceTreeUri("content://tree/old")
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.Refresh)
             viewModel.onAction(LibraryAction.Refresh)
             viewModel.onAction(LibraryAction.Refresh)
@@ -294,7 +293,7 @@ class LibraryViewModelTest {
             preferences = preferences,
         )
         viewModel.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             viewModel.onAction(
                 LibraryAction.FolderSelected(android.net.Uri.parse("content://tree/new")),
             )
@@ -385,7 +384,7 @@ class LibraryViewModelTest {
         )
         val viewModel = viewModel(savedStateHandle = handle, preferences = preferences)
         viewModel.uiState.test {
-            val state = awaitSuccess()
+            val state = awaitAs<LibraryUiState.Success>()
             assertEquals("app", state.query.text)
             assertEquals(LibrarySortOrder.TITLE, state.query.sortOrder)
             assertEquals(LibraryFilter.FINISHED, state.query.filter)
@@ -398,15 +397,15 @@ class LibraryViewModelTest {
         val preferences = FakePreferencesDataSource()
         val first = viewModel(preferences = preferences)
         first.uiState.test {
-            awaitSuccess()
+            awaitAs<LibraryUiState.Success>()
             first.onAction(LibraryAction.SortSelected(LibrarySortOrder.TITLE))
-            awaitSuccessWhere { it.query.sortOrder == LibrarySortOrder.TITLE }
+            awaitAs<LibraryUiState.Success> { it.query.sortOrder == LibrarySortOrder.TITLE }
             cancelAndIgnoreRemainingEvents()
         }
         // A fresh ViewModel (full restart) restores the persisted display.
         val second = viewModel(preferences = preferences)
         second.uiState.test {
-            assertEquals(LibrarySortOrder.TITLE, awaitSuccess().query.sortOrder)
+            assertEquals(LibrarySortOrder.TITLE, awaitAs<LibraryUiState.Success>().query.sortOrder)
         }
     }
 
@@ -421,13 +420,13 @@ class LibraryViewModelTest {
             assertEquals(null, awaitItem().comicId)
 
             viewModel.onAction(LibraryAction.OpenMenu("a"))
-            assertEquals("a", awaitWhereMenu { it.comicId == "a" }.comicId)
+            assertEquals("a", awaitAs<LibraryViewModel.MenuState> { it.comicId == "a" }.comicId)
 
             viewModel.onAction(LibraryAction.ToggleMenuBookmark)
             assertEquals(listOf("a"), repository.bookmarkToggles)
 
             viewModel.onAction(LibraryAction.CloseMenu)
-            assertEquals(null, awaitWhereMenu { it.comicId == null }.comicId)
+            assertEquals(null, awaitAs<LibraryViewModel.MenuState> { it.comicId == null }.comicId)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -441,38 +440,16 @@ class LibraryViewModelTest {
         viewModel.observeMenu().test {
             awaitItem()
             viewModel.onAction(LibraryAction.OpenMenu("a"))
-            awaitWhereMenu { it.comicId == "a" }
+            awaitAs<LibraryViewModel.MenuState> { it.comicId == "a" }
 
             viewModel.onAction(LibraryAction.OpenMenuDelete)
-            assertEquals(true, awaitWhereMenu { it.deleteConfirm }.deleteConfirm)
+            assertEquals(true, awaitAs<LibraryViewModel.MenuState> { it.deleteConfirm }.deleteConfirm)
 
             viewModel.onAction(LibraryAction.ConfirmMenuDelete)
-            val closed = awaitWhereMenu { it.comicId == null }
+            val closed = awaitAs<LibraryViewModel.MenuState> { it.comicId == null }
             assertEquals(false, closed.deleteConfirm)
             assertEquals(listOf("a"), repository.removedIds)
             cancelAndIgnoreRemainingEvents()
         }
     }
 }
-
-/**
- * Consumes menu emissions until [predicate] holds. The menu flow is a plain
- * combine of two StateFlows, so every write re-emits deterministically.
- */
-private suspend fun ReceiveTurbine<LibraryViewModel.MenuState>.awaitWhereMenu(
-    predicate: (LibraryViewModel.MenuState) -> Boolean,
-): LibraryViewModel.MenuState = awaitWhere(predicate)
-
-/** Consumes until the first Success (tolerating an optional leading Loading). */
-private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccess(): LibraryUiState.Success =
-    awaitWhere { it is LibraryUiState.Success } as LibraryUiState.Success
-
-/**
- * Consumes until a Success satisfying [predicate]. Necessary because `combine` can emit
- * transient states where the query already changed but the re-queried list has not
- * propagated yet; conflation guarantees the settled state arrives.
- */
-private suspend fun ReceiveTurbine<LibraryUiState>.awaitSuccessWhere(
-    predicate: (LibraryUiState.Success) -> Boolean,
-): LibraryUiState.Success =
-    awaitWhere { it is LibraryUiState.Success && predicate(it) } as LibraryUiState.Success

@@ -10,7 +10,8 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 /**
- * Swaps `Dispatchers.Main` for a test dispatcher. Every ViewModel test must use this rule.
+ * Swaps `Dispatchers.Main` for a test dispatcher. Required by tests that touch Main
+ * (ViewModels using viewModelScope, compose rules); pure `runTest` suites don't need it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TestDispatcherRule(

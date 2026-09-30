@@ -11,7 +11,7 @@ import com.mori.core.model.ThemeMode
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.FakePreferencesDataSource
 import com.mori.core.testing.TestDispatcherRule
-import com.mori.core.testing.awaitWhere
+import com.mori.core.testing.awaitAs
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,7 +46,7 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.SetThemeMode(ThemeMode.DARK))
             viewModel.onAction(SettingsAction.SetDynamicColor(false))
             viewModel.onAction(SettingsAction.SetAmoled(true))
-            val settled = awaitReadyWhere {
+            val settled = awaitAs<SettingsUiState.Ready> {
                 it.theme.mode == ThemeMode.DARK && !it.theme.dynamicColor && it.theme.amoled
             }
             assertEquals(ThemeMode.DARK, settled.theme.mode)
@@ -57,13 +57,13 @@ class SettingsViewModelTest {
     fun readerActionsPersist() = runTest {        val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<SettingsUiState.Ready>()
             viewModel.onAction(SettingsAction.SetDirection(ReadingDirection.RIGHT_TO_LEFT))
             viewModel.onAction(SettingsAction.SetPageFit(PageFit.HEIGHT))
             viewModel.onAction(SettingsAction.ToggleVolumeKeys)
             viewModel.onAction(SettingsAction.ToggleVolumeKeysInverted)
             viewModel.onAction(SettingsAction.ToggleKeepScreenOn)
-            val settled = awaitReadyWhere {
+            val settled = awaitAs<SettingsUiState.Ready> {
                 it.reader.direction == ReadingDirection.RIGHT_TO_LEFT &&
                     it.reader.pageFit == PageFit.HEIGHT &&
                     it.reader.volumeKeys && it.reader.volumeKeysInverted &&
@@ -78,9 +78,9 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<SettingsUiState.Ready>()
             viewModel.onAction(SettingsAction.ToggleIncognito)
-            val settled = awaitReadyWhere { it.reader.incognito }
+            val settled = awaitAs<SettingsUiState.Ready> { it.reader.incognito }
             assertEquals(true, settled.reader.incognito)
             cancelAndIgnoreRemainingEvents()
         }
@@ -91,10 +91,10 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            val initial = awaitReady()
+            val initial = awaitAs<SettingsUiState.Ready>()
             assertEquals(false, initial.appLock)
             viewModel.onAction(SettingsAction.ToggleAppLock)
-            val settled = awaitReadyWhere { it.appLock }
+            val settled = awaitAs<SettingsUiState.Ready> { it.appLock }
             assertEquals(true, settled.appLock)
             cancelAndIgnoreRemainingEvents()
         }
@@ -105,12 +105,12 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<SettingsUiState.Ready>()
             viewModel.onAction(SettingsAction.SetDisplayBrightness(-0.5f))
             viewModel.onAction(SettingsAction.SetDisplayNightTint(0.5f))
             viewModel.onAction(SettingsAction.ToggleDisplayGrayscale)
             viewModel.onAction(SettingsAction.ToggleDisplayInvert)
-            val settled = awaitReadyWhere {
+            val settled = awaitAs<SettingsUiState.Ready> {
                 it.reader.displayFilter == DisplayFilter(
                     brightness = -0.5f,
                     grayscale = true,
@@ -120,7 +120,7 @@ class SettingsViewModelTest {
             }
             assertEquals(-0.5f, settled.reader.displayFilter.brightness)
             viewModel.onAction(SettingsAction.ResetDisplayFilter)
-            val reset = awaitReadyWhere { it.reader.displayFilter.isNeutral }
+            val reset = awaitAs<SettingsUiState.Ready> { it.reader.displayFilter.isNeutral }
             assertEquals(DisplayFilter.Neutral, reset.reader.displayFilter)
             cancelAndIgnoreRemainingEvents()
         }
@@ -131,11 +131,11 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<SettingsUiState.Ready>()
             viewModel.onAction(SettingsAction.ToggleCropMargins)
             viewModel.onAction(SettingsAction.TogglePageCounter)
             viewModel.onAction(SettingsAction.ToggleSwipeToTurn)
-            val settled = awaitReadyWhere {
+            val settled = awaitAs<SettingsUiState.Ready> {
                 it.reader.cropMargins && !it.reader.showPageCounter && !it.reader.swipeToTurn
             }
             assertEquals(true, settled.reader.cropMargins)
@@ -148,9 +148,9 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            assertEquals(MotionStyle.EXPRESSIVE, awaitReady().motion)
+            assertEquals(MotionStyle.EXPRESSIVE, awaitAs<SettingsUiState.Ready>().motion)
             viewModel.onAction(SettingsAction.SetMotionStyle(MotionStyle.CALM))
-            assertEquals(MotionStyle.CALM, awaitReadyWhere { it.motion == MotionStyle.CALM }.motion)
+            assertEquals(MotionStyle.CALM, awaitAs<SettingsUiState.Ready> { it.motion == MotionStyle.CALM }.motion)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -160,10 +160,10 @@ class SettingsViewModelTest {
         val preferences = FakePreferencesDataSource()
         val viewModel = SettingsViewModel(preferences, FakeComicsRepository())
         viewModel.uiState.test {
-            val initial = awaitReady()
+            val initial = awaitAs<SettingsUiState.Ready>()
             assertEquals(true, initial.theme.dynamicColor)
             viewModel.onAction(SettingsAction.SetColorScheme(ColorSchemeChoice.FOREST))
-            val settled = awaitReadyWhere {
+            val settled = awaitAs<SettingsUiState.Ready> {
                 it.theme.colorScheme == ColorSchemeChoice.FOREST && !it.theme.dynamicColor
             }
             assertEquals(ColorSchemeChoice.FOREST, settled.theme.colorScheme)
@@ -177,7 +177,7 @@ class SettingsViewModelTest {
         repository.usage = StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L)
         val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
         viewModel.uiState.test {
-            val settled = awaitReadyWhere { it.storage != null }
+            val settled = awaitAs<SettingsUiState.Ready> { it.storage != null }
             assertEquals(3, settled.storage?.comicCount)
         }
     }
@@ -188,9 +188,9 @@ class SettingsViewModelTest {
         repository.usage = StorageUsage(comicCount = 3, libraryBytes = 1_000_000L, coversBytes = 50_000L)
         val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
         viewModel.uiState.test {
-            awaitReadyWhere { it.storage != null }
+            awaitAs<SettingsUiState.Ready> { it.storage != null }
             viewModel.onAction(SettingsAction.ClearThumbnailCache)
-            val cleared = awaitReadyWhere { it.storage?.coversBytes == 0L }
+            val cleared = awaitAs<SettingsUiState.Ready> { it.storage?.coversBytes == 0L }
             assertEquals(0L, cleared.storage?.coversBytes)
         }
         assertEquals(1, repository.clearCacheCalls)
@@ -211,38 +211,30 @@ class SettingsViewModelTest {
         val repository = FakeComicsRepository()
         val viewModel = SettingsViewModel(FakePreferencesDataSource(), repository)
         viewModel.uiState.test {
-            assertEquals(true, awaitReady().groups.isEmpty())
+            assertEquals(true, awaitAs<SettingsUiState.Ready>().groups.isEmpty())
             viewModel.onAction(SettingsAction.OpenCreateGroup)
-            assertEquals(GroupDialog.Create, awaitReadyWhere { it.groupDialog != null }.groupDialog)
+            assertEquals(GroupDialog.Create, awaitAs<SettingsUiState.Ready> { it.groupDialog != null }.groupDialog)
             viewModel.onAction(SettingsAction.CreateGroup("Favorites"))
-            val created = awaitReadyWhere { it.groups.size == 1 && it.groupDialog == null }
+            val created = awaitAs<SettingsUiState.Ready> { it.groups.size == 1 && it.groupDialog == null }
             assertEquals("Favorites", created.groups.single().name)
             val id = created.groups.single().id
 
             viewModel.onAction(SettingsAction.OpenRenameGroup(id, "Favorites"))
             assertEquals(
                 GroupDialog.Rename(id, "Favorites"),
-                awaitReadyWhere { it.groupDialog != null }.groupDialog,
+                awaitAs<SettingsUiState.Ready> { it.groupDialog != null }.groupDialog,
             )
             viewModel.onAction(SettingsAction.RenameGroup(id, "Picks"))
-            assertEquals("Picks", awaitReadyWhere { it.groups.single().name == "Picks" }.groups.single().name)
+            assertEquals("Picks", awaitAs<SettingsUiState.Ready> { it.groups.single().name == "Picks" }.groups.single().name)
 
             viewModel.onAction(SettingsAction.OpenDeleteGroup(id, "Picks"))
             assertEquals(
                 GroupDialog.Delete(id, "Picks"),
-                awaitReadyWhere { it.groupDialog != null }.groupDialog,
+                awaitAs<SettingsUiState.Ready> { it.groupDialog != null }.groupDialog,
             )
             viewModel.onAction(SettingsAction.ConfirmDeleteGroup(id))
-            assertEquals(true, awaitReadyWhere { it.groups.isEmpty() }.groups.isEmpty())
+            assertEquals(true, awaitAs<SettingsUiState.Ready> { it.groups.isEmpty() }.groups.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }
-
-    private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReady(): SettingsUiState.Ready =
-        awaitWhere { it is SettingsUiState.Ready } as SettingsUiState.Ready
-
-    private suspend fun app.cash.turbine.ReceiveTurbine<SettingsUiState>.awaitReadyWhere(
-        predicate: (SettingsUiState.Ready) -> Boolean,
-    ): SettingsUiState.Ready =
-        awaitWhere { it is SettingsUiState.Ready && predicate(it) } as SettingsUiState.Ready
 }

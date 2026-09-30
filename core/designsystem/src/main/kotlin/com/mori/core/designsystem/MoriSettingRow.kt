@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
  * One expressive setting row: leading icon container, title + subtitle, and a
  * trailing control slot. Same token family as the settings hub rows (72dp
  * target, `surfaceContainerLow`, `extraLarge` shape) so hub and detail speak
- * one row language, Tomato `SegmentedListItem` style.
+ * one row language, segmented-list-item style.
  */
 @Composable
 fun MoriSettingRow(
@@ -40,8 +40,8 @@ fun MoriSettingRow(
     minHeight: Dp = 72.dp,
     trailing: @Composable () -> Unit = {},
 ) {
-    // Click lives on the Surface (same node as an optional test tag), like
-    // HubRow — a clickable inner row splits tag and action across nodes.
+    // Click lives on the Surface (same node as an optional test tag) — a
+    // clickable inner row would split tag and action across nodes.
     @Composable
     fun RowContent() {
         Row(

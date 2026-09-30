@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.TestDispatcherRule
-import com.mori.core.testing.awaitWhere
+import com.mori.core.testing.awaitAs
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,23 +44,23 @@ class DetailViewModelTest {
         val (viewModel, repository) = viewModel()
         val shelfId = repository.createCollection("Picks")
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.OpenShelves)
-            val open = awaitReadyWhere { it.shelves != null }
+            val open = awaitAs<DetailUiState.Ready> { it.shelves != null }
             assertEquals(listOf(shelfId), open.shelves!!.collections.map { it.id })
             assertTrue(shelfId !in open.shelves!!.memberIds)
 
             viewModel.onAction(DetailAction.ToggleShelfMember(shelfId))
-            val member = awaitReadyWhere { shelfId in (it.shelves?.memberIds.orEmpty()) }
+            val member = awaitAs<DetailUiState.Ready> { shelfId in (it.shelves?.memberIds.orEmpty()) }
             assertTrue(shelfId in member.shelves!!.memberIds)
 
             viewModel.onAction(DetailAction.CreateShelf("New"))
-            awaitReadyWhere { shelves ->
+            awaitAs<DetailUiState.Ready> { shelves ->
                 shelves.shelves?.collections?.any { it.name == "New" } == true &&
                     shelves.shelves?.memberIds?.size == 2
             }
             viewModel.onAction(DetailAction.CloseShelves)
-            awaitReadyWhere { it.shelves == null }
+            awaitAs<DetailUiState.Ready> { it.shelves == null }
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -69,7 +69,7 @@ class DetailViewModelTest {
     fun loadsComicFromRepository() = runTest {
         val (viewModel, _) = viewModel()
         viewModel.uiState.test {
-            val state = awaitReady()
+            val state = awaitAs<DetailUiState.Ready>()
             assertEquals("a", state.comic.id)
         }
     }
@@ -88,7 +88,7 @@ class DetailViewModelTest {
     @Test
     fun shareEmitsFileMessage() = runTest {
         val (viewModel, _) = viewModel()
-        viewModel.uiState.test { awaitReady() }
+        viewModel.uiState.test { awaitAs<DetailUiState.Ready>() }
         viewModel.messages.test {
             viewModel.onAction(DetailAction.Share)
             val message = awaitItem()
@@ -105,11 +105,11 @@ class DetailViewModelTest {
     fun toggleBookmarkFlipsPersistedFlag() = runTest {
         val (viewModel, _) = viewModel()
         viewModel.uiState.test {
-            assertEquals(false, awaitReady().comic.bookmarked)
+            assertEquals(false, awaitAs<DetailUiState.Ready>().comic.bookmarked)
             viewModel.onAction(DetailAction.ToggleBookmark)
-            assertEquals(true, awaitReady().comic.bookmarked)
+            assertEquals(true, awaitAs<DetailUiState.Ready>().comic.bookmarked)
             viewModel.onAction(DetailAction.ToggleBookmark)
-            assertEquals(false, awaitReady().comic.bookmarked)
+            assertEquals(false, awaitAs<DetailUiState.Ready>().comic.bookmarked)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -118,7 +118,7 @@ class DetailViewModelTest {
     fun refreshDelegatesToRepository() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.Refresh)
             // The refresh settles synchronously and StateFlow conflation may swallow
             // the transient; assert the settled value directly plus delegation.
@@ -158,7 +158,7 @@ class DetailViewModelTest {
         repository.refreshGate = kotlinx.coroutines.CompletableDeferred()
         val (viewModel, _) = viewModel(repository = repository)
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.Refresh)
             viewModel.onAction(DetailAction.Refresh)
             dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
@@ -173,7 +173,7 @@ class DetailViewModelTest {
     fun bookmarkAfterRemovalIsIgnored() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.AskRemove)
             awaitItem() // confirmRemove = true
             viewModel.onAction(DetailAction.ConfirmRemove)
@@ -190,7 +190,7 @@ class DetailViewModelTest {
     fun doubleConfirmRemovesOnce() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.AskRemove)
             awaitItem() // confirmRemove = true
             viewModel.onAction(DetailAction.ConfirmRemove)
@@ -205,7 +205,7 @@ class DetailViewModelTest {
     fun removeFlowAsksConfirmsAndMarksRemoved() = runTest {
         val (viewModel, repository) = viewModel()
         viewModel.uiState.test {
-            awaitReady()
+            awaitAs<DetailUiState.Ready>()
             viewModel.onAction(DetailAction.AskRemove)
             assertTrue((awaitItem() as DetailUiState.Ready).confirmRemove)
             viewModel.onAction(DetailAction.CancelRemove)
@@ -218,17 +218,4 @@ class DetailViewModelTest {
         }
         assertEquals(listOf("a"), repository.removedIds)
     }
-
-    private suspend fun app.cash.turbine.ReceiveTurbine<DetailUiState>.awaitReady(): DetailUiState.Ready {
-        return when (val next = awaitWhere { it !is DetailUiState.Loading }) {
-            is DetailUiState.Ready -> next
-            is DetailUiState.Missing -> throw AssertionError("Expected Ready, got Missing")
-            DetailUiState.Loading -> error("unreachable")
-        }
-    }
-
-    private suspend fun app.cash.turbine.ReceiveTurbine<DetailUiState>.awaitReadyWhere(
-        predicate: (DetailUiState.Ready) -> Boolean,
-    ): DetailUiState.Ready =
-        awaitWhere { it is DetailUiState.Ready && predicate(it) } as DetailUiState.Ready
 }

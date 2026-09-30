@@ -26,9 +26,6 @@ enum class MoriEnterKind {
     /** Bottom chrome bars slide up into place. */
     CHROME_BOTTOM,
 
-    /** Floating toolbar rises from below. */
-    TOOLBAR,
-
     /** Search field expands downward. */
     SEARCH,
 
@@ -62,8 +59,6 @@ fun MoriMotion.enter(kind: MoriEnterKind): EnterTransition {
                 slideInVertically(animationSpec = chromeSpring()) { -it / 2 }
             MoriEnterKind.CHROME_BOTTOM -> fadeIn(animationSpec = defaultEffectsSpec()) +
                 slideInVertically(animationSpec = chromeSpring()) { it / 2 }
-            MoriEnterKind.TOOLBAR -> fadeIn(animationSpec = defaultEffectsSpec()) +
-                slideInVertically(animationSpec = chromeSpring()) { it / 2 }
             MoriEnterKind.SEARCH -> fadeIn(animationSpec = defaultEffectsSpec()) +
                 expandVertically(animationSpec = chromeSpring())
             MoriEnterKind.FAB -> fadeIn(animationSpec = defaultEffectsSpec()) +
@@ -89,8 +84,6 @@ fun MoriMotion.exit(kind: MoriEnterKind): ExitTransition {
             MoriEnterKind.CHROME_TOP -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 slideOutVertically(animationSpec = chromeSpring()) { -it / 2 }
             MoriEnterKind.CHROME_BOTTOM -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                slideOutVertically(animationSpec = chromeSpring()) { it / 2 }
-            MoriEnterKind.TOOLBAR -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 slideOutVertically(animationSpec = chromeSpring()) { it / 2 }
             MoriEnterKind.SEARCH -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 shrinkVertically(animationSpec = chromeSpring())
