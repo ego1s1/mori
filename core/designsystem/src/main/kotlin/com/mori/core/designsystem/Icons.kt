@@ -14,7 +14,12 @@ import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CollectionsBookmark
+import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.Crop
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -74,6 +79,11 @@ object MoriIcons {
     val Tune = Icons.Rounded.Tune
     val SkipNext = Icons.Rounded.SkipNext
     val SkipPrevious = Icons.Rounded.SkipPrevious
+    val Contrast = Icons.Rounded.Contrast
+    val DarkMode = Icons.Rounded.DarkMode
+    val LightMode = Icons.Rounded.LightMode
+    val Animation = Icons.Rounded.Animation
+    val Spa = Icons.Rounded.Spa
     // Settings hub categories.
     val Palette = Icons.Rounded.Palette
     val Shelves = Icons.Rounded.CollectionsBookmark
