@@ -40,12 +40,35 @@ fun LibraryMenuSheet(
     onDetailsClick: (comicId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptics = rememberMoriHaptics()
     MoriSheet(
         onDismissRequest = { onAction(LibraryAction.CloseMenu) },
+        // Short menu: open fully so every row is tappable instead of
+        // peeking half-expanded with rows below the fold.
+        skipPartiallyExpanded = true,
         modifier = modifier.testTag(LibraryTestTags.MenuSheet),
     ) {
-        Column(
+        LibraryMenuContent(
+            comic = comic,
+            deleteConfirm = deleteConfirm,
+            onAction = onAction,
+            onReadClick = onReadClick,
+            onDetailsClick = onDetailsClick,
+        )
+    }
+}
+
+/** Sheet body, exposed for testing without the modal wrapper. */
+@Composable
+internal fun LibraryMenuContent(
+    comic: Comic,
+    deleteConfirm: Boolean,
+    onAction: (LibraryAction) -> Unit,
+    onReadClick: (comicId: String, pageIndex: Int) -> Unit,
+    onDetailsClick: (comicId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = rememberMoriHaptics()
+    Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,7 +144,6 @@ fun LibraryMenuSheet(
                 modifier = Modifier.testTag(LibraryTestTags.MenuDelete),
             )
         }
-    }
     if (deleteConfirm) {
         AlertDialog(
             onDismissRequest = { onAction(LibraryAction.CloseMenu) },

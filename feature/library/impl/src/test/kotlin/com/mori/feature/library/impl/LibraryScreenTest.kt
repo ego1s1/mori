@@ -3,6 +3,7 @@ package com.mori.feature.library.impl
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
@@ -60,6 +61,9 @@ class LibraryScreenTest {
         actions: MutableList<LibraryAction> = mutableListOf(),
         onReadClick: (String, Int) -> Unit = { _, _ -> },
         onComicLongClick: (String) -> Unit = {},
+        onDetailsClick: (String) -> Unit = {},
+        menuComic: com.mori.core.model.Comic? = null,
+        menuDeleteConfirm: Boolean = false,
     ) {
         composeTestRule.setContent {
             MoriTheme {
@@ -68,6 +72,9 @@ class LibraryScreenTest {
                     onAction = actions::add,
                     onReadClick = onReadClick,
                     onComicLongClick = onComicLongClick,
+                    onDetailsClick = onDetailsClick,
+                    menuComic = menuComic,
+                    menuDeleteConfirm = menuDeleteConfirm,
                 )
             }
         }
@@ -325,6 +332,65 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithText("Finished").performClick()
 
         assert(actions.any { it is LibraryAction.FilterSelected })
+    }
+
+    @Test
+    fun menuSheetShowsRowsAndDispatches() {
+        val actions = mutableListOf<LibraryAction>()
+        var detailsId: String? = null
+        val state = success()
+        val comic = state.comics.first { it.id == "b" }
+        // Content without the modal wrapper (dialog windows don't take
+        // clicks under Robolectric); wrapper covered by the VM tests.
+        composeTestRule.setContent {
+            MoriTheme {
+                LibraryMenuContent(
+                    comic = comic,
+                    deleteConfirm = false,
+                    onAction = actions::add,
+                    onReadClick = { _, _ -> },
+                    onDetailsClick = { detailsId = it },
+                )
+            }
+        }
+
+        // Flex title plus all four rows render.
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuTitle).assertTextEquals("Banana")
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuRead).assertExists()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDetails).assertExists()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuBookmark).assertExists()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDelete).assertExists()
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDetails).performClick()
+        assert(detailsId == "b")
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuBookmark).performClick()
+        assert(actions.contains(LibraryAction.ToggleMenuBookmark))
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDelete).performClick()
+        assert(actions.contains(LibraryAction.OpenMenuDelete))
+    }
+
+    @Test
+    fun menuDeleteConfirmDispatches() {
+        val actions = mutableListOf<LibraryAction>()
+        val state = success()
+        composeTestRule.setContent {
+            MoriTheme {
+                LibraryMenuContent(
+                    comic = state.comics.first { it.id == "a" },
+                    deleteConfirm = true,
+                    onAction = actions::add,
+                    onReadClick = { _, _ -> },
+                    onDetailsClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDeleteDialog).assertExists()
+        composeTestRule.onNodeWithTag(LibraryTestTags.MenuDeleteConfirm).performClick()
+
+        assert(actions.contains(LibraryAction.ConfirmMenuDelete))
     }
 
 }
