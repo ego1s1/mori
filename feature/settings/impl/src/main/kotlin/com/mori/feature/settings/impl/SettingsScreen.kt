@@ -41,12 +41,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -839,15 +842,35 @@ private fun AboutSection(
     val haptics = rememberMoriHaptics()
     val context = LocalContext.current
     var privacyOpen by remember { mutableStateOf(false) }
+    // Staggered entrance: hero lands first, link rows follow one beat
+    // apart. Idle-waiting tests see the settled tree.
+    var revealed by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        repeat(AboutRevealSteps) {
+            kotlinx.coroutines.delay(45)
+            revealed++
+        }
+    }
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-            // Cardfolio hero: app-mark plus Flex headline name, version, and
-            // credit. Cookies stay on heroes only, never on rows.
+            // Cardfolio hero in a tonal container: app-mark plus a gradient
+            // Flex headline (primary to tertiary), version, and credit.
+            AnimatedVisibility(
+                visible = revealed > 0,
+                enter = MoriMotion.enter(MoriEnterKind.RISE),
+            ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -870,8 +893,15 @@ private fun AboutSection(
                 ) {
                     Text(
                         text = stringResource(R.string.settings_about_app),
-                        style = MoriEmphasized.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MoriEmphasized.headlineSmall.copy(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary,
+                                ),
+                            ),
+                        ),
+                        color = Color.Unspecified,
                     )
                     Text(
                         text = stringResource(R.string.settings_about_version, appVersion),
@@ -900,6 +930,9 @@ private fun AboutSection(
                     )
                 }
             }
+            }
+            }
+            RevealRow(visible = revealed > 1) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_github),
                 subtitle = stringResource(R.string.settings_about_github_subtitle),
@@ -916,6 +949,8 @@ private fun AboutSection(
                     )
                 },
             )
+            }
+            RevealRow(visible = revealed > 2) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_issue),
                 subtitle = stringResource(R.string.settings_about_issue_subtitle),
@@ -932,6 +967,8 @@ private fun AboutSection(
                     )
                 },
             )
+            }
+            RevealRow(visible = revealed > 3) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_changelog),
                 subtitle = stringResource(R.string.settings_about_changelog_subtitle),
@@ -948,6 +985,8 @@ private fun AboutSection(
                     )
                 },
             )
+            }
+            RevealRow(visible = revealed > 4) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_privacy),
                 subtitle = stringResource(R.string.settings_about_privacy_subtitle),
@@ -964,6 +1003,8 @@ private fun AboutSection(
                     )
                 },
             )
+            }
+            RevealRow(visible = revealed > 5) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_licenses),
                 subtitle = stringResource(R.string.settings_about_licenses_subtitle),
@@ -981,6 +1022,7 @@ private fun AboutSection(
                     )
                 },
             )
+            }
             PlaceholderRow(
                 title = stringResource(R.string.settings_soon_sync),
                 subtitle = stringResource(R.string.settings_soon_sync_subtitle),
@@ -1028,6 +1070,25 @@ private fun android.content.Context.openUrl(url: String) {
         startActivity(intent)
     }
 }
+
+/** Staggered reveal wrapper for About rows: rise on open, nothing on close. */
+@Composable
+private fun RevealRow(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = MoriMotion.enter(MoriEnterKind.RISE),
+        modifier = modifier,
+    ) {
+        content()
+    }
+}
+
+/** Hero + five link rows revealed one beat apart. */
+private const val AboutRevealSteps = 6
 
 /** Percent readout for -1..1 / 0..1 filter sliders, e.g. "-40%", "75%". */
 private fun percentText(value: Float): String {
