@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 
@@ -80,7 +82,8 @@ fun MoriChoiceGroup(
                 shapes = ToggleButtonDefaults.shapes(pill, pill, pill),
                 modifier = Modifier
                     .weight(1f)
-                    .testTag(testTagFor(option.label)),
+                    .testTag(testTagFor(option.label))
+                    .semantics { this.selected = selected },
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
