@@ -1,16 +1,15 @@
 package com.mori.core.designsystem
 
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,10 +29,12 @@ fun moriTopBarColors(amoled: Boolean = LocalAmoled.current): TopAppBarColors =
     )
 
 /**
- * Collapsing, center-aligned screen header matching the reference app: a 32sp
- * heavy display title in the top-bar face that collapses on scroll, with an
- * optional subtitle slot (used by the timer hero in the reference; kept here
- * so detail-level headers can adopt the same shape).
+ * Collapsing, center-aligned screen header matching the reference app: a
+ * heavy display title in the top-bar face that collapses on scroll.
+ *
+ * Single-slot centered bar (no subtitle row): the subtitle overload reserves
+ * a second row even when empty, wasting ~40dp of vertical space on every
+ * screen. The container is transparent so no band appears.
  *
  * Callers wire `Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)`
  * on the Scaffold and share the same [scrollBehavior] instance so the bar
@@ -44,18 +45,13 @@ fun moriTopBarColors(amoled: Boolean = LocalAmoled.current): TopAppBarColors =
 fun MoriCollapsingTopBar(
     title: String,
     modifier: Modifier = Modifier,
-    subtitle: @Composable () -> Unit = {},
-    titleHorizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
     colors: TopAppBarColors = moriTopBarColors(),
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val titleFont = LocalAppFonts.current.topBarTitle
-    // Reference-app header: the expressive small app bar with a subtitle slot.
-    // It collapses on scroll while the title stays put (no oversized padding
-    // to scroll away), and the container is transparent so no band appears.
-    TopAppBar(
+    CenterAlignedTopAppBar(
         title = {
             Text(
                 text = title,
@@ -68,8 +64,6 @@ fun MoriCollapsingTopBar(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        subtitle = subtitle,
-        titleHorizontalAlignment = titleHorizontalAlignment,
         navigationIcon = navigationIcon,
         actions = actions,
         colors = colors,
