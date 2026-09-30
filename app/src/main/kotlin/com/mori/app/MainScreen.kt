@@ -177,11 +177,11 @@ internal fun MainScreen(
         FloatingToolbarExitDirection.Bottom,
     )
     Scaffold(
-        // Edge-to-edge bottom: content draws behind the system nav bar while
-        // both floating elements clear it; top and sides stay inset.
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
-        ),
+        // Edge-to-edge: content draws behind the system bars while chrome
+        // clears them. Only sides come from here — the top bar consumes the
+        // status inset itself, and also taking Top doubled it (~52dp of dead
+        // space above every title).
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         modifier = modifier,
     ) { padding ->
         Box(modifier = Modifier

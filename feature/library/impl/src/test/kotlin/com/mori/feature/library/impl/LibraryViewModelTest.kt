@@ -123,10 +123,8 @@ class LibraryViewModelTest {
             assertEquals("a", awaitItem()?.id)
             // Search/filter/refresh chrome churns uiState but must not
             // re-emit (or rescan for) the resume candidate.
-            viewModel.onAction(LibraryAction.ToggleSearch)
             viewModel.onAction(LibraryAction.OpenFilter)
             viewModel.onAction(LibraryAction.CloseFilter)
-            viewModel.onAction(LibraryAction.ToggleSearch)
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
@@ -412,16 +410,6 @@ class LibraryViewModelTest {
         }
     }
 
-    @Test
-    fun searchToggleFlipsState() = runTest {
-        val viewModel = viewModel()
-        viewModel.uiState.test {
-            assertEquals(false, awaitSuccess().searchOpen)
-            viewModel.onAction(LibraryAction.ToggleSearch)
-            assertEquals(true, awaitSuccessWhere { it.searchOpen }.searchOpen)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 
     @Test
     fun menuOpensClosesAndBookmarks() = runTest {

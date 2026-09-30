@@ -81,7 +81,7 @@ val MoriTypography = baseline.copy(
 )
 
 /** Screen-title size shared by every collapsing top bar (32sp/32sp). */
-val ScreenTitleSize = 32.sp
+val ScreenTitleSize = 28.sp
 
 /** Screen-title line height, matched to [ScreenTitleSize] for tight display leading. */
-val ScreenTitleLineHeight = 32.sp
+val ScreenTitleLineHeight = 28.sp

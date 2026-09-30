@@ -39,7 +39,6 @@ class LibraryScreenTest {
         query: LibraryQuery = LibraryQuery(),
         refreshing: Boolean = false,
         filterOpen: Boolean = false,
-        searchOpen: Boolean = false,
         linked: Boolean = true,
     ): LibraryUiState.Success {
         val comics = listOf(
@@ -51,7 +50,6 @@ class LibraryScreenTest {
             query = query,
             refreshing = refreshing,
             filterOpen = filterOpen,
-            searchOpen = searchOpen,
             linked = linked,
         )
     }
@@ -265,7 +263,7 @@ class LibraryScreenTest {
     @Test
     fun searchFieldDispatchesText() {
         val actions = mutableListOf<LibraryAction>()
-        setScreen(success(searchOpen = true), actions = actions)
+        setScreen(success(), actions = actions)
 
         composeTestRule.onNodeWithTag(LibraryTestTags.SearchField).performTextInput("app")
 
@@ -273,13 +271,16 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun searchToggleFlipsOpenState() {
+    fun searchClearEmptiesQuery() {
         val actions = mutableListOf<LibraryAction>()
-        setScreen(success(), actions = actions)
+        setScreen(
+            success(query = LibraryQuery(text = "app")),
+            actions = actions,
+        )
 
-        composeTestRule.onNodeWithTag(LibraryTestTags.SearchToggle).performClick()
+        composeTestRule.onNodeWithTag(LibraryTestTags.SearchClear).performClick()
 
-        assert(actions.contains(LibraryAction.ToggleSearch))
+        assert(actions.any { it is LibraryAction.SearchTextChanged && it.text == "" })
     }
 
     @Test
@@ -362,6 +363,10 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuDelete).assertExists()
 
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuDetails).performClick()
+        // Details navigates after a beat so the sheet exit + cover morph
+        // read cleanly instead of overlapping.
+        composeTestRule.mainClock.advanceTimeBy(300)
+        composeTestRule.waitForIdle()
         assert(detailsId == "b")
 
         composeTestRule.onNodeWithTag(LibraryTestTags.MenuBookmark).performClick()

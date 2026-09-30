@@ -1,5 +1,6 @@
 package com.mori.app
 
+import android.app.Activity
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -7,9 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -65,6 +69,10 @@ fun MoriApp(
         colorScheme = theme?.colorScheme ?: ColorSchemeChoice.MORI,
         amoled = theme?.amoled ?: false,
     ) {
+        // System-bar glyphs follow the Compose theme, not the system night
+        // mode: forcing dark while the system is light left dark glyphs on a
+        // near-black backdrop (invisible status icons).
+        SystemBarGlyphs(darkTheme = darkTheme)
         CompositionLocalProvider(
             LocalExpressiveMotionEnabled provides expressiveMotion,
         ) {
@@ -161,3 +169,20 @@ private fun androidx.navigation.NavDestination.isOnboarding(): Boolean =
 
 private fun androidx.navigation.NavDestination.isMain(): Boolean =
     route?.substringAfterLast('.') == "MainRoute"
+
+/**
+ * System-bar glyphs follow the Compose theme: light glyphs on dark theme and
+ * vice versa, regardless of the system night mode (which can disagree when
+ * the user forces a theme).
+ */
+@Composable
+private fun SystemBarGlyphs(darkTheme: Boolean) {
+    val context = LocalContext.current
+    SideEffect {
+        val window = (context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
+}

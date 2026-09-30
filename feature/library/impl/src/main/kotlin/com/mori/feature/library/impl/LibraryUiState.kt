@@ -14,7 +14,6 @@ sealed interface LibraryUiState {
         val query: LibraryQuery,
         val refreshing: Boolean,
         val filterOpen: Boolean,
-        val searchOpen: Boolean,
         val linked: Boolean,
         /** Determinate rescan progress (done/total); null when idle. */
         val indexProgress: IndexProgress? = null,
@@ -65,8 +64,6 @@ sealed interface LibraryAction {
     data object OpenFilter : LibraryAction
 
     data object CloseFilter : LibraryAction
-
-    data object ToggleSearch : LibraryAction
 
     data object Refresh : LibraryAction
 

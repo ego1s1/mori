@@ -14,6 +14,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -25,6 +26,7 @@ import com.mori.core.designsystem.MoriSettingRow
 import com.mori.core.designsystem.MoriSheet
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.model.Comic
+import kotlinx.coroutines.launch
 
 /**
  * Long-press quick actions for one comic: read/resume, details, bookmark,
@@ -68,6 +70,7 @@ internal fun LibraryMenuContent(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberMoriHaptics()
+    val scope = rememberCoroutineScope()
     Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
@@ -94,6 +97,7 @@ internal fun LibraryMenuContent(
                 icon = MoriIcons.PlayArrow,
                 onClick = {
                     haptics(MoriHaptic.PrimaryAction)
+                    onAction(LibraryAction.CloseMenu)
                     onReadClick(comic.id, comic.lastPageIndex)
                 },
                 modifier = Modifier.testTag(LibraryTestTags.MenuRead),
@@ -104,7 +108,13 @@ internal fun LibraryMenuContent(
                 icon = MoriIcons.MenuBook,
                 onClick = {
                     haptics(MoriHaptic.Select)
-                    onDetailsClick(comic.id)
+                    onAction(LibraryAction.CloseMenu)
+                    // Let the sheet exit before pushing: the shared-element
+                    // cover morph needs a clean stage, not an overlap.
+                    scope.launch {
+                        kotlinx.coroutines.delay(200)
+                        onDetailsClick(comic.id)
+                    }
                 },
                 modifier = Modifier.testTag(LibraryTestTags.MenuDetails),
             )

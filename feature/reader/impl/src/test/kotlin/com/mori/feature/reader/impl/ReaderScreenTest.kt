@@ -238,7 +238,7 @@ class ReaderScreenTest {
         composeTestRule.onNodeWithTag(ReaderTestTags.OverviewGrid).assertIsDisplayed()
         composeTestRule.onNodeWithTag(ReaderTestTags.thumbFor(2)).performClick()
 
-        assert(actions.contains(ReaderAction.SeekPage(2)))
+        assert(actions.contains(ReaderAction.SeekPage(2, animated = true)))
         assert(actions.contains(ReaderAction.CloseOverview))
     }
 
@@ -264,7 +264,7 @@ class ReaderScreenTest {
 
         composeTestRule.onNodeWithTag(ReaderTestTags.thumbFor(1)).performClick()
 
-        assert(actions.contains(ReaderAction.SeekPage(1)))
+        assert(actions.contains(ReaderAction.SeekPage(1, animated = true)))
         assert(actions.contains(ReaderAction.CloseOverview))
     }
 

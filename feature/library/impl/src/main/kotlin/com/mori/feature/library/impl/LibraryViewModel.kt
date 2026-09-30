@@ -75,7 +75,6 @@ class LibraryViewModel @Inject constructor(
     /** Last reported index callback; cleared when no run is active. */
     private val indexProgress = MutableStateFlow<IndexProgress?>(null)
     private val filterOpen = MutableStateFlow(false)
-    private val searchOpen = MutableStateFlow(false)
 
     /**
      * Quick-actions sheet target (long-press); the comic itself resolves from
@@ -165,7 +164,7 @@ class LibraryViewModel @Inject constructor(
         combine(
             comics,
             query,
-            combine(refreshing, filterOpen, searchOpen, ::Chrome),
+            combine(refreshing, filterOpen, ::Chrome),
             preferences.sourceTreeUri,
             indexProgress,
         ) { comics, query, chrome, treeUri, progress ->
@@ -227,7 +226,6 @@ class LibraryViewModel @Inject constructor(
             query = base.query,
             refreshing = base.chrome.refreshing,
             filterOpen = base.chrome.filterOpen,
-            searchOpen = base.chrome.searchOpen,
             linked = base.linked,
             indexProgress = base.progress,
             collections = collections.collections,
@@ -258,7 +256,6 @@ class LibraryViewModel @Inject constructor(
             is LibraryAction.ToggleHideErrors -> updateDisplay { it.copy(hideErrors = action.hide) }
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
-            LibraryAction.ToggleSearch -> searchOpen.update { !it }
             LibraryAction.Refresh -> reindex()
             is LibraryAction.FolderSelected -> reindex(linkUri = action.uri.toString())
             is LibraryAction.SelectCollection -> {
@@ -314,7 +311,6 @@ class LibraryViewModel @Inject constructor(
     private data class Chrome(
         val refreshing: Boolean,
         val filterOpen: Boolean,
-        val searchOpen: Boolean,
     )
 
     /** Five-flow combine carrier (fixed-arity combine caps at five). */
