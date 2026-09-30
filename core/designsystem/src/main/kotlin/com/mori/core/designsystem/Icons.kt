@@ -11,8 +11,10 @@ import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.BrokenImage
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.CollectionsBookmark
 import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.Crop
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
@@ -57,8 +60,10 @@ object MoriIcons {
     val Bookmark = Icons.Rounded.Bookmark
     val BookmarkBorder = Icons.Rounded.BookmarkBorder
     val BrokenImage = Icons.Rounded.BrokenImage
+    val BugReport = Icons.Rounded.BugReport
     val Check = Icons.Rounded.Check
     val Close = Icons.Rounded.Close
+    val Code = Icons.Rounded.Code
     val Crop = Icons.Rounded.Crop
     val Delete = Icons.Rounded.Delete
     val Edit = Icons.Rounded.Edit
@@ -68,6 +73,7 @@ object MoriIcons {
     val History = Icons.Rounded.History
     val MenuBook = Icons.Rounded.MenuBook
     val MoreVert = Icons.Rounded.MoreVert
+    val NewReleases = Icons.Rounded.NewReleases
     val PlayArrow = Icons.Rounded.PlayArrow
     val Refresh = Icons.Rounded.Refresh
     val ScreenRotation = Icons.Rounded.ScreenRotation

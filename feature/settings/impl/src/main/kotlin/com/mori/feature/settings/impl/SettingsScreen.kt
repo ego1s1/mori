@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -524,6 +525,7 @@ private fun AppearanceSection(
                 subtitle = stringResource(R.string.settings_dynamic_subtitle),
                 checked = theme.dynamicColor,
                 onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
+                icon = MoriIcons.Palette,
             )
             // True-black only applies in dark mode; hide it under explicit
             // light so the toggle never reads as broken.
@@ -537,6 +539,7 @@ private fun AppearanceSection(
                     subtitle = stringResource(R.string.settings_amoled_subtitle),
                     checked = theme.amoled,
                     onCheckedChange = { onAction(SettingsAction.SetAmoled(it)) },
+                    icon = MoriIcons.DarkMode,
                 )
             }
             OptionLabel(stringResource(R.string.settings_motion))
@@ -651,6 +654,7 @@ private fun ReaderSection(
                 subtitle = stringResource(R.string.settings_crop_subtitle),
                 checked = reader.cropMargins,
                 onCheckedChange = { onAction(SettingsAction.ToggleCropMargins) },
+                icon = MoriIcons.Crop,
             )
             MoriSettingSwitch(
                 title = stringResource(R.string.settings_counter_title),
@@ -814,12 +818,14 @@ private fun PrivacySection(
                 subtitle = stringResource(R.string.settings_applock_subtitle),
                 checked = appLock,
                 onCheckedChange = { onAction(SettingsAction.ToggleAppLock) },
+                icon = MoriIcons.PrivacyLock,
             )
             MoriSettingSwitch(
                 title = stringResource(R.string.settings_incognito_title),
                 subtitle = stringResource(R.string.settings_incognito_subtitle),
                 checked = incognito,
                 onCheckedChange = { onAction(SettingsAction.ToggleIncognito) },
+                icon = MoriIcons.Incognito,
             )
     }
 }
@@ -831,12 +837,14 @@ private fun AboutSection(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberMoriHaptics()
+    val context = LocalContext.current
+    var privacyOpen by remember { mutableStateOf(false) }
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-            // Cardfolio hero: cookie app-mark plus Flex headline name and
-            // version. Cookies stay on heroes only, never on rows.
+            // Cardfolio hero: app-mark plus Flex headline name, version, and
+            // credit. Cookies stay on heroes only, never on rows.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
@@ -872,8 +880,85 @@ private fun AboutSection(
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
+                    Text(
+                        text = stringResource(R.string.settings_about_credit),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable(
+                            onClickLabel = stringResource(R.string.settings_about_credit),
+                            onClick = {
+                                haptics(MoriHaptic.Select)
+                                context.openUrl(AboutLinks.DEVELOPER)
+                            },
+                            role = Role.Button,
+                        ),
+                    )
                 }
             }
+            MoriSettingRow(
+                title = stringResource(R.string.settings_about_github),
+                subtitle = stringResource(R.string.settings_about_github_subtitle),
+                icon = MoriIcons.Code,
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    context.openUrl(AboutLinks.REPOSITORY)
+                },
+                trailing = {
+                    Icon(
+                        imageVector = MoriIcons.Forward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+            MoriSettingRow(
+                title = stringResource(R.string.settings_about_issue),
+                subtitle = stringResource(R.string.settings_about_issue_subtitle),
+                icon = MoriIcons.BugReport,
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    context.openUrl(AboutLinks.ISSUES)
+                },
+                trailing = {
+                    Icon(
+                        imageVector = MoriIcons.Forward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+            MoriSettingRow(
+                title = stringResource(R.string.settings_about_changelog),
+                subtitle = stringResource(R.string.settings_about_changelog_subtitle),
+                icon = MoriIcons.NewReleases,
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    context.openUrl(AboutLinks.RELEASES)
+                },
+                trailing = {
+                    Icon(
+                        imageVector = MoriIcons.Forward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+            MoriSettingRow(
+                title = stringResource(R.string.settings_about_privacy),
+                subtitle = stringResource(R.string.settings_about_privacy_subtitle),
+                icon = MoriIcons.PrivacyLock,
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    privacyOpen = true
+                },
+                trailing = {
+                    Icon(
+                        imageVector = MoriIcons.Forward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_licenses),
                 subtitle = stringResource(R.string.settings_about_licenses_subtitle),
@@ -895,6 +980,47 @@ private fun AboutSection(
                 title = stringResource(R.string.settings_soon_sync),
                 subtitle = stringResource(R.string.settings_soon_sync_subtitle),
             )
+    }
+    if (privacyOpen) {
+        AlertDialog(
+            onDismissRequest = { privacyOpen = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_about_privacy),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.settings_about_privacy_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                FilledTonalButton(onClick = { privacyOpen = false }) {
+                    Text(stringResource(R.string.settings_dialog_understood))
+                }
+            },
+        )
+    }
+}
+
+/** External destinations for the About rows. */
+private object AboutLinks {
+    const val REPOSITORY = "https://github.com/ego1s1/mori"
+    const val ISSUES = "https://github.com/ego1s1/mori/issues"
+    const val RELEASES = "https://github.com/ego1s1/mori/releases"
+    const val DEVELOPER = "https://github.com/ego1s1"
+}
+
+private fun android.content.Context.openUrl(url: String) {
+    runCatching {
+        val intent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse(url),
+        ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 }
 
