@@ -8,7 +8,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,9 +31,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -53,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -79,6 +79,7 @@ import com.mori.core.designsystem.windowWidthClass
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
@@ -87,6 +88,7 @@ import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.model.Comic
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ResumeTarget
@@ -217,21 +219,17 @@ internal fun LibraryScreen(
             val success = uiState as? LibraryUiState.Success
             if (success != null) {
                 LibraryTopBar(
-                    searchOpen = success.searchOpen,
                     // Shelf selection or any non-default sort/filter lights
                     // the Tune icon: with the chips row gone, the grid alone
                     // must show that a filter is active.
                     filterActive = success.selectedCollectionId != null ||
                         success.query.copy(text = "") != LibraryQuery(),
-                    onSearchClick = { onAction(LibraryAction.ToggleSearch) },
                     onAction = onAction,
                     scrollBehavior = scrollBehavior,
                 )
             } else {
                 LibraryTopBar(
-                    searchOpen = false,
                     filterActive = false,
-                    onSearchClick = {},
                     onAction = {},
                     scrollBehavior = scrollBehavior,
                 )
@@ -259,7 +257,6 @@ internal fun LibraryScreen(
                         query = uiState.query,
                         refreshing = uiState.refreshing,
                         indexProgress = uiState.indexProgress,
-                        searchOpen = uiState.searchOpen,
                         linked = uiState.linked,
                         sections = uiState.sections,
                         onAction = onAction,
@@ -298,7 +295,6 @@ private fun LibraryContent(
     query: LibraryQuery,
     refreshing: Boolean,
     indexProgress: IndexProgress?,
-    searchOpen: Boolean,
     linked: Boolean,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
@@ -329,45 +325,53 @@ private fun LibraryContent(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            // Focus + keyboard follow the toggle both ways: opening focuses
-            // and lifts the keyboard, closing releases both.
-            val searchFocus = remember { FocusRequester() }
+            // Persistent search: always visible, never toggled. IME Search
+            // dismisses the keyboard; the clear button empties the query.
+            val haptics = rememberMoriHaptics()
             val keyboard = LocalSoftwareKeyboardController.current
             val focusManager = LocalFocusManager.current
-            LaunchedEffect(searchOpen) {
-                if (searchOpen) {
-                    searchFocus.requestFocus()
-                    keyboard?.show()
-                } else {
-                    keyboard?.hide()
-                    focusManager.clearFocus()
-                }
-            }
-            AnimatedVisibility(
-                visible = searchOpen,
-                enter = MoriMotion.enter(MoriEnterKind.SEARCH),
-                exit = MoriMotion.exit(MoriEnterKind.SEARCH),
-            ) {
-                OutlinedTextField(
-                    value = query.text,
-                    onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
-                    label = { Text(stringResource(R.string.library_search_label)) },
-                    leadingIcon = {
-                        Icon(imageVector = MoriIcons.Search, contentDescription = null)
+            OutlinedTextField(
+                value = query.text,
+                onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
+                label = { Text(stringResource(R.string.library_search_label)) },
+                leadingIcon = {
+                    Icon(imageVector = MoriIcons.Search, contentDescription = null)
+                },
+                trailingIcon = {
+                    if (query.text.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                haptics(MoriHaptic.Select)
+                                onAction(LibraryAction.SearchTextChanged(""))
+                            },
+                            modifier = Modifier.testTag(LibraryTestTags.SearchClear),
+                        ) {
+                            Icon(
+                                imageVector = MoriIcons.Close,
+                                contentDescription = stringResource(R.string.library_action_clear_search),
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        keyboard?.hide()
+                        focusManager.clearFocus()
                     },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onAction(LibraryAction.ToggleSearch) }),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 8.dp)
-                        .focusRequester(searchFocus)
-                        .focusable()
-                        .testTag(LibraryTestTags.SearchField),
-                )
-            }
+                ),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp)
+                    .testTag(LibraryTestTags.SearchField),
+            )
             LibraryBody(
                 comics = comics,
                 queryText = query.text,
@@ -396,9 +400,7 @@ private fun LibraryContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopBar(
-    searchOpen: Boolean,
     filterActive: Boolean,
-    onSearchClick: () -> Unit,
     onAction: (LibraryAction) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
@@ -407,47 +409,14 @@ private fun LibraryTopBar(
         title = stringResource(R.string.library_title),
         scrollBehavior = scrollBehavior,
         actions = {
-            IconButton(
-                onClick = { onAction(LibraryAction.Refresh) },
-                modifier = Modifier.testTag(LibraryTestTags.RefreshButton),
-            ) {
-                Icon(
-                    imageVector = MoriIcons.Refresh,
-                    contentDescription = stringResource(R.string.library_action_refresh),
-                )
-            }
-            IconButton(
-                onClick = onSearchClick,
-                modifier = Modifier.testTag(LibraryTestTags.SearchToggle),
-            ) {
-                Icon(
-                    imageVector = if (searchOpen) {
-                        MoriIcons.Close
-                    } else {
-                        MoriIcons.Search
-                    },
-                    contentDescription = stringResource(
-                        if (searchOpen) {
-                            R.string.library_action_close_search
-                        } else {
-                            R.string.library_action_search
-                        },
-                    ),
-                )
-            }
             Box {
-                IconButton(
+                FilledTonalIconButton(
                     onClick = { onAction(LibraryAction.OpenFilter) },
                     modifier = Modifier.testTag(LibraryTestTags.FilterButton),
                 ) {
                     Icon(
                         imageVector = MoriIcons.Tune,
                         contentDescription = stringResource(R.string.library_action_sort_filter),
-                        tint = if (filterActive) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            LocalContentColor.current
-                        },
                     )
                 }
                 if (filterActive) {
@@ -774,7 +743,6 @@ private fun LibraryScreenPreview() {
                 query = com.mori.core.model.LibraryQuery(),
                 refreshing = false,
                 filterOpen = false,
-                searchOpen = false,
                 linked = true,
             ),
             onAction = {},
