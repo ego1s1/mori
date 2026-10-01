@@ -15,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
 
 /**
  * A [ComicArchive] backed by a directory of loose image files.
@@ -68,10 +67,26 @@ internal class FolderArchive(
     }
 
     private fun loadImageFiles(): List<File> {
+        // Symlink defense without NIO (File#toPath is API 26+, min is 24).
+        // FileTreeWalk follows links, so: (1) a link cycle would walk
+        // forever — prune canonical dirs already visited; (2) a link
+        // pointing outside the root would leak external files in — only
+        // descend while the canonical path stays inside the canonical root
+        // (itself resolved, so a root picked through a symlink mount works).
+        // IO errors fail closed (skip descent).
+        val rootCanonical = runCatching { root.canonicalPath }.getOrNull() ?: return emptyList()
+        val seenCanonical = mutableSetOf<String>()
         val files = root.walkTopDown()
-            // Never descend into symlinked directories: FileTreeWalk follows
-            // links, so a symlink cycle would walk forever.
-            .onEnter { !Files.isSymbolicLink(it.toPath()) }
+            .onEnter { dir ->
+                val canonical = runCatching { dir.canonicalPath }.getOrNull()
+                    ?: return@onEnter false
+                if (canonical != rootCanonical && !canonical.startsWith(rootCanonical + File.separatorChar)) {
+                    return@onEnter false
+                }
+                // False on revisit: a symlink cycle maps distinct absolute
+                // paths onto one canonical dir, so prune the second visit.
+                return@onEnter seenCanonical.add(canonical)
+            }
             .filter { it.isFile }
             .filter { PageEntryNames.isPage(it.name) }
             .toList()

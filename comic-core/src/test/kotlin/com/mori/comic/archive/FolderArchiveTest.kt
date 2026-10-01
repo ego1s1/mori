@@ -80,4 +80,31 @@ class FolderArchiveTest {
             runBlocking { archive.readPage(archive.pages[0]) }
         }
     }
+
+    @Test(timeout = 10_000L)
+    fun symlinkCycleTerminates() {
+        val root = Archives.newTempDir()
+        Archives.writeFile(root, "1.png", Archives.PNG_1X1)
+        // sub/loop points back at root: an unfollowed walk recurses forever.
+        val sub = java.io.File(root, "sub").apply { mkdir() }
+        java.nio.file.Files.createSymbolicLink(sub.toPath().resolve("loop"), root.toPath())
+
+        ComicFactory.open(ComicSource.Directory(root)).use { archive ->
+            assertEquals(1, archive.pageCount)
+            assertEquals(listOf("1.png"), archive.pages.map { it.name })
+        }
+    }
+
+    @Test
+    fun externalSymlinkIsNotFollowed() {
+        val root = Archives.newTempDir()
+        val outside = Archives.newTempDir()
+        Archives.writeFile(root, "1.png", Archives.PNG_1X1)
+        Archives.writeFile(outside, "secret.png", Archives.PNG_1X1)
+        java.nio.file.Files.createSymbolicLink(root.toPath().resolve("escape"), outside.toPath())
+
+        ComicFactory.open(ComicSource.Directory(root)).use { archive ->
+            assertEquals(listOf("1.png"), archive.pages.map { it.name })
+        }
+    }
 }

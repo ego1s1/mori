@@ -259,7 +259,10 @@ class PageDecoder {
                 android.graphics.BitmapRegionDecoder.newInstance(stream, false)?.let {
                     StreamRegionDecoder(it, stream)
                 }
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
+                runCatching { stream.close() }
+                throw e
+            } catch (e: IllegalArgumentException) {
                 runCatching { stream.close() }
                 throw e
             }
