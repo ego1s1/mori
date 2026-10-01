@@ -51,7 +51,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,10 +58,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -72,7 +69,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -317,14 +313,10 @@ private fun LibraryContent(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            // Persistent search: always visible, never toggled. IME Search
-            // dismisses the keyboard; the clear button empties the query.
-            // Bold M3E search container: filled, 48dp morphing shape, 64dp
-            // target, Flex input — closer to a docked search bar than a form
-            // field. At rest it sits flat and full-bleed; once the grid
-            // scrolls beneath it, the wrap morphs into a detached floating
-            // panel — inset from the edges, rounded, filled, and shadowed
-            // like the nav FAB — so entries visibly dive behind it.
+            // Search overlay: the grid lives full-bleed underneath with a
+            // fixed [SearchSlotTop] reserve, and a fixed floating panel
+            // rides on top. Scrolled entries pass behind it; only paint
+            // (tone, elevation) responds to scroll.
             val haptics = rememberMoriHaptics()
             val keyboard = LocalSoftwareKeyboardController.current
             val focusManager = LocalFocusManager.current
@@ -334,37 +326,16 @@ private fun LibraryContent(
                         gridState.firstVisibleItemScrollOffset > 0
                 }
             }
-            val floatInset by animateDpAsState(if (searchFloating) 16.dp else 0.dp)
-            val floatBottom by animateDpAsState(if (searchFloating) 8.dp else 0.dp)
             val floatColor by animateColorAsState(
                 if (searchFloating) {
-                    MaterialTheme.colorScheme.surfaceContainer
-                } else {
-                    Color.Transparent
-                },
-            )
-            val floatElevation by animateDpAsState(if (searchFloating) 8.dp else 0.dp)
-            // The field surrenders its container when floating so only the
-            // wrap panel draws a box — never two bounding boxes.
-            val fieldContainer by animateColorAsState(
-                if (searchFloating) {
-                    Color.Transparent
+                    MaterialTheme.colorScheme.surfaceContainerHighest
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerHigh
                 },
             )
+            val floatElevation by animateDpAsState(if (searchFloating) 6.dp else 0.dp)
             // Overlay: the grid lives full-bleed underneath and the search
-            // floats on top, so scrolled entries truly pass behind it. The
-            // grid's top padding tracks the measured panel height, keeping
-            // the resting layout pixel-identical to the old column.
-            var searchHeightPx by remember { mutableIntStateOf(0) }
-            // Estimated height until the first measure lands, so the grid
-            // never flashes underneath the panel on first composition.
-            val searchTopInset = if (searchHeightPx == 0) {
-                80.dp
-            } else {
-                with(LocalDensity.current) { searchHeightPx.toDp() }
-            }
+            // floats on top, so scrolled entries truly pass behind it.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -383,7 +354,6 @@ private fun LibraryContent(
                 onComicLongClick = onComicLongClick,
                 onChooseFolder = onChooseFolder,
                 gridState = gridState,
-                topInset = searchTopInset,
                 modifier = Modifier.fillMaxSize(),
             )
             Surface(
@@ -392,9 +362,7 @@ private fun LibraryContent(
                 shape = MaterialTheme.shapes.extraExtraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onSizeChanged { searchHeightPx = it.height }
-                    .padding(horizontal = floatInset)
-                    .padding(bottom = floatBottom),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
             TextField(
                 value = query.text,
@@ -434,16 +402,14 @@ private fun LibraryContent(
                 ),
                 shape = MaterialTheme.shapes.extraExtraLarge,
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = fieldContainer,
-                    unfocusedContainerColor = fieldContainer,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp)
-                    .sizeIn(minHeight = 64.dp)
+                    .sizeIn(minHeight = 56.dp)
                     .testTag(LibraryTestTags.SearchField),
             )
             }
@@ -512,9 +478,6 @@ private fun LibraryBody(
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
     gridState: LazyGridState = rememberLazyGridState(),
-    /** Measured search-panel height: the grid pads below it at rest and
-     * slides underneath it once scrolled. */
-    topInset: Dp = 0.dp,
 ) {
     // Only the launching card registers a shared element; null = plain grid.
     var launchingId by remember { mutableStateOf<String?>(null) }
@@ -539,14 +502,14 @@ private fun LibraryBody(
             onComicLongClick(comic.id)
         }
     }
-    val gridPadding = remember(topInset) {
-        PaddingValues(
-            start = 12.dp,
-            top = topInset + 12.dp,
-            end = 12.dp,
-            bottom = FloatingChromeBottomReserve,
-        )
-    }
+    // Fixed reserve for the floating search panel (72dp) plus breathing
+    // room: constant by construction, so scroll never relayouts the grid.
+    val gridPadding = PaddingValues(
+        start = 12.dp,
+        top = SearchSlotTop,
+        end = 12.dp,
+        bottom = FloatingChromeBottomReserve,
+    )
     Box(modifier = modifier.fillMaxWidth()) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
@@ -554,7 +517,7 @@ private fun LibraryBody(
                 linked = linked,
                 onRefresh = { onAction(LibraryAction.Refresh) },
                 onChooseFolder = onChooseFolder,
-                modifier = Modifier.padding(top = topInset),
+                modifier = Modifier.padding(top = SearchSlotTop),
             )
         } else {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -834,3 +797,10 @@ private fun previewComic(id: String, title: String, lastPage: Int, pages: Int) =
 )
 
 private val GRID_CELL_MIN = 128.dp
+
+/** Fixed search geometry: 8dp top + 56dp field + 8dp bottom. */
+private val SearchPanelHeight = 72.dp
+/** Breathing room between the floating panel and the grid it covers. */
+private val SearchGridGap = 12.dp
+/** Grid top reserve: panel slot plus gap. Constant — never measured. */
+private val SearchSlotTop = SearchPanelHeight + SearchGridGap
