@@ -121,6 +121,7 @@ internal fun OnboardingRoute(
 @Composable
 // The step transition keys on the step alone while rendering live state,
 // so progress ticks recompose in place without restarting the animation.
+@Suppress("UnusedContentLambdaTargetStateParameter")
 internal fun OnboardingScreen(
     uiState: OnboardingUiState,
     onPickFolder: () -> Unit,
@@ -145,7 +146,7 @@ internal fun OnboardingScreen(
                 stepEnter togetherWith stepExit
             },
             label = "onboardingStep",
-        ) { _ ->
+        ) {
         // Renders the live state (not the step key) so theme ticks
         // recompose in place without restarting the transition.
         when (uiState) {
