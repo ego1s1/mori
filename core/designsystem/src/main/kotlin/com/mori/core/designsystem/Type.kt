@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Mori type scale, built on the variable Roboto Flex family.
+ * Mori type scale, built on the variable Google Sans Flex family.
  *
  * Mirrors the reference app's split: display/headline/label roles and
  * `bodyLarge` ride the semibold face, while `titleLarge` and the small body
@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
  */
 internal val BodyFlex = FontFamily(
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.Normal,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(400),
@@ -34,7 +34,7 @@ internal val BodyFlex = FontFamily(
 
 internal val HeadingFlex = FontFamily(
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.SemiBold,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(600),
@@ -45,7 +45,7 @@ internal val HeadingFlex = FontFamily(
     ),
     // Bold entry: without it, bold emphases synthesize from the 600 face.
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.Bold,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(700),

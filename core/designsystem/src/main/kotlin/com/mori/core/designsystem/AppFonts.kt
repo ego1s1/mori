@@ -10,10 +10,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Named display faces on top of the variable [R.font.roboto_flex] family.
+ * Named display faces on top of the variable [R.font.google_sans_flex] family.
  *
  * Mirrors the reference app's three-face scheme (top-bar title, secondary
- * titles, annotated-string pair) on Roboto Flex. Roboto Flex exposes weight
+ * titles, annotated-string pair) on Google Sans Flex. Google Sans Flex exposes weight
  * and width axes; the reference's proprietary rounded axis has no open
  * equivalent, so geometry that depended on it is approximated with weight and
  * width only.
@@ -27,10 +27,10 @@ data class AppFonts(
     val displayFlex: FontFamily,
 )
 
-/** Roboto Flex, weight 900 at 112.5% width — the widest, heaviest display face. */
-private val RobotoFlexTopBar = FontFamily(
+/** Google Sans Flex, weight 900 at 112.5% width — the widest, heaviest display face. */
+private val GoogleSansFlexTopBar = FontFamily(
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.Black,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
@@ -41,10 +41,10 @@ private val RobotoFlexTopBar = FontFamily(
     ),
 )
 
-/** Roboto Flex, weight 900 at 125% width — hero numerals at display sizes. */
-private val RobotoFlexDisplay = FontFamily(
+/** Google Sans Flex, weight 900 at 125% width — hero numerals at display sizes. */
+private val GoogleSansFlexDisplay = FontFamily(
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.Black,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
@@ -56,9 +56,9 @@ private val RobotoFlexDisplay = FontFamily(
 )
 
 /** Regular + semibold pair for inline emphasis in annotated strings. */
-private val RobotoFlexAnnotated = FontFamily(
+private val GoogleSansFlexAnnotated = FontFamily(
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.Normal,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(400),
@@ -68,7 +68,7 @@ private val RobotoFlexAnnotated = FontFamily(
         ),
     ),
     Font(
-        resId = R.font.roboto_flex,
+        resId = R.font.google_sans_flex,
         weight = FontWeight.SemiBold,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(600),
@@ -81,9 +81,9 @@ private val RobotoFlexAnnotated = FontFamily(
 
 /** Builds the app's display faces; provided once by [MoriTheme]. */
 internal fun appFonts(): AppFonts = AppFonts(
-    topBarTitle = RobotoFlexTopBar,
-    annotatedString = RobotoFlexAnnotated,
-    displayFlex = RobotoFlexDisplay,
+    topBarTitle = GoogleSansFlexTopBar,
+    annotatedString = GoogleSansFlexAnnotated,
+    displayFlex = GoogleSansFlexDisplay,
 )
 
 /** Display faces for the current theme; read by screen headers. */
