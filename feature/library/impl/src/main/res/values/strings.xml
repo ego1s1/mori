@@ -32,7 +32,7 @@
     <string name="library_filter_favorites">Favorites</string>
     <string name="library_filter_in_progress">In progress</string>
     <string name="library_sort_recently_added">Recently added</string>
-    <string name="library_sort_recently_read">Recently read</string>
+    <string name="library_sort_recently_read">Recently opened</string>
     <string name="library_sort_title">Title</string>
     <string name="library_sort_unfinished_first">Unfinished first</string>
     <string name="library_snack_index_failed">Couldn\'t index %1$d file(s). Check the files and rescan.</string>

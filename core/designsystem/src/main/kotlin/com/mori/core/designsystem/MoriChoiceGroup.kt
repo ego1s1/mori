@@ -1,9 +1,11 @@
 package com.mori.core.designsystem
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 
@@ -38,6 +41,11 @@ private val InnerCorner = 8.dp
  * the "Going / Maybe" language of the reference work — 56dp targets, icon +
  * label content, Flex-emphasized selected label. Selection semantics stay on
  * tags, not pixels.
+ *
+ * Weighted full-width layout fits short labels ("System/Light/Dark").
+ * Long labels ("Recently added", "Unfinished first") squeeze to stubs, so
+ * those call sites pass `fillWidth = false` for a scrollable row where
+ * every pill keeps its full text.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -47,6 +55,7 @@ fun MoriChoiceGroup(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     testTagFor: (String) -> String = { it },
+    fillWidth: Boolean = true,
 ) {
     val haptics = rememberMoriHaptics()
     Row(
@@ -54,7 +63,8 @@ fun MoriChoiceGroup(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp),
+            .heightIn(min = 56.dp)
+            .then(if (!fillWidth) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
     ) {
         options.forEachIndexed { index, option ->
             val selected = index == selectedIndex
@@ -83,7 +93,7 @@ fun MoriChoiceGroup(
                 },
                 shapes = ToggleButtonDefaults.shapes(pill, pill, pill),
                 modifier = Modifier
-                    .weight(1f)
+                    .then(if (fillWidth) Modifier.weight(1f) else Modifier)
                     .testTag(testTagFor(option.label))
                     .semantics { this.selected = selected },
             ) {
@@ -106,6 +116,7 @@ fun MoriChoiceGroup(
                             MaterialTheme.typography.labelLarge
                         },
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

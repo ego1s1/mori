@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -47,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -314,10 +317,38 @@ private fun LibraryContent(
             // dismisses the keyboard; the clear button empties the query.
             // Bold M3E search container: filled, 48dp morphing shape, 64dp
             // target, Flex input — closer to a docked search bar than a form
-            // field.
+            // field. At rest it sits flat and full-bleed; once the grid
+            // scrolls beneath it, the wrap morphs into a detached floating
+            // panel — inset from the edges, rounded, filled, and shadowed
+            // like the nav FAB — so entries visibly dive behind it.
             val haptics = rememberMoriHaptics()
             val keyboard = LocalSoftwareKeyboardController.current
             val focusManager = LocalFocusManager.current
+            val searchFloating by remember {
+                derivedStateOf {
+                    gridState.firstVisibleItemIndex > 0 ||
+                        gridState.firstVisibleItemScrollOffset > 0
+                }
+            }
+            val floatInset by animateDpAsState(if (searchFloating) 16.dp else 0.dp)
+            val floatBottom by animateDpAsState(if (searchFloating) 8.dp else 0.dp)
+            val floatColor by animateColorAsState(
+                if (searchFloating) {
+                    MaterialTheme.colorScheme.surfaceContainer
+                } else {
+                    Color.Transparent
+                },
+            )
+            val floatElevation by animateDpAsState(if (searchFloating) 8.dp else 0.dp)
+            Surface(
+                color = floatColor,
+                shadowElevation = floatElevation,
+                shape = MaterialTheme.shapes.extraExtraLarge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = floatInset)
+                    .padding(bottom = floatBottom),
+            ) {
             TextField(
                 value = query.text,
                 onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
@@ -368,6 +399,7 @@ private fun LibraryContent(
                     .sizeIn(minHeight = 64.dp)
                     .testTag(LibraryTestTags.SearchField),
             )
+            }
             LibraryBody(
                 comics = comics,
                 queryText = query.text,

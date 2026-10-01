@@ -33,3 +33,8 @@ scripts/build-apk.sh
 
 # Session transcripts: local agent logs, never committed.
 /session-*.md
+
+# Local agent skill installs: reproducible via the skills CLI, machine-specific.
+/.agents/
+/.claude/
+/skills-lock.json

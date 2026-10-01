@@ -112,6 +112,7 @@ internal fun LibrarySortFilterContent(
             options = LibraryFilter.entries.map { MoriChoiceOption(label = filterLabel(it)) },
             selectedIndex = LibraryFilter.entries.indexOf(query.filter),
             onSelect = { onAction(LibraryAction.FilterSelected(LibraryFilter.entries[it])) },
+            fillWidth = false,
         )
 
         Text(
@@ -123,6 +124,7 @@ internal fun LibrarySortFilterContent(
             options = LibrarySortOrder.entries.map { MoriChoiceOption(label = sortLabel(it)) },
             selectedIndex = LibrarySortOrder.entries.indexOf(query.sortOrder),
             onSelect = { onAction(LibraryAction.SortSelected(LibrarySortOrder.entries[it])) },
+            fillWidth = false,
         )
 
         MoriSettingSwitch(
