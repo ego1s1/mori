@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -355,7 +356,10 @@ private fun DetailContent(
             ) {
                 Text(
                     text = comic.title,
-                    style = MoriEmphasized.headlineSmall,
+                    style = MoriEmphasized.headlineSmall.copy(
+                        fontFamily = LocalAppFonts.current.displayFlex,
+                        fontWeight = FontWeight.Black,
+                    ),
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -498,7 +502,10 @@ private fun RemoveDialog(
         title = {
             Text(
                 text = stringResource(R.string.detail_remove_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MoriEmphasized.headlineSmall.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
             )
         },
         text = {
@@ -546,7 +553,10 @@ private fun ShelvesDialog(
         title = {
             Text(
                 text = stringResource(R.string.detail_shelves_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MoriEmphasized.headlineSmall.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
             )
         },
         text = {

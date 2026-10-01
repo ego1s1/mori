@@ -45,10 +45,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
@@ -319,7 +321,10 @@ private fun WelcomeContent(
                             }
                             append(stringResource(R.string.onboarding_hero_suffix))
                         },
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = LocalAppFonts.current.displayFlex,
+                            fontWeight = FontWeight.Black,
+                        ),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -485,7 +490,10 @@ private fun WizardStep(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = title,
-                style = MoriEmphasized.headlineMedium,
+                style = MoriEmphasized.headlineMedium.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

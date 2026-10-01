@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -35,6 +36,7 @@ fun MoriSettingRow(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    titleStyle: TextStyle = MoriEmphasized.bodyLarge,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     iconTint: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     minHeight: Dp = 72.dp,
@@ -70,7 +72,7 @@ fun MoriSettingRow(
             ) {
                 Text(
                     text = title,
-                    style = MoriEmphasized.bodyLarge,
+                    style = titleStyle,
                     color = titleColor,
                 )
                 Text(

@@ -414,6 +414,10 @@ private fun HubRow(
         subtitle = categorySubtitle(category),
         icon = categoryIcon(category),
         onClick = onClick,
+        titleStyle = MoriEmphasized.titleMedium.copy(
+            fontFamily = LocalAppFonts.current.displayFlex,
+            fontWeight = FontWeight.Black,
+        ),
         modifier = modifier.testTag(SettingsTestTags.categoryFor(category)),
         trailing = {
             Icon(
@@ -701,6 +705,8 @@ private fun StorageSection(
                     text = formatBytes(storage.coversBytes + storage.cacheBytes),
                     style = MaterialTheme.typography.displaySmall.copy(
                         fontFamily = LocalAppFonts.current.displayFlex,
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1067,7 +1073,10 @@ private fun AboutSection(
             title = {
                 Text(
                     text = stringResource(R.string.settings_about_privacy),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MoriEmphasized.headlineSmall.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
                 )
             },
             text = {
@@ -1236,7 +1245,10 @@ private fun GroupDialogHost(
             title = {
                 Text(
                     text = stringResource(R.string.settings_group_delete_title),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MoriEmphasized.headlineSmall.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
                 )
             },
             text = {
@@ -1289,7 +1301,10 @@ private fun GroupNameDialog(
         title = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MoriEmphasized.headlineSmall.copy(
+                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontWeight = FontWeight.Black,
+                ),
             )
         },
         text = {

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -72,7 +73,10 @@ fun MoriEmptyState(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MoriEmphasized.headlineSmall.copy(
+                fontFamily = LocalAppFonts.current.displayFlex,
+                fontWeight = FontWeight.Black,
+            ),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp),
         )
