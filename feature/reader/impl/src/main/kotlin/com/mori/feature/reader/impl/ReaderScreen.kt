@@ -209,19 +209,30 @@ private fun ReaderContent(
     // split/direction rebuild mid-glide cancels the stale animation instead
     // of retargeting out of range.
     val pagerExpressive = LocalExpressiveMotionEnabled.current
+    // Tracks the in-flight programmatic destination so rapid chains retarget
+    // instead of dropping: the skip below only applies when the pager is
+    // already converging on this exact target.
+    var animatingTo by remember { mutableIntStateOf(-1) }
     LaunchedEffect(state.pageIndex, state.pageCount, state.turnAnimated, pagerExpressive) {
         val target = state.pageIndex.coerceIn(0, (state.pageCount - 1).coerceAtLeast(0))
-        // Skip while settling: a swipe-driven offset is already converging on
-        // the target; retargeting mid-settle would fight the gesture.
-        if (pagerState.currentPage != target && pagerState.currentPageOffsetFraction == 0f) {
-            if (pagerExpressive && state.turnAnimated) {
-                pagerState.animateScrollToPage(
-                    target,
-                    animationSpec = MoriMotion.pageTurnSpec(),
-                )
-            } else {
-                pagerState.scrollToPage(target)
-            }
+        if (target == pagerState.currentPage && pagerState.currentPageOffsetFraction == 0f) {
+            animatingTo = target
+            return@LaunchedEffect
+        }
+        // Skip while settling toward this target: a swipe-driven offset is
+        // already converging on it; retargeting would fight the gesture.
+        // A *newer* target falls through and restarts from the live offset.
+        if (target == animatingTo && pagerState.currentPageOffsetFraction != 0f) {
+            return@LaunchedEffect
+        }
+        animatingTo = target
+        if (pagerExpressive && state.turnAnimated) {
+            pagerState.animateScrollToPage(
+                target,
+                animationSpec = MoriMotion.pageTurnSpec(),
+            )
+        } else {
+            pagerState.scrollToPage(target)
         }
     }
     // Pager -> ViewModel (swipes).
@@ -267,11 +278,13 @@ private fun ReaderContent(
     // detection lagging); updated via onScrubChange below.
     var chromeScrubHeld by remember { mutableStateOf(false) }
     val onChromeAction: (ReaderAction) -> Unit = { action ->
+        // Page navigation restarts the timer via the pageIndex key below;
+        // every other chrome interaction bumps the epoch instead so the
+        // timer restarts on filter tweaks, volume toggles, bookmark taps…
         when (action) {
-            is ReaderAction.SetDirection, is ReaderAction.SetPageFit,
-            ReaderAction.ToggleCrop, ReaderAction.OpenSettings,
-            ReaderAction.OpenOverview, ReaderAction.ToggleBookmark -> chromeInteractionEpoch++
-            else -> Unit
+            is ReaderAction.PrevPage, is ReaderAction.NextPage, is ReaderAction.SeekPage,
+            is ReaderAction.PageChanged, ReaderAction.HideChrome, ReaderAction.ToggleChrome -> Unit
+            else -> chromeInteractionEpoch++
         }
         onAction(action)
     }

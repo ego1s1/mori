@@ -13,6 +13,7 @@ class ReaderKeyHandlerTest {
         volumeKeysInverted: Boolean = false,
         chromeVisible: Boolean = false,
         settingsOpen: Boolean = false,
+        overviewOpen: Boolean = false,
     ) = ReaderUiState.Ready(
         comicId = "c",
         title = "Saga",
@@ -25,7 +26,7 @@ class ReaderKeyHandlerTest {
         pageFit = PageFit.WIDTH,
         cropMargins = false,
         settingsOpen = settingsOpen,
-        overviewOpen = false,
+        overviewOpen = overviewOpen,
         volumeKeys = volumeKeys,
         volumeKeysInverted = volumeKeysInverted,
         keepScreenOn = true,
@@ -83,6 +84,14 @@ class ReaderKeyHandlerTest {
         assertEquals(
             VolumeKeyOutcome.Ignored,
             routeVolumeKey(ready(settingsOpen = true), KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.ACTION_UP),
+        )
+    }
+
+    @Test
+    fun openOverviewFallsThrough() {
+        assertEquals(
+            VolumeKeyOutcome.Ignored,
+            routeVolumeKey(ready(overviewOpen = true), KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.ACTION_UP),
         )
     }
 

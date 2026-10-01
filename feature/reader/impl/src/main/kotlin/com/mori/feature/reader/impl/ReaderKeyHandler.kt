@@ -17,8 +17,8 @@ internal sealed interface VolumeKeyOutcome {
 /**
  * Routes hardware volume keys: the press is consumed (so system volume never
  * moves) and navigation fires on key-up only — one turn per press, no repeat
- * fire while held. Stands down unless the pref is on with chrome hidden and
- * settings closed. The inverted pref swaps down/up. Pure logic, fully
+ * fire while held. Stands down unless the pref is on with chrome hidden
+ * and both sheets closed. The inverted pref swaps down/up. Pure logic, fully
  * unit-testable.
  */
 internal fun routeVolumeKey(
@@ -30,7 +30,7 @@ internal fun routeVolumeKey(
         return VolumeKeyOutcome.Ignored
     }
     val ready = state as? ReaderUiState.Ready ?: return VolumeKeyOutcome.Ignored
-    if (!ready.volumeKeys || ready.chromeVisible || ready.settingsOpen) {
+    if (!ready.volumeKeys || ready.chromeVisible || ready.settingsOpen || ready.overviewOpen) {
         return VolumeKeyOutcome.Ignored
     }
     if (eventAction != KeyEvent.ACTION_UP) {

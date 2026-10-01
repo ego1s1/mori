@@ -119,6 +119,10 @@ internal class ReaderViewModel @Inject constructor(
 
     private var saveJob: Job? = null
     private var pendingSave: Int? = null
+    // Incognito captured when the turn lands: a flush is suppressed when
+    // incognito was on at the turn *or* at the flush, so rapid toggles in
+    // either order cannot leak a private page into history.
+    private var pendingIncognito: Boolean = false
 
     /** Session tracking: opened once, closed once in [onCleared]. */
     private val sessionStartedAt = System.currentTimeMillis()
@@ -135,8 +139,9 @@ internal class ReaderViewModel @Inject constructor(
         saveJob?.cancel()
         recordSession()
         val index = pendingSave
-        // Incognito closes leave no trace: no progress flush either.
-        if (index != null && !isIncognito()) {
+        // Incognito closes leave no trace: no progress flush either. The
+        // schedule-time flag covers toggles in either order (see above).
+        if (index != null && !pendingIncognito && !isIncognito()) {
             flushScope.launch {
                 try {
                     // Bounded: a hung database must not pin an IO thread and
@@ -494,11 +499,12 @@ internal class ReaderViewModel @Inject constructor(
 
     private fun scheduleProgressSave(index: Int) {
         pendingSave = index
+        pendingIncognito = isIncognito()
         saveJob?.cancel()
         saveJob = viewModelScope.launch {
             delay(PROGRESS_SAVE_DEBOUNCE_MS)
             pendingSave = null
-            if (!isIncognito()) {
+            if (!pendingIncognito && !isIncognito()) {
                 repository.saveProgress(args.comicId, index)
             }
         }
