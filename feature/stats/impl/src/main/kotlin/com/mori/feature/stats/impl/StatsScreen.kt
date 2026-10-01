@@ -37,7 +37,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
@@ -317,7 +323,13 @@ private fun StreakCard(
     }
 }
 
-/** Hero numeral + caption shared by stat and streak cards. */
+/** Hero numeral + caption shared by stat and streak cards.
+ *
+ * Reference-panel language: one oversized black-italic Flex numeral in the
+ * wallpaper-driven primary (dynamic tint), tight-tracked, auto-shrunk to
+ * never clip long counts. Units ride matched-caps inside the numeral
+ * ("3H 20M", "4 DAYS"); bare counts are unaffected by the casing.
+ */
 @Composable
 private fun HeroNumber(
     value: String,
@@ -325,12 +337,25 @@ private fun HeroNumber(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // Shrink-to-fit: heroes never clip long counts. Steps down 10% per
+        // overflowing layout pass, floored well above body text.
+        var heroSize by remember(value) { mutableStateOf(HeroMaxSize) }
         Text(
-            text = value,
-            style = MaterialTheme.typography.displaySmall.copy(
+            text = value.uppercase(),
+            style = MaterialTheme.typography.displayLarge.copy(
                 fontFamily = LocalAppFonts.current.displayFlex,
+                fontWeight = FontWeight.Black,
+                fontStyle = FontStyle.Italic,
+                fontSize = heroSize,
+                lineHeight = heroSize,
+                letterSpacing = (-0.5).sp,
             ),
-            color = MaterialTheme.colorScheme.onSurface,
+            onTextLayout = { layout ->
+                if (layout.hasVisualOverflow && heroSize > HeroMinSize) {
+                    heroSize *= 0.9f
+                }
+            },
+            color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
         )
         Text(
@@ -341,6 +366,9 @@ private fun HeroNumber(
         )
     }
 }
+
+private val HeroMaxSize = 64.sp
+private val HeroMinSize = 28.sp
 
 @Composable
 private fun TopBookRow(
