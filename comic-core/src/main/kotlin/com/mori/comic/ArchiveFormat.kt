@@ -11,6 +11,14 @@ enum class ArchiveFormat {
     CBT,
     ;
 
+    /** MIME type for sharing the container file. */
+    fun mimeType(): String = when (this) {
+        CBZ -> "application/zip"
+        CBR -> "application/vnd.rar"
+        CB7 -> "application/x-7z-compressed"
+        CBT -> "application/x-tar"
+    }
+
     companion object {
         /**
          * Matches a file name to a format by extension alone. The single

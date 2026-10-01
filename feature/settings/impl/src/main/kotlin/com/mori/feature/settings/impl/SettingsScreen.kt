@@ -60,11 +60,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
+import kotlinx.serialization.Serializable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.FloatingChromeBottomReserve
@@ -182,8 +182,8 @@ internal fun SettingsScreen(
 }
 
 /** Hub categories, each opening a detail screen. Order is the hub order. */
-enum class SettingsCategory {
-    APPEARANCE,
+@Serializable
+enum class SettingsCategory {    APPEARANCE,
     READER,
     SHELVES,
     PRIVACY,
@@ -191,9 +191,12 @@ enum class SettingsCategory {
     ABOUT,
 }
 
-private const val SettingsHubRoute = "hub"
-private const val SettingsDetailRoute = "detail/{name}"
-private const val SettingsDetailArg = "name"
+/** Type-safe nested destinations: hub list + one detail per category. */
+@Serializable
+internal data object SettingsHub
+
+@Serializable
+internal data class SettingsDetail(val category: SettingsCategory)
 
 @Composable
 internal fun SettingsContent(
@@ -221,7 +224,7 @@ internal fun SettingsContent(
     val settingsNav = rememberNavController()
     NavHost(
         navController = settingsNav,
-        startDestination = SettingsHubRoute,
+        startDestination = SettingsHub,
         enterTransition = {
             if (!expressiveMotion) {
                 fadeIn(animationSpec = MoriMotion.calmFade())
@@ -262,7 +265,7 @@ internal fun SettingsContent(
         },
         modifier = modifier,
     ) {
-        composable(SettingsHubRoute) {
+        composable<SettingsHub> {
             SettingsScaffold(
                 title = stringResource(R.string.settings_title),
                 snackbarHost = snackbarHost,
@@ -273,19 +276,16 @@ internal fun SettingsContent(
                         category = entry,
                         onClick = {
                             haptics(MoriHaptic.Select)
-                            settingsNav.navigate("detail/${entry.name}")
+                            settingsNav.navigate(SettingsDetail(entry))
                         },
                     )
                 }
             }
         }
-        composable(
-            route = SettingsDetailRoute,
-            arguments = listOf(navArgument(SettingsDetailArg) { type = NavType.StringType }),
-        ) { detailEntry ->
-            val selected = detailEntry.arguments?.getString(SettingsDetailArg)?.let { name ->
-                runCatching { SettingsCategory.valueOf(name) }.getOrNull()
-            } ?: return@composable
+        composable<SettingsDetail> { detailEntry ->
+            // Type-safe: an unknown category can no longer arrive here and
+            // blank the screen; the route carries the enum itself.
+            val selected = detailEntry.toRoute<SettingsDetail>().category
             SettingsScaffold(
                 title = categoryTitle(selected),
                 navigationBack = { settingsNav.popBackStack() },

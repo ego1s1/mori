@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.mori.core.model.ComicFormat
+import com.mori.comic.ArchiveFormat
 import java.io.File
 
 /**
@@ -19,7 +19,7 @@ import java.io.File
  * for testability; the route launches it.
  */
 internal fun shareMimeType(displayName: String): String =
-    ComicFormat.fromFileName(displayName)?.mimeType() ?: "*/*"
+    ArchiveFormat.fromExtension(displayName)?.mimeType() ?: "*/*"
 
 /**
  * Resolves a row's [rawUri] to a shareable `content://` URI, or null when

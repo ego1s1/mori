@@ -17,6 +17,7 @@ android {
 
 dependencies {
     implementation(project(":feature:detail:api"))
+    implementation(project(":comic-core"))
     implementation(project(":core:model"))
     implementation(project(":core:data"))
 }

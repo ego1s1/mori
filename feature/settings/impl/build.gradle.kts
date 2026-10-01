@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mori.android.feature)
     alias(libs.plugins.detekt)
 }
@@ -21,4 +22,5 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:datastore"))
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
 }

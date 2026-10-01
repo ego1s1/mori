@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "android-kotlin": {
+      "source": "alinaqi/maggy",
+      "sourceType": "github",
+      "skillPath": "skills/android-kotlin/SKILL.md",
+      "computedHash": "0bb451490ccb9e02daed97d9cd2e84071a874ba46ed5ecf5a491c2fa27f0828f"
+    },
+    "material-3-expressive": {
+      "source": "albermonte/android-skills",
+      "sourceType": "github",
+      "skillPath": "skills/material-3-expressive/SKILL.md",
+      "computedHash": "5d299ceb43ea780fe3b8c7d087a4bd654408baee33a9b3c416b6272b61a72d66"
+    },
+    "pulsar-haptics": {
+      "source": "software-mansion-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pulsar-haptics/SKILL.md",
+      "computedHash": "7ee8f5f6be3ce2ea0a1dc2fdc01b3eb3d1ae95e114240b136d9481f55547784b"
+    }
+  }
+}

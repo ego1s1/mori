@@ -98,6 +98,14 @@ class ArchiveFormatTest {
     }
 
     @Test
+    fun mimeTypesCoverShareTargets() {
+        assertEquals("application/zip", ArchiveFormat.CBZ.mimeType())
+        assertEquals("application/vnd.rar", ArchiveFormat.CBR.mimeType())
+        assertEquals("application/x-7z-compressed", ArchiveFormat.CB7.mimeType())
+        assertEquals("application/x-tar", ArchiveFormat.CBT.mimeType())
+    }
+
+    @Test
     fun truncatedSignatureThrowsCorrupt() {        // "PK" alone is a cut-off zip signature, not an unknown format.
         val file = Archives.writeFile(Archives.newTempDir(), "cut.bin", byteArrayOf(0x50, 0x4B))
         assertThrows(CorruptArchiveException::class.java) { ArchiveFormat.detect(file) }

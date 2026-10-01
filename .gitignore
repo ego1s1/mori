@@ -30,3 +30,6 @@ scripts/build-apk.sh
 /*.png
 /*.jpg
 /*.jpeg
+
+# Session transcripts: local agent logs, never committed.
+/session-*.md

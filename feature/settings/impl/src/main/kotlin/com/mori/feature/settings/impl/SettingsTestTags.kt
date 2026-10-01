@@ -11,7 +11,7 @@ object SettingsTestTags {
     const val GroupDialog = "settingsGroupDialog"
     const val LicensesRow = "settingsLicenses"
 
-    fun segmentFor(label: String) = "settingsSegment_$label"
+    fun segmentFor(label: String) = "settingsSegment:$label"
 
     fun groupRow(id: Long): String = "settingsGroup:$id"
 
