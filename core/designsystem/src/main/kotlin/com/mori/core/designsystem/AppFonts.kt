@@ -72,14 +72,14 @@ private fun flexDisplay(grade: Int) = FontFamily(
     ),
 )
 
-/** Google Sans Flex soft display: max 151% width, full ROND roundness. */
+/** Google Sans Flex soft display: wide 135% width, full ROND roundness. */
 private fun softDisplay(grade: Int) = FontFamily(
     Font(
         resId = R.font.google_sans_flex,
         weight = FontWeight.Black,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
-            FontVariation.width(151f),
+            FontVariation.width(135f),
             FontVariation.grade(grade),
             FontVariation.opticalSizing(48.sp),
             FontVariation.Setting("ROND", 100f),
@@ -91,7 +91,7 @@ private fun softDisplay(grade: Int) = FontFamily(
         style = FontStyle.Italic,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
-            FontVariation.width(151f),
+            FontVariation.width(135f),
             FontVariation.grade(grade),
             FontVariation.opticalSizing(48.sp),
             FontVariation.Setting("ROND", 100f),

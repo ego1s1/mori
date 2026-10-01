@@ -267,19 +267,23 @@ internal fun Color.atLightness(lightness: Float): Color {
 internal data class ContainerPair(val container: Color, val onContainer: Color)
 
 /**
- * Tonal container derived from [accent]: light schemes land near tone 92
- * (dark on-container), dark schemes near tone 30 (light on-container).
+ * Tonal container derived from [accent]: light schemes land near tone 94
+ * (dark on-container), dark schemes near tone 28 (light on-container).
+ *
+ * Deliberately wider than M3 standard (92/12, 30/90): medium-contrast
+ * direction — more tonal distance between paired roles for legibility and
+ * hierarchy, same hue feel.
  */
 internal fun containerFor(accent: Color, darkTheme: Boolean): ContainerPair =
     if (darkTheme) {
         ContainerPair(
-            container = accent.atLightness(0.30f),
-            onContainer = accent.atLightness(0.90f),
+            container = accent.atLightness(0.28f),
+            onContainer = accent.atLightness(0.93f),
         )
     } else {
         ContainerPair(
-            container = accent.atLightness(0.92f),
-            onContainer = accent.atLightness(0.12f),
+            container = accent.atLightness(0.94f),
+            onContainer = accent.atLightness(0.10f),
         )
     }
 
@@ -292,7 +296,7 @@ internal data class SurfaceRamp(
     val highest: Color,
 )
 
-internal fun darkSurfaceRamp(seed: Color, whisper: Float = 0.08f): SurfaceRamp = SurfaceRamp(
+internal fun darkSurfaceRamp(seed: Color, whisper: Float = 0.12f): SurfaceRamp = SurfaceRamp(
     lowest = DarkLowest.blend(seed, whisper),
     low = DarkLow.blend(seed, whisper),
     container = DarkContainer.blend(seed, whisper),

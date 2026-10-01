@@ -23,7 +23,7 @@ private val LightHigh = Color(0xFFECE6F0)
 private val LightHighest = Color(0xFFE6E0E9)
 
 /** Light surface ramp carrying a whisper of [seed], mirroring [darkSurfaceRamp]. */
-private fun lightSurfaceRamp(seed: Color, whisper: Float = 0.08f): SurfaceRamp = SurfaceRamp(
+private fun lightSurfaceRamp(seed: Color, whisper: Float = 0.12f): SurfaceRamp = SurfaceRamp(
     lowest = LightLowest.blend(seed, whisper),
     low = LightLow.blend(seed, whisper),
     container = LightContainer.blend(seed, whisper),
