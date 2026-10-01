@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +56,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -899,19 +901,14 @@ private fun AboutSection(
                         .fillMaxWidth()
                         .padding(16.dp),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
+                    Image(
+                        painter = painterResource(R.drawable.dev_avatar),
+                        contentDescription = stringResource(R.string.settings_about_developer),
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiaryContainer),
-                    ) {
-                        Text(
-                            text = "PS",
-                            style = MoriEmphasized.headlineSmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        )
-                    }
+                            .clip(CircleShape),
+                    )
                     Column(
                         modifier = Modifier
                             .weight(1f)
