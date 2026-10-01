@@ -51,6 +51,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,8 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -69,6 +72,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -340,12 +344,55 @@ private fun LibraryContent(
                 },
             )
             val floatElevation by animateDpAsState(if (searchFloating) 8.dp else 0.dp)
+            // The field surrenders its container when floating so only the
+            // wrap panel draws a box — never two bounding boxes.
+            val fieldContainer by animateColorAsState(
+                if (searchFloating) {
+                    Color.Transparent
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+            )
+            // Overlay: the grid lives full-bleed underneath and the search
+            // floats on top, so scrolled entries truly pass behind it. The
+            // grid's top padding tracks the measured panel height, keeping
+            // the resting layout pixel-identical to the old column.
+            var searchHeightPx by remember { mutableIntStateOf(0) }
+            // Estimated height until the first measure lands, so the grid
+            // never flashes underneath the panel on first composition.
+            val searchTopInset = if (searchHeightPx == 0) {
+                80.dp
+            } else {
+                with(LocalDensity.current) { searchHeightPx.toDp() }
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+            LibraryBody(
+                comics = comics,
+                queryText = query.text,
+                // Spinner only when no determinate bar: the two indicators
+                // overlap otherwise during indexed rescans.
+                refreshing = refreshing && indexProgress == null,
+                linked = linked,
+                sections = sections,
+                onAction = onAction,
+                onReadClick = onReadClick,
+                onComicLongClick = onComicLongClick,
+                onChooseFolder = onChooseFolder,
+                gridState = gridState,
+                topInset = searchTopInset,
+                modifier = Modifier.fillMaxSize(),
+            )
             Surface(
                 color = floatColor,
                 shadowElevation = floatElevation,
                 shape = MaterialTheme.shapes.extraExtraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onSizeChanged { searchHeightPx = it.height }
                     .padding(horizontal = floatInset)
                     .padding(bottom = floatBottom),
             ) {
@@ -387,8 +434,8 @@ private fun LibraryContent(
                 ),
                 shape = MaterialTheme.shapes.extraExtraLarge,
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedContainerColor = fieldContainer,
+                    unfocusedContainerColor = fieldContainer,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                 ),
@@ -400,21 +447,7 @@ private fun LibraryContent(
                     .testTag(LibraryTestTags.SearchField),
             )
             }
-            LibraryBody(
-                comics = comics,
-                queryText = query.text,
-                // Spinner only when no determinate bar: the two indicators
-                // overlap otherwise during indexed rescans.
-                refreshing = refreshing && indexProgress == null,
-                linked = linked,
-                sections = sections,
-                onAction = onAction,
-                onReadClick = onReadClick,
-                onComicLongClick = onComicLongClick,
-                onChooseFolder = onChooseFolder,
-                gridState = gridState,
-                modifier = Modifier.weight(1f),
-    )
+        }
         }
     }
 }
@@ -479,6 +512,9 @@ private fun LibraryBody(
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
     gridState: LazyGridState = rememberLazyGridState(),
+    /** Measured search-panel height: the grid pads below it at rest and
+     * slides underneath it once scrolled. */
+    topInset: Dp = 0.dp,
 ) {
     // Only the launching card registers a shared element; null = plain grid.
     var launchingId by remember { mutableStateOf<String?>(null) }
@@ -503,10 +539,10 @@ private fun LibraryBody(
             onComicLongClick(comic.id)
         }
     }
-    val gridPadding = remember {
+    val gridPadding = remember(topInset) {
         PaddingValues(
             start = 12.dp,
-            top = 12.dp,
+            top = topInset + 12.dp,
             end = 12.dp,
             bottom = FloatingChromeBottomReserve,
         )
@@ -518,6 +554,7 @@ private fun LibraryBody(
                 linked = linked,
                 onRefresh = { onAction(LibraryAction.Refresh) },
                 onChooseFolder = onChooseFolder,
+                modifier = Modifier.padding(top = topInset),
             )
         } else {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

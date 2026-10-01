@@ -60,6 +60,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -869,6 +871,8 @@ private fun AboutSection(
                     Text(
                         text = stringResource(R.string.settings_about_app),
                         style = MoriEmphasized.headlineSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
                             brush = Brush.linearGradient(
                                 colors = listOf(
                                     MaterialTheme.colorScheme.primary,
@@ -882,6 +886,8 @@ private fun AboutSection(
                         text = stringResource(R.string.settings_about_version, appVersion),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontFamily = LocalAppFonts.current.topBarTitle,
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -916,7 +922,10 @@ private fun AboutSection(
                     ) {
                         Text(
                             text = stringResource(R.string.settings_about_developer),
-                            style = MoriEmphasized.titleMedium,
+                            style = MoriEmphasized.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontStyle = FontStyle.Italic,
+                            ),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
