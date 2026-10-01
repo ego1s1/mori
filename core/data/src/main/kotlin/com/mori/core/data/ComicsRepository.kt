@@ -22,6 +22,11 @@ interface ComicsRepository {
     fun observeComic(id: String): Flow<Comic?>
 
     /** One-shot read for non-reactive consumers (image loading, widgets). */
+    /**
+     * One-shot read for background workers (cover fetch, widgets). UI
+     * layers observe [observeComic]/[observeLibrary]; snapshots never drive
+     * composition.
+     */
     suspend fun getComic(id: String): Comic?
 
     /**
