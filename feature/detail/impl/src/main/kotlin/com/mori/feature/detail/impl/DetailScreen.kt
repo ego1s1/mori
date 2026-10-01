@@ -1,32 +1,24 @@
 package com.mori.feature.detail.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenuItem
@@ -36,7 +28,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -52,39 +43,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriComicErrorCard
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
+import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
-import java.io.File
 
 @Composable
 internal fun DetailRoute(
@@ -210,13 +198,11 @@ internal fun DetailScreen(
                         enter = MoriMotion.enter(MoriEnterKind.FADE),
                         exit = MoriMotion.exit(MoriEnterKind.FADE),
                     ) {
-                        if (uiState.confirmRemove) {
-                            RemoveDialog(
-                                title = uiState.comic.title,
-                                onConfirm = { onAction(DetailAction.ConfirmRemove) },
-                                onDismiss = { onAction(DetailAction.CancelRemove) },
-                            )
-                        }
+                        RemoveDialog(
+                            title = uiState.comic.title,
+                            onConfirm = { onAction(DetailAction.ConfirmRemove) },
+                            onDismiss = { onAction(DetailAction.CancelRemove) },
+                        )
                     }
                     AnimatedVisibility(
                         visible = uiState.shelves != null,
@@ -243,8 +229,12 @@ private fun DetailTopActions(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier) {
+        val haptics = rememberMoriHaptics()
         IconButton(
-            onClick = { onAction(DetailAction.ToggleBookmark) },
+            onClick = {
+                haptics(if (bookmarked) MoriHaptic.ToggleOff else MoriHaptic.ToggleOn)
+                onAction(DetailAction.ToggleBookmark)
+            },
             modifier = Modifier.testTag(DetailTestTags.BookmarkButton),
         ) {
             Icon(
@@ -280,6 +270,7 @@ private fun DetailTopActions(
                     leadingIcon = { Icon(MoriIcons.Share, contentDescription = null) },
                     onClick = {
                         menuOpen = false
+                        haptics(MoriHaptic.Select)
                         onAction(DetailAction.Share)
                     },
                     modifier = Modifier.testTag(DetailTestTags.ShareButton),
@@ -289,6 +280,7 @@ private fun DetailTopActions(
                     leadingIcon = { Icon(MoriIcons.Refresh, contentDescription = null) },
                     onClick = {
                         menuOpen = false
+                        haptics(MoriHaptic.Tick)
                         onAction(DetailAction.Refresh)
                     },
                     modifier = Modifier.testTag(DetailTestTags.RefreshButton),
@@ -309,6 +301,7 @@ private fun DetailTopActions(
                     },
                     onClick = {
                         menuOpen = false
+                        haptics(MoriHaptic.Select)
                         onAction(DetailAction.AskRemove)
                     },
                     modifier = Modifier.testTag(DetailTestTags.RemoveButton),
@@ -520,15 +513,23 @@ private fun RemoveDialog(
             )
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
+            val haptics = rememberMoriHaptics()
+            Button(
+                onClick = {
+                    haptics(MoriHaptic.Confirm)
+                    onConfirm()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
                 modifier = Modifier.testTag(DetailTestTags.ConfirmRemove),
             ) {
-                Text(stringResource(R.string.detail_remove_confirm), color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.detail_remove_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            FilledTonalButton(onClick = onDismiss) {
                 Text(stringResource(R.string.detail_remove_cancel))
             }
         },
@@ -565,25 +566,14 @@ private fun ShelvesDialog(
                     )
                 }
                 shelves.collections.forEach { collection ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAction(DetailAction.ToggleShelfMember(collection.id)) }
-                            .testTag(DetailTestTags.shelfRow(collection.id)),
-                    ) {
-                        Checkbox(
-                            checked = collection.id in shelves.memberIds,
-                            onCheckedChange = {
-                                onAction(DetailAction.ToggleShelfMember(collection.id))
-                            },
-                        )
-                        Text(
-                            text = collection.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                    MoriSettingSwitch(
+                        title = collection.name,
+                        checked = collection.id in shelves.memberIds,
+                        onCheckedChange = {
+                            onAction(DetailAction.ToggleShelfMember(collection.id))
+                        },
+                        modifier = Modifier.testTag(DetailTestTags.shelfRow(collection.id)),
+                    )
                 }
                 OutlinedTextField(
                     value = name,
