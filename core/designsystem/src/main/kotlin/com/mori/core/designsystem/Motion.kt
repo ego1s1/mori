@@ -84,9 +84,6 @@ object MoriMotion {
         dampingRatio = Spring.DampingRatioNoBouncy,
     )
 
-    /** Gentle expressive spring for chrome entrances (bottom bars, sheets content). */
-    fun <T> chromeSpring(): FiniteAnimationSpec<T> = defaultSpatialSpec()
-
     /** Playful expressive spring for hero moments (FABs, covers, toggles). */
     fun <T> heroSpring(): FiniteAnimationSpec<T> = spring(
         dampingRatio = Spring.DampingRatioLowBouncy,

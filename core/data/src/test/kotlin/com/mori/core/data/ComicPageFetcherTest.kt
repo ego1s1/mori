@@ -1,4 +1,5 @@
 package com.mori.core.data
+import com.mori.core.testing.FakeComicsRepository
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider

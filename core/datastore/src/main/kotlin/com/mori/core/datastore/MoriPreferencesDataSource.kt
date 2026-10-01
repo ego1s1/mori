@@ -1,6 +1,6 @@
 package com.mori.core.datastore
 
-import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ThemePreferences
@@ -26,7 +26,7 @@ interface MoriPreferencesDataSource {
     val motionStyle: Flow<MotionStyle>
 
     /** Persisted library display options (sort, filter, error visibility). */
-    val libraryDisplay: Flow<LibraryDisplay>
+    val libraryQuery: Flow<LibraryQuery>
 
     /** True once the reader's first-launch overview has faded (chrome shown 2s). */
     val readerOverviewSeen: Flow<Boolean>
@@ -46,7 +46,7 @@ interface MoriPreferencesDataSource {
 
     suspend fun updateMotionStyle(style: MotionStyle)
 
-    suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay)
+    suspend fun updateLibraryQuery(transform: (LibraryQuery) -> LibraryQuery)
 
     suspend fun setReaderOverviewSeen()
 }

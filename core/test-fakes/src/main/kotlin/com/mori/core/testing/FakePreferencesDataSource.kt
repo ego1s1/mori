@@ -1,7 +1,7 @@
 package com.mori.core.testing
 
 import com.mori.core.datastore.MoriPreferencesDataSource
-import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ThemePreferences
@@ -18,7 +18,7 @@ class FakePreferencesDataSource(
     initialReader: ReaderPreferences = ReaderPreferences(),
     initialTheme: ThemePreferences = ThemePreferences(),
     initialMotion: MotionStyle = MotionStyle.EXPRESSIVE,
-    initialLibrary: LibraryDisplay = LibraryDisplay(),
+    initialQuery: LibraryQuery = LibraryQuery(),
     overviewSeen: Boolean = true,
 ) : MoriPreferencesDataSource {
 
@@ -27,7 +27,7 @@ class FakePreferencesDataSource(
     private val readerPreferencesFlow = MutableStateFlow(initialReader)
     private val themePreferencesFlow = MutableStateFlow(initialTheme)
     private val motionStyleFlow = MutableStateFlow(initialMotion)
-    private val libraryDisplayFlow = MutableStateFlow(initialLibrary)
+    private val libraryQueryFlow = MutableStateFlow(initialQuery)
     private val overviewSeenFlow = MutableStateFlow(overviewSeen)
     val updates = mutableListOf<ReaderPreferences>()
 
@@ -36,7 +36,7 @@ class FakePreferencesDataSource(
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
-    override val libraryDisplay: Flow<LibraryDisplay> = libraryDisplayFlow.asStateFlow()
+    override val libraryQuery: Flow<LibraryQuery> = libraryQueryFlow.asStateFlow()
     override val readerOverviewSeen: Flow<Boolean> = overviewSeenFlow.asStateFlow()
 
     fun isOverviewSeen(): Boolean = overviewSeenFlow.value
@@ -63,8 +63,8 @@ class FakePreferencesDataSource(
         motionStyleFlow.value = style
     }
 
-    override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
-        libraryDisplayFlow.value = transform(libraryDisplayFlow.value)
+    override suspend fun updateLibraryQuery(transform: (LibraryQuery) -> LibraryQuery) {
+        libraryQueryFlow.value = transform(libraryQueryFlow.value)
     }
 
     override suspend fun setReaderOverviewSeen() {

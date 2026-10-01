@@ -1,5 +1,6 @@
 package com.mori.core.data
 
+import com.mori.comic.ArchiveFormat
 import com.mori.comic.CorruptArchiveException
 import com.mori.comic.EmptyArchiveException
 import com.mori.comic.PasswordRequiredException
@@ -450,7 +451,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         }
         return try {
             val inspected = backend.inspect(file)
-            val format = ComicFormat.fromFileName(file.name) ?: ComicFormat.CBZ
+            val format = comicFormatFor(file.name)
             val title = inspected.metadata.title?.takeIf { it.isNotBlank() }
                 ?: fallbackTitle ?: file.nameWithoutExtension
             val coverPath = covers.generateCover(file, coverId, inspected.pages)
@@ -489,7 +490,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         title = fallbackTitle ?: file.nameWithoutExtension,
         series = null,
         number = null,
-        format = (ComicFormat.fromFileName(file.name) ?: ComicFormat.CBZ).name,
+        format = comicFormatFor(file.name).name,
         pageCount = 0,
         sourcePath = file.absolutePath,
         coverPath = null,
@@ -500,6 +501,16 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         createdAt = now,
         updatedAt = now,
     )
+
+    /**
+     * Extension mapping is single-sourced in comic-core's ArchiveFormat;
+     * variant names align 1:1 with ComicFormat, with CBZ as the legacy
+     * fallback for unknown extensions (see the pre-existing default above).
+     */
+    private fun comicFormatFor(fileName: String): ComicFormat {
+        val archive = ArchiveFormat.fromExtension(fileName) ?: return ComicFormat.CBZ
+        return runCatching { ComicFormat.valueOf(archive.name) }.getOrDefault(ComicFormat.CBZ)
+    }
 
     private fun mapError(e: Exception): ComicError = when (e) {
         is PasswordRequiredException -> ComicError.PASSWORD_REQUIRED

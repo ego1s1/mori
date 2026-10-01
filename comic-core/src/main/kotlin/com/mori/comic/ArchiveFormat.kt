@@ -12,6 +12,20 @@ enum class ArchiveFormat {
     ;
 
     companion object {
+        /**
+         * Matches a file name to a format by extension alone. The single
+         * extension table: [detect] and import listing share it so a new
+         * container cannot be openable but unlistable (or vice versa).
+         */
+        fun fromExtension(name: String): ArchiveFormat? {
+            return when (name.substringAfterLast('.', "").lowercase()) {
+                "cbz", "zip" -> CBZ
+                "cbr", "rar" -> CBR
+                "cb7", "7z" -> CB7
+                "cbt", "tar" -> CBT
+                else -> null
+            }
+        }
         private val ZIP_MAGIC = byteArrayOf(0x50, 0x4B, 0x03, 0x04) // "PK\x03\x04"
         private val ZIP_EMPTY_MAGIC = byteArrayOf(0x50, 0x4B, 0x05, 0x06) // "PK\x05\x06"
         private val ZIP_SPANNED_MAGIC = byteArrayOf(0x50, 0x4B, 0x07, 0x08) // "PK\x07\x08"
@@ -30,14 +44,7 @@ enum class ArchiveFormat {
          *   match a supported format.
          */
         fun detect(file: File): ArchiveFormat {
-            val extension = file.extension.lowercase()
-            val byExtension = when (extension) {
-                "cbz", "zip" -> CBZ
-                "cbr", "rar" -> CBR
-                "cb7", "7z" -> CB7
-                "cbt", "tar" -> CBT
-                else -> null
-            }
+            val byExtension = fromExtension(file.name)
             if (byExtension != null) return byExtension
 
             val magic = readMagic(file)

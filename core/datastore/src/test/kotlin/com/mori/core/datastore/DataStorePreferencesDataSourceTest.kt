@@ -67,14 +67,14 @@ class DataStorePreferencesDataSourceTest {
     }
 
     @Test
-    fun libraryDisplayRoundTrips() = runTest {
+    fun libraryQueryRoundTrips() = runTest {
         val dataSource = dataSource()
-        dataSource.libraryDisplay.test {
+        dataSource.libraryQuery.test {
             val defaults = awaitItem()
             assertEquals(LibrarySortOrder.RECENTLY_ADDED, defaults.sortOrder)
             assertEquals(LibraryFilter.ALL, defaults.filter)
             assertEquals(false, defaults.hideErrors)
-            dataSource.updateLibraryDisplay {
+            dataSource.updateLibraryQuery {
                 it.copy(sortOrder = LibrarySortOrder.TITLE, hideErrors = true)
             }
             val updated = awaitItem()

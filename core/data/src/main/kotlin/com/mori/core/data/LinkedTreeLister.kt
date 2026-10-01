@@ -3,6 +3,7 @@ package com.mori.core.data
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.mori.comic.ArchiveFormat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -78,10 +79,5 @@ internal class DocumentLinkedTreeLister @Inject constructor(
     }
 }
 
-internal fun isSupportedArchive(name: String): Boolean {
-    val extension = name.substringAfterLast('.', "").lowercase()
-    return extension == "cbz" || extension == "zip" ||
-        extension == "cbr" || extension == "rar" ||
-        extension == "cb7" || extension == "7z" ||
-        extension == "cbt" || extension == "tar"
-}
+internal fun isSupportedArchive(name: String): Boolean =
+    ArchiveFormat.fromExtension(name) != null

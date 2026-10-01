@@ -56,15 +56,15 @@ fun MoriMotion.enter(kind: MoriEnterKind): EnterTransition {
         }
         when (kind) {
             MoriEnterKind.CHROME_TOP -> fadeIn(animationSpec = defaultEffectsSpec()) +
-                slideInVertically(animationSpec = chromeSpring()) { -it / 2 }
+                slideInVertically(animationSpec = defaultSpatialSpec()) { -it / 2 }
             MoriEnterKind.CHROME_BOTTOM -> fadeIn(animationSpec = defaultEffectsSpec()) +
-                slideInVertically(animationSpec = chromeSpring()) { it / 2 }
+                slideInVertically(animationSpec = defaultSpatialSpec()) { it / 2 }
             MoriEnterKind.SEARCH -> fadeIn(animationSpec = defaultEffectsSpec()) +
-                expandVertically(animationSpec = chromeSpring())
+                expandVertically(animationSpec = defaultSpatialSpec())
             MoriEnterKind.FAB -> fadeIn(animationSpec = defaultEffectsSpec()) +
                 scaleIn(animationSpec = heroSpring(), initialScale = 0.6f)
             MoriEnterKind.RISE -> fadeIn(animationSpec = defaultEffectsSpec()) +
-                slideInVertically(animationSpec = chromeSpring()) { it / 4 }
+                slideInVertically(animationSpec = defaultSpatialSpec()) { it / 4 }
             MoriEnterKind.FADE_THROUGH -> fadeIn(animationSpec = defaultEffectsSpec()) +
                 scaleIn(animationSpec = defaultSpatialSpec(), initialScale = 0.98f)
             MoriEnterKind.FADE -> fadeIn(animationSpec = defaultEffectsSpec())
@@ -82,17 +82,17 @@ fun MoriMotion.exit(kind: MoriEnterKind): ExitTransition {
         }
         when (kind) {
             MoriEnterKind.CHROME_TOP -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                slideOutVertically(animationSpec = chromeSpring()) { -it / 2 }
+                slideOutVertically(animationSpec = defaultSpatialSpec()) { -it / 2 }
             MoriEnterKind.CHROME_BOTTOM -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                slideOutVertically(animationSpec = chromeSpring()) { it / 2 }
+                slideOutVertically(animationSpec = defaultSpatialSpec()) { it / 2 }
             MoriEnterKind.SEARCH -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                shrinkVertically(animationSpec = chromeSpring())
+                shrinkVertically(animationSpec = defaultSpatialSpec())
             MoriEnterKind.FAB -> fadeOut(animationSpec = defaultEffectsSpec()) +
                 // Mirrors the enter spring (same spec, reversed endpoints):
                 // exits shrink back through the arrival scale, never snap.
                 scaleOut(animationSpec = heroSpring(), targetScale = 0.6f)
             MoriEnterKind.RISE -> fadeOut(animationSpec = defaultEffectsSpec()) +
-                slideOutVertically(animationSpec = chromeSpring()) { it / 4 }
+                slideOutVertically(animationSpec = defaultSpatialSpec()) { it / 4 }
             MoriEnterKind.FADE_THROUGH -> fadeOut(animationSpec = defaultEffectsSpec())
             MoriEnterKind.FADE -> fadeOut(animationSpec = defaultEffectsSpec())
         }

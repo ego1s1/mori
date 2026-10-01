@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.PageFit
@@ -83,12 +83,12 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[MOTION_STYLE] = style.name }
     }
 
-    override val libraryDisplay: Flow<LibraryDisplay> =
-        dataStore.data.map { it.toLibraryDisplay() }.distinctUntilChanged()
+    override val libraryQuery: Flow<LibraryQuery> =
+        dataStore.data.map { it.toLibraryQuery() }.distinctUntilChanged()
 
-    override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+    override suspend fun updateLibraryQuery(transform: (LibraryQuery) -> LibraryQuery) {
         dataStore.updateData { prefs ->
-            val updated = transform(prefs.toLibraryDisplay())
+            val updated = transform(prefs.toLibraryQuery())
             prefs.toMutablePreferences().apply {
                 this[LIBRARY_SORT] = updated.sortOrder.name
                 this[LIBRARY_FILTER] = updated.filter.name
@@ -168,7 +168,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         amoled = this[AMOLED] ?: false,
     )
 
-    private fun Preferences.toLibraryDisplay(): LibraryDisplay = LibraryDisplay(
+    private fun Preferences.toLibraryQuery(): LibraryQuery = LibraryQuery(
         sortOrder = this[LIBRARY_SORT]?.let {
             runCatching { LibrarySortOrder.valueOf(it) }.getOrDefault(LibrarySortOrder.RECENTLY_ADDED)
         } ?: LibrarySortOrder.RECENTLY_ADDED,

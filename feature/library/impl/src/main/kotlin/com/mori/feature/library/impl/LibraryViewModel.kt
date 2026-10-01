@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
 import com.mori.core.model.Comic
-import com.mori.core.model.LibraryDisplay
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
@@ -52,10 +51,9 @@ class LibraryViewModel @Inject constructor(
         savedStateHandle.get<String>(KEY_QUERY_TEXT).orEmpty(),
     )
     private val query: StateFlow<LibraryQuery> = combine(
-        preferences.libraryDisplay,
+        preferences.libraryQuery,
         searchText,
-        LibraryDisplay::toQuery,
-    ).distinctUntilChanged().stateIn(
+    ) { stored, text -> stored.copy(text = text) }.distinctUntilChanged().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryQuery(),
@@ -99,10 +97,9 @@ class LibraryViewModel @Inject constructor(
      * through with no delay.
      */
     private val dbQuery: Flow<LibraryQuery> = combine(
-        preferences.libraryDisplay,
+        preferences.libraryQuery,
         searchText.debounce { text -> if (text.isEmpty()) 0L else SEARCH_DEBOUNCE_MS },
-        LibraryDisplay::toQuery,
-    ).distinctUntilChanged()
+    ) { stored, text -> stored.copy(text = text) }.distinctUntilChanged()
 
     /**
      * One-shot messages (errors, confirmations). A channel, not state: rotation
@@ -171,7 +168,7 @@ class LibraryViewModel @Inject constructor(
             LibraryBase(comics, query, chrome, treeUri != null, progress)
         }.distinctUntilChanged(),
         collectionsState,
-        preferences.libraryDisplay.map { it.collapsedShelfIds }.distinctUntilChanged(),
+        preferences.libraryQuery.map { it.collapsedShelfIds }.distinctUntilChanged(),
     ) { base, collections, collapsedIds ->
         toUiState(base, collections, collapsedIds)
     }.distinctUntilChanged().stateIn(
@@ -251,9 +248,9 @@ class LibraryViewModel @Inject constructor(
                 searchText.value = action.text
                 savedStateHandle[KEY_QUERY_TEXT] = action.text
             }
-            is LibraryAction.SortSelected -> updateDisplay { it.copy(sortOrder = action.sort) }
-            is LibraryAction.FilterSelected -> updateDisplay { it.copy(filter = action.filter) }
-            is LibraryAction.ToggleHideErrors -> updateDisplay { it.copy(hideErrors = action.hide) }
+            is LibraryAction.SortSelected -> updateQuery { it.copy(sortOrder = action.sort) }
+            is LibraryAction.FilterSelected -> updateQuery { it.copy(filter = action.filter) }
+            is LibraryAction.ToggleHideErrors -> updateQuery { it.copy(hideErrors = action.hide) }
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
             LibraryAction.Refresh -> reindex()
@@ -298,7 +295,7 @@ class LibraryViewModel @Inject constructor(
      * delete live in Settings; the library only views).
      */
     private fun toggleShelfCollapsed(collectionId: Long) {
-        updateDisplay { display ->
+        updateQuery { display ->
             val collapsed = display.collapsedShelfIds.toMutableSet()
             if (!collapsed.add(collectionId)) {
                 collapsed.remove(collectionId)
@@ -322,10 +319,10 @@ class LibraryViewModel @Inject constructor(
         val progress: IndexProgress?,
     )
 
-    private fun updateDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
+    private fun updateQuery(transform: (LibraryQuery) -> LibraryQuery) {
         viewModelScope.launch {
             // Fire-and-forget prefs write: never crash the scope child on IO failure.
-            runCatching { preferences.updateLibraryDisplay(transform) }
+            runCatching { preferences.updateLibraryQuery(transform) }
         }
     }
 

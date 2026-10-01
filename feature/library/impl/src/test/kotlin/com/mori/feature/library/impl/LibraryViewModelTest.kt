@@ -2,7 +2,7 @@ package com.mori.feature.library.impl
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
-import com.mori.core.model.LibraryDisplay
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.UserCollection
@@ -376,7 +376,7 @@ class LibraryViewModelTest {
             ),
         )
         val preferences = FakePreferencesDataSource(
-            initialLibrary = LibraryDisplay(
+            initialQuery = LibraryQuery(
                 sortOrder = LibrarySortOrder.TITLE,
                 filter = LibraryFilter.FINISHED,
                 hideErrors = true,

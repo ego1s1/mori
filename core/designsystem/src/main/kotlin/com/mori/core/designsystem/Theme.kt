@@ -5,7 +5,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -83,24 +82,15 @@ private val DarkColors = darkColorScheme(
  */
 private fun ColorScheme.amoled(): ColorScheme = copy(
     background = Color.Black,
-    onBackground = onBackground,
     surface = Color.Black,
-    onSurface = onSurface,
     surfaceDim = Color.Black,
     surfaceBright = surfaceBright.darkened(0.45f),
-    surfaceTint = surfaceTint,
     surfaceContainerLowest = Color.Black,
     surfaceContainerLow = surfaceContainerLow.darkened(0.45f),
     surfaceContainer = surfaceContainer.darkened(0.35f),
     surfaceContainerHigh = surfaceContainerHigh.darkened(0.25f),
     surfaceContainerHighest = surfaceContainerHighest.darkened(0.12f),
     surfaceVariant = surfaceVariant.darkened(0.35f),
-    onSurfaceVariant = onSurfaceVariant,
-    inverseSurface = inverseSurface,
-    inverseOnSurface = inverseOnSurface,
-    inversePrimary = inversePrimary,
-    outline = outline,
-    outlineVariant = outlineVariant,
     scrim = Color.Black,
 )
 

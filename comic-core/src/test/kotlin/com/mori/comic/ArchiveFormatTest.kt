@@ -2,6 +2,7 @@ package com.mori.comic
 
 import com.mori.comic.testutil.Archives
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -87,8 +88,17 @@ class ArchiveFormatTest {
     }
 
     @Test
-    fun truncatedSignatureThrowsCorrupt() {
-        // "PK" alone is a cut-off zip signature, not an unknown format.
+    fun extensionTableCoversAliases() {
+        assertEquals(ArchiveFormat.CBZ, ArchiveFormat.fromExtension("book.ZIP"))
+        assertEquals(ArchiveFormat.CBR, ArchiveFormat.fromExtension("book.rar"))
+        assertEquals(ArchiveFormat.CB7, ArchiveFormat.fromExtension("book.7z"))
+        assertEquals(ArchiveFormat.CBT, ArchiveFormat.fromExtension("book.tar"))
+        assertNull(ArchiveFormat.fromExtension("book.pdf"))
+        assertNull(ArchiveFormat.fromExtension("book"))
+    }
+
+    @Test
+    fun truncatedSignatureThrowsCorrupt() {        // "PK" alone is a cut-off zip signature, not an unknown format.
         val file = Archives.writeFile(Archives.newTempDir(), "cut.bin", byteArrayOf(0x50, 0x4B))
         assertThrows(CorruptArchiveException::class.java) { ArchiveFormat.detect(file) }
     }
