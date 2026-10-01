@@ -29,17 +29,17 @@ class ComicFactoryTest {
     }
 
     @Test
-    fun missingFileThrowsCorrupt() {
+    fun missingFileThrowsNotFound() {
         val file = File(Archives.newTempDir(), "missing.cbz")
-        assertThrows(CorruptArchiveException::class.java) {
+        assertThrows(SourceNotFoundException::class.java) {
             ComicFactory.open(ComicSource.File(file))
         }
     }
 
     @Test
-    fun missingDirectoryThrowsCorrupt() {
+    fun missingDirectoryThrowsNotFound() {
         val dir = File(Archives.newTempDir(), "nope")
-        assertThrows(CorruptArchiveException::class.java) {
+        assertThrows(SourceNotFoundException::class.java) {
             ComicFactory.open(ComicSource.Directory(dir))
         }
     }

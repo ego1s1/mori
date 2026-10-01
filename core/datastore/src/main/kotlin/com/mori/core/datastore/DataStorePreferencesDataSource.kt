@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -36,32 +37,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.data.map { it[SOURCE_TREE_URI] }.distinctUntilChanged()
 
     override val readerPreferences: Flow<ReaderPreferences> =
-        dataStore.data.map { prefs ->
-            ReaderPreferences(
-                direction = prefs[READING_DIRECTION]?.let {
-                    runCatching { ReadingDirection.valueOf(it) }.getOrDefault(ReadingDirection.LEFT_TO_RIGHT)
-                } ?: ReadingDirection.LEFT_TO_RIGHT,
-                pageFit = prefs[PAGE_FIT]?.let {
-                    runCatching { PageFit.valueOf(it) }.getOrDefault(PageFit.WIDTH)
-                } ?: PageFit.WIDTH,
-                cropMargins = prefs[CROP_MARGINS] ?: false,
-                volumeKeys = prefs[VOLUME_KEYS] ?: false,
-                volumeKeysInverted = prefs[VOLUME_KEYS_INVERTED] ?: false,
-                keepScreenOn = prefs[KEEP_SCREEN_ON] ?: true,
-                showPageCounter = prefs[SHOW_PAGE_COUNTER] ?: true,
-                swipeToTurn = prefs[SWIPE_TO_TURN] ?: true,
-                showTapZones = prefs[SHOW_TAP_ZONES] ?: false,
-                dualPageSplit = prefs[DUAL_PAGE_SPLIT] ?: false,
-                dualPageInvert = prefs[DUAL_PAGE_INVERT] ?: false,
-                displayFilter = com.mori.core.model.DisplayFilter(
-                    brightness = prefs[FILTER_BRIGHTNESS] ?: 0f,
-                    grayscale = prefs[FILTER_GRAYSCALE] ?: false,
-                    invert = prefs[FILTER_INVERT] ?: false,
-                    nightTint = prefs[FILTER_NIGHT_TINT] ?: 0f,
-                ),
-                incognito = prefs[INCOGNITO] ?: false,
-            )
-        }.distinctUntilChanged()
+        dataStore.data.map { it.toReaderPreferences() }.distinctUntilChanged()
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
@@ -74,50 +50,25 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {
-        val current = readerPreferences.first()
-        val updated = transform(current)
-        dataStore.edit {
-            it[READING_DIRECTION] = updated.direction.name
-            it[PAGE_FIT] = updated.pageFit.name
-            it[CROP_MARGINS] = updated.cropMargins
-            it[VOLUME_KEYS] = updated.volumeKeys
-            it[VOLUME_KEYS_INVERTED] = updated.volumeKeysInverted
-            it[KEEP_SCREEN_ON] = updated.keepScreenOn
-            it[SHOW_PAGE_COUNTER] = updated.showPageCounter
-            it[SWIPE_TO_TURN] = updated.swipeToTurn
-            it[SHOW_TAP_ZONES] = updated.showTapZones
-            it[DUAL_PAGE_SPLIT] = updated.dualPageSplit
-            it[DUAL_PAGE_INVERT] = updated.dualPageInvert
-            it[FILTER_BRIGHTNESS] = updated.displayFilter.brightness
-            it[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
-            it[FILTER_INVERT] = updated.displayFilter.invert
-            it[FILTER_NIGHT_TINT] = updated.displayFilter.nightTint
-            it[INCOGNITO] = updated.incognito
+        // Atomic read-modify-write: first()+edit could drop a concurrent
+        // update, updateData serializes the whole transform instead.
+        dataStore.updateData { prefs ->
+            writeReaderPreferences(prefs.toMutablePreferences(), transform(prefs.toReaderPreferences()))
         }
     }
 
     override val themePreferences: Flow<ThemePreferences> =
-        dataStore.data.map { prefs ->
-            ThemePreferences(
-                mode = prefs[THEME_MODE]?.let {
-                    runCatching { ThemeMode.valueOf(it) }.getOrDefault(ThemeMode.SYSTEM)
-                } ?: ThemeMode.SYSTEM,
-                dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
-                colorScheme = prefs[COLOR_SCHEME]?.let {
-                    runCatching { ColorSchemeChoice.valueOf(it) }.getOrDefault(ColorSchemeChoice.MORI)
-                } ?: ColorSchemeChoice.MORI,
-                amoled = prefs[AMOLED] ?: false,
-            )
-        }.distinctUntilChanged()
+        dataStore.data.map { it.toThemePreferences() }.distinctUntilChanged()
 
     override suspend fun updateThemePreferences(transform: (ThemePreferences) -> ThemePreferences) {
-        val current = themePreferences.first()
-        val updated = transform(current)
-        dataStore.edit {
-            it[THEME_MODE] = updated.mode.name
-            it[DYNAMIC_COLOR] = updated.dynamicColor
-            it[COLOR_SCHEME] = updated.colorScheme.name
-            it[AMOLED] = updated.amoled
+        dataStore.updateData { prefs ->
+            val updated = transform(prefs.toThemePreferences())
+            prefs.toMutablePreferences().apply {
+                this[THEME_MODE] = updated.mode.name
+                this[DYNAMIC_COLOR] = updated.dynamicColor
+                this[COLOR_SCHEME] = updated.colorScheme.name
+                this[AMOLED] = updated.amoled
+            }
         }
     }
 
@@ -133,29 +84,17 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     }
 
     override val libraryDisplay: Flow<LibraryDisplay> =
-        dataStore.data.map { prefs ->
-            LibraryDisplay(
-                sortOrder = prefs[LIBRARY_SORT]?.let {
-                    runCatching { LibrarySortOrder.valueOf(it) }.getOrDefault(LibrarySortOrder.RECENTLY_ADDED)
-                } ?: LibrarySortOrder.RECENTLY_ADDED,
-                filter = prefs[LIBRARY_FILTER]?.let {
-                    runCatching { LibraryFilter.valueOf(it) }.getOrDefault(LibraryFilter.ALL)
-                } ?: LibraryFilter.ALL,
-                hideErrors = prefs[LIBRARY_HIDE_ERRORS] ?: false,
-                collapsedShelfIds = prefs[LIBRARY_COLLAPSED_SHELVES]?.mapNotNull {
-                    it.toLongOrNull()
-                }.orEmpty().toSet(),
-            )
-        }.distinctUntilChanged()
+        dataStore.data.map { it.toLibraryDisplay() }.distinctUntilChanged()
 
     override suspend fun updateLibraryDisplay(transform: (LibraryDisplay) -> LibraryDisplay) {
-        val current = libraryDisplay.first()
-        val updated = transform(current)
-        dataStore.edit {
-            it[LIBRARY_SORT] = updated.sortOrder.name
-            it[LIBRARY_FILTER] = updated.filter.name
-            it[LIBRARY_HIDE_ERRORS] = updated.hideErrors
-            it[LIBRARY_COLLAPSED_SHELVES] = updated.collapsedShelfIds.map { id -> id.toString() }.toSet()
+        dataStore.updateData { prefs ->
+            val updated = transform(prefs.toLibraryDisplay())
+            prefs.toMutablePreferences().apply {
+                this[LIBRARY_SORT] = updated.sortOrder.name
+                this[LIBRARY_FILTER] = updated.filter.name
+                this[LIBRARY_HIDE_ERRORS] = updated.hideErrors
+                this[LIBRARY_COLLAPSED_SHELVES] = updated.collapsedShelfIds.map { id -> id.toString() }.toSet()
+            }
         }
     }
 
@@ -173,8 +112,76 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[APP_LOCK_ENABLED] = enabled }
     }
 
-    private companion object {
-        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    private fun Preferences.toReaderPreferences(): ReaderPreferences = ReaderPreferences(
+        direction = this[READING_DIRECTION]?.let {
+            runCatching { ReadingDirection.valueOf(it) }.getOrDefault(ReadingDirection.LEFT_TO_RIGHT)
+        } ?: ReadingDirection.LEFT_TO_RIGHT,
+        pageFit = this[PAGE_FIT]?.let {
+            runCatching { PageFit.valueOf(it) }.getOrDefault(PageFit.WIDTH)
+        } ?: PageFit.WIDTH,
+        cropMargins = this[CROP_MARGINS] ?: false,
+        volumeKeys = this[VOLUME_KEYS] ?: false,
+        volumeKeysInverted = this[VOLUME_KEYS_INVERTED] ?: false,
+        keepScreenOn = this[KEEP_SCREEN_ON] ?: true,
+        showPageCounter = this[SHOW_PAGE_COUNTER] ?: true,
+        swipeToTurn = this[SWIPE_TO_TURN] ?: true,
+        showTapZones = this[SHOW_TAP_ZONES] ?: false,
+        dualPageSplit = this[DUAL_PAGE_SPLIT] ?: false,
+        dualPageInvert = this[DUAL_PAGE_INVERT] ?: false,
+        displayFilter = com.mori.core.model.DisplayFilter(
+            brightness = this[FILTER_BRIGHTNESS] ?: 0f,
+            grayscale = this[FILTER_GRAYSCALE] ?: false,
+            invert = this[FILTER_INVERT] ?: false,
+            nightTint = this[FILTER_NIGHT_TINT] ?: 0f,
+        ),
+        incognito = this[INCOGNITO] ?: false,
+    )
+
+    private fun writeReaderPreferences(prefs: MutablePreferences, updated: ReaderPreferences): Preferences =
+        prefs.apply {
+            this[READING_DIRECTION] = updated.direction.name
+            this[PAGE_FIT] = updated.pageFit.name
+            this[CROP_MARGINS] = updated.cropMargins
+            this[VOLUME_KEYS] = updated.volumeKeys
+            this[VOLUME_KEYS_INVERTED] = updated.volumeKeysInverted
+            this[KEEP_SCREEN_ON] = updated.keepScreenOn
+            this[SHOW_PAGE_COUNTER] = updated.showPageCounter
+            this[SWIPE_TO_TURN] = updated.swipeToTurn
+            this[SHOW_TAP_ZONES] = updated.showTapZones
+            this[DUAL_PAGE_SPLIT] = updated.dualPageSplit
+            this[DUAL_PAGE_INVERT] = updated.dualPageInvert
+            this[FILTER_BRIGHTNESS] = updated.displayFilter.brightness
+            this[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
+            this[FILTER_INVERT] = updated.displayFilter.invert
+            this[FILTER_NIGHT_TINT] = updated.displayFilter.nightTint
+            this[INCOGNITO] = updated.incognito
+        }
+
+    private fun Preferences.toThemePreferences(): ThemePreferences = ThemePreferences(
+        mode = this[THEME_MODE]?.let {
+            runCatching { ThemeMode.valueOf(it) }.getOrDefault(ThemeMode.SYSTEM)
+        } ?: ThemeMode.SYSTEM,
+        dynamicColor = this[DYNAMIC_COLOR] ?: true,
+        colorScheme = this[COLOR_SCHEME]?.let {
+            runCatching { ColorSchemeChoice.valueOf(it) }.getOrDefault(ColorSchemeChoice.MORI)
+        } ?: ColorSchemeChoice.MORI,
+        amoled = this[AMOLED] ?: false,
+    )
+
+    private fun Preferences.toLibraryDisplay(): LibraryDisplay = LibraryDisplay(
+        sortOrder = this[LIBRARY_SORT]?.let {
+            runCatching { LibrarySortOrder.valueOf(it) }.getOrDefault(LibrarySortOrder.RECENTLY_ADDED)
+        } ?: LibrarySortOrder.RECENTLY_ADDED,
+        filter = this[LIBRARY_FILTER]?.let {
+            runCatching { LibraryFilter.valueOf(it) }.getOrDefault(LibraryFilter.ALL)
+        } ?: LibraryFilter.ALL,
+        hideErrors = this[LIBRARY_HIDE_ERRORS] ?: false,
+        collapsedShelfIds = this[LIBRARY_COLLAPSED_SHELVES]?.mapNotNull {
+            it.toLongOrNull()
+        }.orEmpty().toSet(),
+    )
+
+    private companion object {        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val SOURCE_TREE_URI = stringPreferencesKey("source_tree_uri")
         val READING_DIRECTION = stringPreferencesKey("reading_direction")
         val PAGE_FIT = stringPreferencesKey("page_fit")

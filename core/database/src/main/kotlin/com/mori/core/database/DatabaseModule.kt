@@ -20,7 +20,12 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MoriDatabase =
-        Room.databaseBuilder(context, MoriDatabase::class.java, "mori.db").build()
+        Room.databaseBuilder(context, MoriDatabase::class.java, "mori.db")
+            // Downgrades (APK rollbacks) wipe and rebuild rather than crash
+            // on launch; upgrades still go through AutoMigration only, so a
+            // non-migratable upgrade fails loudly instead of losing data.
+            .fallbackToDestructiveMigrationOnDowngrade()
+            .build()
 
     @Provides
     @Singleton

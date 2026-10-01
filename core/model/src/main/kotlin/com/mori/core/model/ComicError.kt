@@ -6,4 +6,6 @@ enum class ComicError {
     PASSWORD_REQUIRED,
     EMPTY,
     UNSUPPORTED,
+    /** The file or folder vanished (moved, renamed, or access revoked). */
+    NOT_FOUND,
 }

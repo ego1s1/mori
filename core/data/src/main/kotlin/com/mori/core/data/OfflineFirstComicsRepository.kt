@@ -3,6 +3,7 @@ package com.mori.core.data
 import com.mori.comic.CorruptArchiveException
 import com.mori.comic.EmptyArchiveException
 import com.mori.comic.PasswordRequiredException
+import com.mori.comic.SourceNotFoundException
 import com.mori.comic.UnsupportedFormatException
 import com.mori.core.database.ComicDao
 import com.mori.core.database.ComicEntity
@@ -70,8 +71,9 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.Default)
 
-    override suspend fun getComic(id: String): Comic? =
+    override suspend fun getComic(id: String): Comic? = withContext(Dispatchers.IO) {
         dao.getById(id)?.toModel()
+    }
 
     override suspend fun indexLinkedTree(
         treeUri: Uri,
@@ -110,6 +112,8 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                     failed += 1
                 }
             } catch (e: Exception) {
+                // Cancellations must propagate so indexing stays abortable.
+                if (e is CancellationException) throw e
                 failed += 1
             }
             onProgress(index + 1, docs.size)
@@ -127,7 +131,10 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             }
             if (rows.isEmpty() && pruned.isNotEmpty()) {
                 dao.deleteAllLinked()
-            } else if (pruned.isNotEmpty()) {
+            } else if (pruned.isNotEmpty() && foundIds.isNotEmpty()) {
+                // foundIds is rows' ids (non-empty here); the guard keeps an
+                // empty NOT IN list — which SQLite reads as "delete all" —
+                // from ever reaching the DAO.
                 dao.deleteMissingLinked(foundIds.toList())
             }
             pruned.forEach { deleteCover(it.coverPath) }
@@ -181,13 +188,13 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun saveProgress(id: String, pageIndex: Int) {
-        val row = dao.getById(id) ?: return
+    override suspend fun saveProgress(id: String, pageIndex: Int) = withContext(Dispatchers.IO) {
+        val row = dao.getById(id) ?: return@withContext
         val clamped = pageIndex.coerceIn(0, (row.pageCount - 1).coerceAtLeast(0))
         dao.updateProgress(id, clamped, System.currentTimeMillis())
     }
 
-    override suspend fun toggleBookmark(id: String) {
+    override suspend fun toggleBookmark(id: String) = withContext(Dispatchers.IO) {
         // Single-statement toggle: a missing row is a no-op, same as the
         // previous read-then-write, without the extra round trip.
         dao.toggleBookmark(id, System.currentTimeMillis())
@@ -498,6 +505,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         is PasswordRequiredException -> ComicError.PASSWORD_REQUIRED
         is EmptyArchiveException -> ComicError.EMPTY
         is UnsupportedFormatException -> ComicError.UNSUPPORTED
+        is SourceNotFoundException -> ComicError.NOT_FOUND
         is CorruptArchiveException, is IOException -> ComicError.CORRUPT
         else -> ComicError.CORRUPT
     }

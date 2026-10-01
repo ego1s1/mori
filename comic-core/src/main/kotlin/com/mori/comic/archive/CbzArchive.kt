@@ -59,7 +59,9 @@ internal class CbzArchive(
     override fun close() {
         if (closed) return
         closed = true
-        zipFile.close()
+        // Never throws: teardown must not mask an in-flight error, and init
+        // closes before throwing EmptyArchiveException.
+        runCatching { zipFile.close() }
     }
 
     private fun openZip(file: File): ZipFile {

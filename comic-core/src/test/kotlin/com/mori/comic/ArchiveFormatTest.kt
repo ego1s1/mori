@@ -85,4 +85,11 @@ class ArchiveFormatTest {
         val e = assertThrows(UnsupportedFormatException::class.java) { ArchiveFormat.detect(file) }
         assert(e.message.orEmpty().contains("weird.dat"))
     }
+
+    @Test
+    fun truncatedSignatureThrowsCorrupt() {
+        // "PK" alone is a cut-off zip signature, not an unknown format.
+        val file = Archives.writeFile(Archives.newTempDir(), "cut.bin", byteArrayOf(0x50, 0x4B))
+        assertThrows(CorruptArchiveException::class.java) { ArchiveFormat.detect(file) }
+    }
 }

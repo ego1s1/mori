@@ -41,6 +41,15 @@ enum class ArchiveFormat {
             if (byExtension != null) return byExtension
 
             val magic = readMagic(file)
+            // A file cut off mid-signature is truncated, not an unknown
+            // format: its bytes are a strict prefix of exactly one known
+            // magic. Anything else unrecognized stays unsupported (a short
+            // unrelated file is simply not an archive).
+            if (magic.isNotEmpty() && isTruncatedSignature(magic)) {
+                throw CorruptArchiveException(
+                    "Truncated file (only ${file.length()} bytes): '${file.name}'",
+                )
+            }
             return when {
                 startsWith(magic, ZIP_MAGIC) ||
                     startsWith(magic, ZIP_EMPTY_MAGIC) ||
@@ -78,6 +87,13 @@ enum class ArchiveFormat {
         }
 
         private fun isUstar(bytes: ByteArray): Boolean = looksLikeTar(bytes)
+
+        private fun isTruncatedSignature(bytes: ByteArray): Boolean {
+            val signatures = listOf(ZIP_MAGIC, ZIP_EMPTY_MAGIC, ZIP_SPANNED_MAGIC, RAR_MAGIC, SEVEN_ZIP_MAGIC)
+            return signatures.any { sig ->
+                bytes.size < sig.size && sig.take(bytes.size).toByteArray().contentEquals(bytes)
+            }
+        }
 
         private const val MAX_MAGIC_BYTES = 264
     }

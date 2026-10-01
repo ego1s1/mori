@@ -27,6 +27,7 @@ fun MoriComicErrorCard(
                 ComicError.PASSWORD_REQUIRED -> R.string.mori_error_password
                 ComicError.EMPTY -> R.string.mori_error_empty
                 ComicError.UNSUPPORTED -> R.string.mori_error_unsupported
+                ComicError.NOT_FOUND -> R.string.mori_error_not_found
             },
         ),
         primaryLabel = primaryLabel,

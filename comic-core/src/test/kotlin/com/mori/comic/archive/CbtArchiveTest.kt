@@ -4,6 +4,7 @@ import com.mori.comic.ComicArchive
 import com.mori.comic.ComicFactory
 import com.mori.comic.ComicSource
 import com.mori.comic.CorruptArchiveException
+import com.mori.comic.SourceNotFoundException
 import com.mori.comic.EmptyArchiveException
 import com.mori.comic.model.MediaType
 import com.mori.comic.testutil.Archives
@@ -83,7 +84,7 @@ class CbtArchiveTest {
 
     @Test
     fun missingFileThrows() {
-        assertThrows(CorruptArchiveException::class.java) {
+        assertThrows(SourceNotFoundException::class.java) {
             ComicFactory.open(ComicSource.File(File(Archives.newTempDir(), "ghost.cbt")))
         }
     }

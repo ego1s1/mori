@@ -69,6 +69,10 @@ class PageDecoder {
      * function trips complexity budgets, so each side gets its own pass.
      */
     internal fun trimUniformMargins(bitmap: Bitmap): Bitmap {
+        // The scan copies every pixel into an IntArray (4 bytes/px); above
+        // the scan cap that doubles peak memory on already-huge pages, so
+        // cropping gracefully degrades to a no-op there.
+        if (bitmap.width.toLong() * bitmap.height > MAX_TRIM_PIXELS) return bitmap
         val frame = MarginScan(bitmap).frame()
         return if (frame.isWhole(bitmap.width, bitmap.height)) {
             bitmap
@@ -119,8 +123,15 @@ class PageDecoder {
             } else {
                 decodeRegionByCrop(bytes, mediaType, region, options, dimensions).bitmap
             }
-            requireNotNull(bitmap) { "Failed to decode region" }
-            return DecodedPage(bitmap, dimensions.width, dimensions.height, sampleSize, region, mediaType)
+            // Contract is DecodeException (not IAE) on any decode failure.
+            return DecodedPage(
+                bitmap ?: throw DecodeException("Failed to decode region"),
+                dimensions.width,
+                dimensions.height,
+                sampleSize,
+                region,
+                mediaType,
+            )
         } finally {
             decoder?.recycle()
         }
@@ -235,38 +246,67 @@ class PageDecoder {
      * Stream-based region decoder. Deliberately kept on the deprecated
      * `newInstance(InputStream, …)` overload: it is the only region path
      * that works back to minSdk 24 (ImageDecoder needs 28+ and offers no
-     * region primitive). Failure here is non-fatal — [decodeRegionByCrop]
-     * covers it with full-decode+crop.
+     * region primitive). The decoder reads from the stream lazily during
+     * `decodeRegion`, so the stream stays open until [StreamRegionDecoder.recycle].
+     * Failure here is non-fatal — [decodeRegionByCrop] covers it with
+     * full-decode+crop.
      */
     @Suppress("DEPRECATION")
-    private fun regionDecoder(bytes: ByteArray): android.graphics.BitmapRegionDecoder? {
+    private fun regionDecoder(bytes: ByteArray): StreamRegionDecoder? {
         return runCatching {
-            bytes.inputStream().use {
-                android.graphics.BitmapRegionDecoder.newInstance(it, false)
+            val stream = bytes.inputStream()
+            try {
+                android.graphics.BitmapRegionDecoder.newInstance(stream, false)?.let {
+                    StreamRegionDecoder(it, stream)
+                }
+            } catch (e: Exception) {
+                runCatching { stream.close() }
+                throw e
             }
         }.getOrNull()
+    }
+
+    private class StreamRegionDecoder(
+        private val decoder: android.graphics.BitmapRegionDecoder,
+        private val stream: java.io.InputStream,
+    ) {
+        fun decodeRegion(rect: Rect, options: BitmapFactory.Options?) =
+            decoder.decodeRegion(rect, options)
+
+        fun recycle() {
+            decoder.recycle()
+            runCatching { stream.close() }
+        }
     }
 
     private fun decoderSupportsRegions(mediaType: MediaType): Boolean =
         mediaType == MediaType.JPEG || mediaType == MediaType.PNG || mediaType == MediaType.WEBP
 
+    // Ceil division, matching decodeRegionByCrop: truncating here would
+    // decode one pixel short of the caller's region at odd sizes.
     private fun scaleRectForSample(rect: Rect, sampleSize: Int): Rect =
         Rect(
             rect.left,
             rect.top,
-            rect.left + rect.width() / sampleSize,
-            rect.top + rect.height() / sampleSize,
+            rect.left + (rect.width() + sampleSize - 1) / sampleSize,
+            rect.top + (rect.height() + sampleSize - 1) / sampleSize,
         )
 
     private fun Rect.intersectFull(dimensions: PageDimensions): Rect =
         clampTo(dimensions.width, dimensions.height)
 
-    private fun Rect.clampTo(width: Int, height: Int): Rect = Rect(
-        left.coerceIn(0, width),
-        top.coerceIn(0, height),
-        right.coerceIn(0, width),
-        bottom.coerceIn(0, height),
-    )
+    private fun Rect.clampTo(width: Int, height: Int): Rect {
+        val clamped = Rect(
+            left.coerceIn(0, width),
+            top.coerceIn(0, height),
+            right.coerceIn(0, width),
+            bottom.coerceIn(0, height),
+        )
+        // A fully-outside region clamps to an empty/inverted rect; surface
+        // that as a decode error, not an IllegalArgumentException from Bitmap.
+        if (clamped.isEmpty) throw DecodeException("Region lies outside the image")
+        return clamped
+    }
 
     private companion object {
         /**
@@ -276,6 +316,8 @@ class PageDecoder {
          * gigapixel header from ever reaching a pixel allocation.
          */
         private const val MAX_PIXELS = 64L * 1024 * 1024
+        /** Margin-scan copy cap (16MP = 64MB IntArray). See trimUniformMargins. */
+        private const val MAX_TRIM_PIXELS = 16L * 1024 * 1024
     }
 }
 

@@ -14,6 +14,9 @@ class UnsupportedFormatException(message: String) : ComicException(message)
 /** The archive exists but cannot be read as its detected format (truncated, wrong magic, etc.). */
 class CorruptArchiveException(message: String, cause: Throwable? = null) : ComicException(message, cause)
 
+/** The source file or directory does not exist (moved, renamed, or revoked access). */
+class SourceNotFoundException(message: String) : ComicException(message)
+
 /** The archive contains no readable pages. */
 class EmptyArchiveException(message: String) : ComicException(message)
 

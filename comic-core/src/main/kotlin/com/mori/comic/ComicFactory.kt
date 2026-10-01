@@ -32,7 +32,7 @@ object ComicFactory {
 
     private fun openDirectory(directory: File): ComicArchive {
         if (!directory.exists()) {
-            throw CorruptArchiveException("Directory does not exist: '${directory.path}'")
+            throw SourceNotFoundException("Directory does not exist: '${directory.path}'")
         }
         if (!directory.isDirectory) {
             throw CorruptArchiveException("Not a directory: '${directory.path}'")
@@ -42,7 +42,7 @@ object ComicFactory {
 
     private fun openFile(file: File): ComicArchive {
         if (!file.exists()) {
-            throw CorruptArchiveException("File does not exist: '${file.path}'")
+            throw SourceNotFoundException("File does not exist: '${file.path}'")
         }
         if (!file.isFile) {
             throw CorruptArchiveException("Not a regular file: '${file.path}'")

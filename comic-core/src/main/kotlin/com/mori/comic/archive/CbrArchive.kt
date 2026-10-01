@@ -68,11 +68,11 @@ internal class CbrArchive(
     override fun close() {
         if (closed) return
         closed = true
-        try {
-            archive.close()
-        } catch (_: IOException) {
-            // Ignored: the archive is being disposed regardless.
-        }
+        // Never throws: teardown must not mask an in-flight error, and init
+        // closes before throwing EmptyArchiveException.
+        // (runCatching, not just IOException: the archive is being disposed
+        // regardless.)
+        runCatching { archive.close() }
     }
 
     private fun openArchive(file: File): Archive {

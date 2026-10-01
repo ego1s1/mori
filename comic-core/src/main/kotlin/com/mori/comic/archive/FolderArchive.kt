@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 
 /**
  * A [ComicArchive] backed by a directory of loose image files.
@@ -68,6 +69,9 @@ internal class FolderArchive(
 
     private fun loadImageFiles(): List<File> {
         val files = root.walkTopDown()
+            // Never descend into symlinked directories: FileTreeWalk follows
+            // links, so a symlink cycle would walk forever.
+            .onEnter { !Files.isSymbolicLink(it.toPath()) }
             .filter { it.isFile }
             .filter { PageEntryNames.isPage(it.name) }
             .toList()

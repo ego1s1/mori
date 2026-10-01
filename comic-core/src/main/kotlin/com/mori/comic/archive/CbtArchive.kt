@@ -67,10 +67,19 @@ internal class CbtArchive(
     private fun openTar(file: File): TarFile {
         // TarFile tolerates garbage as an empty listing; reject non-tar
         // bytes up front so corrupt files read corrupt, not empty.
-        // (read(), not readNBytes(): the latter needs API 33+.)
+        // (read(), not readNBytes(): the latter needs API 33+.) A single
+        // read() may short-read, so loop until the header is full.
         val header = ByteArray(TAR_HEADER_SIZE)
         val read = runCatching {
-            file.inputStream().use { it.read(header) }
+            file.inputStream().use { stream ->
+                var offset = 0
+                while (offset < TAR_HEADER_SIZE) {
+                    val count = stream.read(header, offset, TAR_HEADER_SIZE - offset)
+                    if (count < 0) break
+                    offset += count
+                }
+                offset
+            }
         }.getOrDefault(-1)
         if (read < TAR_HEADER_SIZE || !ArchiveFormat.looksLikeTar(header)) {
             throw CorruptArchiveException("Not a TAR archive: '${file.name}'")
