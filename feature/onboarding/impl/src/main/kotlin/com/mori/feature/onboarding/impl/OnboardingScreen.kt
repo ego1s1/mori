@@ -3,7 +3,6 @@ package com.mori.feature.onboarding.impl
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.documentfile.provider.DocumentFile
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -21,9 +20,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -31,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,7 +53,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriEnterKind
+import com.mori.core.designsystem.MoriChoiceGroup
+import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSettingSwitch
@@ -69,27 +67,18 @@ import com.mori.core.designsystem.topSheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.BorderStroke
-import com.mori.core.designsystem.previewColor
-import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
-import com.mori.core.model.ImportReport
 import kotlinx.coroutines.delay
 
 @Composable
@@ -132,7 +121,6 @@ internal fun OnboardingRoute(
 @Composable
 // The step transition keys on the step alone while rendering live state,
 // so progress ticks recompose in place without restarting the animation.
-@Suppress("UnusedContentLambdaTargetStateParameter")
 internal fun OnboardingScreen(
     uiState: OnboardingUiState,
     onPickFolder: () -> Unit,
@@ -479,13 +467,11 @@ private fun WizardStep(
                         animationSpec = MoriMotion.calmFade(),
                         label = "stepSegment",
                     )
-                    LinearProgressIndicator(
+                    MoriProgressBar(
                         progress = { fill },
                         modifier = Modifier
                             .weight(1f)
                             .height(4.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     )
                 }
             }
@@ -528,7 +514,7 @@ private fun WizardStep(
                         .windowInsetsPadding(WindowInsets.navigationBars),
                 ) {
                     Button(
-                        onClick = { onContinue?.invoke() },
+                        onClick = { onContinue() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -565,26 +551,38 @@ private fun AppearanceOptions(
             text = stringResource(R.string.onboarding_theme),
             style = MaterialTheme.typography.titleMedium,
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = theme.mode == ThemeMode.SYSTEM,
-                onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.SYSTEM)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text(stringResource(R.string.onboarding_theme_system)) },
-            )
-            SegmentedButton(
-                selected = theme.mode == ThemeMode.LIGHT,
-                onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.LIGHT)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text(stringResource(R.string.onboarding_theme_light)) },
-            )
-            SegmentedButton(
-                selected = theme.mode == ThemeMode.DARK,
-                onClick = { onAction(OnboardingAction.SetThemeMode(ThemeMode.DARK)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text(stringResource(R.string.onboarding_theme_dark)) },
-            )
-        }
+        MoriChoiceGroup(
+            options = listOf(
+                MoriChoiceOption(
+                    label = stringResource(R.string.onboarding_theme_system),
+                    icon = MoriIcons.Contrast,
+                ),
+                MoriChoiceOption(
+                    label = stringResource(R.string.onboarding_theme_light),
+                    icon = MoriIcons.LightMode,
+                ),
+                MoriChoiceOption(
+                    label = stringResource(R.string.onboarding_theme_dark),
+                    icon = MoriIcons.DarkMode,
+                ),
+            ),
+            selectedIndex = when (theme.mode) {
+                ThemeMode.SYSTEM -> 0
+                ThemeMode.LIGHT -> 1
+                ThemeMode.DARK -> 2
+            },
+            onSelect = {
+                onAction(
+                    OnboardingAction.SetThemeMode(
+                        when (it) {
+                            1 -> ThemeMode.LIGHT
+                            2 -> ThemeMode.DARK
+                            else -> ThemeMode.SYSTEM
+                        },
+                    ),
+                )
+            },
+        )
         Text(
             text = stringResource(R.string.onboarding_colors),
             style = MaterialTheme.typography.titleMedium,

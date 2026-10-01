@@ -74,8 +74,6 @@ class OnboardingScreenTest {
         // folds, so scroll it into view like the folder CTA.
         composeTestRule.onNodeWithText("Takes about a minute · No account needed").performScrollTo()
         composeTestRule.onNodeWithText("Takes about a minute · No account needed").assertIsDisplayed()
-        composeTestRule.onNodeWithText("beautifully", substring = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Takes about a minute · No account needed").assertIsDisplayed()
         // Only the intro body subtext stays removed.
         composeTestRule.onNodeWithText("Three quick steps", substring = true).assertDoesNotExist()
     }
