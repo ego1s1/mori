@@ -70,6 +70,7 @@ private fun AppLockScreen(
     val activity = context as? FragmentActivity
     var failureMessage by remember { mutableStateOf<String?>(null) }
     val cannotAuthenticate = stringResource(R.string.applock_no_secure_lock)
+    val lockedOutMessage = stringResource(R.string.applock_locked_out)
     val promptTitle = stringResource(R.string.applock_prompt_title)
     val promptSubtitle = stringResource(R.string.applock_prompt_subtitle)
 
@@ -99,10 +100,17 @@ private fun AppLockScreen(
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     // Negative button / system cancel: stay locked silently
                     // unless the device fundamentally cannot authenticate.
+                    // Lockouts surface: too many attempts needs the cooldown
+                    // explained, or the user taps Unlock forever with no
+                    // feedback.
                     if (errorCode == BiometricPrompt.ERROR_NO_BIOMETRICS ||
                         errorCode == BiometricPrompt.ERROR_HW_UNAVAILABLE
                     ) {
                         failureMessage = cannotAuthenticate
+                    } else if (errorCode == BiometricPrompt.ERROR_LOCKOUT ||
+                        errorCode == BiometricPrompt.ERROR_LOCKOUT_PERMANENT
+                    ) {
+                        failureMessage = lockedOutMessage
                     }
                 }
             },

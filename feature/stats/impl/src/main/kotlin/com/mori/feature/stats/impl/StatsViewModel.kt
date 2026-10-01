@@ -36,14 +36,17 @@ internal class StatsViewModel @Inject constructor(
         repository.observeLibrary(LibraryQuery()),
         range,
     ) { totals, sessions, comics, selectedRange ->
+        // One clock read: buckets and streak must agree even if midnight
+        // falls between two System calls.
+        val now = System.currentTimeMillis()
         StatsUiState.Success(
             totals = totals,
             buckets = sessions.dailyReadingStats(
-                nowMillis = System.currentTimeMillis(),
+                nowMillis = now,
                 days = selectedRange.days(),
             ).reversed(),
             range = selectedRange,
-            streak = readingStreak(sessions, System.currentTimeMillis()),
+            streak = readingStreak(sessions, now),
             topBooks = topBooks(sessions, comics),
         )
     }.stateIn(
@@ -79,16 +82,23 @@ internal fun readingStreak(sessions: List<ReadingSession>, nowMillis: Long): Str
     var run = 0
     var previous: Long? = null
     for (day in days) {
-        run = if (previous != null && day - previous == DAY_MS) run + 1 else 1
+        // Calendar-day succession, not 24h arithmetic: across a DST
+        // transition consecutive midnights are 23 or 25h apart. Midnight +
+        // 36h always lands inside the next calendar day (11–13h past its
+        // midnight), so its day-start is the successor test.
+        run = if (previous != null && day == dayStartMillis(previous + NEXT_DAY_OFFSET_MS)) run + 1 else 1
         longest = maxOf(longest, run)
         previous = day
     }
     val today = dayStartMillis(nowMillis)
     var current = 0
-    var cursor = if (days.contains(today)) today else today - DAY_MS
+    // Stepping back uses −12h, not −36h: the previous midnight is 23–25h
+    // back, so −12h lands 11–13h inside it, while −36h would overshoot to
+    // the day before on a 23h spring-forward day.
+    var cursor = if (days.contains(today)) today else dayStartMillis(today - PREV_DAY_OFFSET_MS)
     while (days.contains(cursor)) {
         current++
-        cursor -= DAY_MS
+        cursor = dayStartMillis(cursor - PREV_DAY_OFFSET_MS)
     }
     return StreakInfo(current = current, longest = longest)
 }
@@ -122,5 +132,6 @@ internal fun topBooks(
     return aggregated.take(limit)
 }
 
-private const val DAY_MS = 24L * 60L * 60L * 1000L
+private const val NEXT_DAY_OFFSET_MS = 36L * 60L * 60L * 1000L
+private const val PREV_DAY_OFFSET_MS = 12L * 60L * 60L * 1000L
 private const val TOP_BOOK_LIMIT = 5

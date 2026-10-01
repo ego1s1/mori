@@ -2,6 +2,7 @@ package com.mori.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,9 +22,14 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val splashStart = SystemClock.elapsedRealtime()
         installSplashScreen().setKeepOnScreenCondition {
-            appViewModel.onboardingCompleted.value == null ||
+            // Bounded wait: a never-emitting store must not pin the splash
+            // forever — after the grace period first paint carries fallback
+            // values and MoriApp recomposes when prefs arrive.
+            val pending = appViewModel.onboardingCompleted.value == null ||
                 appViewModel.themePreferences.value == null
+            pending && SystemClock.elapsedRealtime() - splashStart < SPLASH_MAX_WAIT_MS
         }
         enableEdgeToEdge()
         setContent {
@@ -46,5 +52,10 @@ class MainActivity : FragmentActivity() {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private companion object {
+        /** Prefs grace period before first paint falls back to defaults. */
+        const val SPLASH_MAX_WAIT_MS = 3_000L
     }
 }

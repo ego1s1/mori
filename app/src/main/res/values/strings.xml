@@ -16,5 +16,6 @@
     <string name="applock_prompt_title">Unlock Mori</string>
     <string name="applock_prompt_subtitle">Use your biometric or device credential</string>
     <string name="applock_no_secure_lock">This device has no biometric or PIN set up.</string>
+    <string name="applock_locked_out">Too many attempts — wait a moment, then tap Unlock to try again.</string>
     <string name="applock_turn_off">Turn lock off</string>
 </resources>

@@ -193,22 +193,18 @@ internal fun DetailScreen(
                         onAction = onAction,
                         onReadClick = onReadClick,
                     )
-                    AnimatedVisibility(
-                        visible = uiState.confirmRemove,
-                        enter = MoriMotion.enter(MoriEnterKind.FADE),
-                        exit = MoriMotion.exit(MoriEnterKind.FADE),
-                    ) {
+                    // Plain conditionals, not AnimatedVisibility: AlertDialog
+                    // owns a window, so a hidden-but-composed dialog still
+                    // takes focus and swallows dismiss. Dialogs animate via
+                    // the window, not the content transition.
+                    if (uiState.confirmRemove) {
                         RemoveDialog(
                             title = uiState.comic.title,
                             onConfirm = { onAction(DetailAction.ConfirmRemove) },
                             onDismiss = { onAction(DetailAction.CancelRemove) },
                         )
                     }
-                    AnimatedVisibility(
-                        visible = uiState.shelves != null,
-                        enter = MoriMotion.enter(MoriEnterKind.FADE),
-                        exit = MoriMotion.exit(MoriEnterKind.FADE),
-                    ) {
+                    if (uiState.shelves != null) {
                         uiState.shelves?.let { shelves ->
                             ShelvesDialog(
                                 shelves = shelves,

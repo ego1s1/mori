@@ -1204,12 +1204,9 @@ private fun GroupDialogHost(
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = dialog != null,
-        enter = MoriMotion.enter(MoriEnterKind.FADE),
-        exit = MoriMotion.exit(MoriEnterKind.FADE),
-    ) {
-        when (dialog) {
+    // Plain when, not AnimatedVisibility: AlertDialog owns a window, so a
+    // hidden-but-composed dialog still takes focus and swallows dismiss.
+    when (dialog) {
             null -> Unit
             GroupDialog.Create -> GroupNameDialog(
             title = stringResource(R.string.settings_group_create_title),
@@ -1267,7 +1264,6 @@ private fun GroupDialogHost(
             },
             modifier = modifier.testTag(SettingsTestTags.GroupDialog),
         )
-        }
     }
 }
 
