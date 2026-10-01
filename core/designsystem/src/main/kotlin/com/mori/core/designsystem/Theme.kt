@@ -359,7 +359,7 @@ fun MoriTheme(
     val scheme = if (amoled && darkTheme) baseScheme.amoled() else baseScheme
 
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalAppFonts provides appFonts(),
+        LocalAppFonts provides appFonts(darkTheme),
         LocalAmoled provides (amoled && darkTheme),
     ) {
         MaterialExpressiveTheme(

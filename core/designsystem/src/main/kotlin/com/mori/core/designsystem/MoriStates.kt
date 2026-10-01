@@ -74,7 +74,7 @@ fun MoriEmptyState(
         Text(
             text = title,
             style = MoriEmphasized.headlineSmall.copy(
-                fontFamily = LocalAppFonts.current.displayFlex,
+                fontFamily = LocalAppFonts.current.displaySoft,
                 fontWeight = FontWeight.Black,
             ),
             textAlign = TextAlign.Center,

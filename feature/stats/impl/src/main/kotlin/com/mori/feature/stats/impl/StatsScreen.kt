@@ -343,7 +343,7 @@ private fun HeroNumber(
         Text(
             text = value.uppercase(),
             style = MaterialTheme.typography.displayLarge.copy(
-                fontFamily = LocalAppFonts.current.displayFlex,
+                fontFamily = LocalAppFonts.current.displaySoft,
                 fontWeight = FontWeight.Black,
                 fontStyle = FontStyle.Italic,
                 fontSize = heroSize,

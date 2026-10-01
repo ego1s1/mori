@@ -415,7 +415,7 @@ private fun HubRow(
         icon = categoryIcon(category),
         onClick = onClick,
         titleStyle = MoriEmphasized.titleMedium.copy(
-            fontFamily = LocalAppFonts.current.displayFlex,
+            fontFamily = LocalAppFonts.current.displaySoft,
             fontWeight = FontWeight.Black,
         ),
         modifier = modifier.testTag(SettingsTestTags.categoryFor(category)),
@@ -704,7 +704,7 @@ private fun StorageSection(
                 Text(
                     text = formatBytes(storage.coversBytes + storage.cacheBytes),
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontFamily = LocalAppFonts.current.displayFlex,
+                        fontFamily = LocalAppFonts.current.displaySoft,
                         fontWeight = FontWeight.Black,
                         fontStyle = FontStyle.Italic,
                     ),
@@ -877,7 +877,7 @@ private fun AboutSection(
                     Text(
                         text = stringResource(R.string.settings_about_app),
                         style = MoriEmphasized.headlineSmall.copy(
-                            fontFamily = LocalAppFonts.current.displayFlex,
+                            fontFamily = LocalAppFonts.current.displaySoft,
                             fontWeight = FontWeight.Black,
                             brush = Brush.linearGradient(
                                 colors = listOf(
@@ -928,7 +928,7 @@ private fun AboutSection(
                         Text(
                             text = stringResource(R.string.settings_about_developer),
                             style = MoriEmphasized.titleLarge.copy(
-                                fontFamily = LocalAppFonts.current.displayFlex,
+                                fontFamily = LocalAppFonts.current.displaySoft,
                                 fontWeight = FontWeight.Black,
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
@@ -1074,7 +1074,7 @@ private fun AboutSection(
                 Text(
                     text = stringResource(R.string.settings_about_privacy),
                     style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
                 )
@@ -1246,7 +1246,7 @@ private fun GroupDialogHost(
                 Text(
                     text = stringResource(R.string.settings_group_delete_title),
                     style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
                 )
@@ -1302,7 +1302,7 @@ private fun GroupNameDialog(
             Text(
                 text = title,
                 style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
             )

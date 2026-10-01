@@ -357,7 +357,7 @@ private fun DetailContent(
                 Text(
                     text = comic.title,
                     style = MoriEmphasized.headlineSmall.copy(
-                        fontFamily = LocalAppFonts.current.displayFlex,
+                        fontFamily = LocalAppFonts.current.displaySoft,
                         fontWeight = FontWeight.Black,
                     ),
                     maxLines = 4,
@@ -503,7 +503,7 @@ private fun RemoveDialog(
             Text(
                 text = stringResource(R.string.detail_remove_title),
                 style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
             )
@@ -554,7 +554,7 @@ private fun ShelvesDialog(
             Text(
                 text = stringResource(R.string.detail_shelves_title),
                 style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
             )

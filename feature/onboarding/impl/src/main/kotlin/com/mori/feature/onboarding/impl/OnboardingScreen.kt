@@ -322,7 +322,7 @@ private fun WelcomeContent(
                             append(stringResource(R.string.onboarding_hero_suffix))
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontFamily = LocalAppFonts.current.displayFlex,
+                            fontFamily = LocalAppFonts.current.displaySoft,
                             fontWeight = FontWeight.Black,
                         ),
                         textAlign = TextAlign.Center,
@@ -491,7 +491,7 @@ private fun WizardStep(
             Text(
                 text = title,
                 style = MoriEmphasized.headlineMedium.copy(
-                    fontFamily = LocalAppFonts.current.displayFlex,
+                    fontFamily = LocalAppFonts.current.displaySoft,
                     fontWeight = FontWeight.Black,
                 ),
             )
