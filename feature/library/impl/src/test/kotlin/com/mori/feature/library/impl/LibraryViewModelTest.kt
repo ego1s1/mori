@@ -147,8 +147,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun sortAndFilterUpdateQuery() = runTest {
-        val viewModel = viewModel()
+    fun sortAndFilterUpdateQuery() = runTest {        val viewModel = viewModel()
         viewModel.uiState.test {
             awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.SortSelected(LibrarySortOrder.TITLE))
@@ -162,6 +161,32 @@ class LibraryViewModelTest {
             assertEquals(LibrarySortOrder.TITLE, state.query.sortOrder)
             assertEquals(LibraryFilter.FINISHED, state.query.filter)
             assertTrue(state.query.hideErrors)
+        }
+    }
+
+    /**
+     * Stored display options merge with ephemeral text without loss: the
+     * LibraryDisplay→LibraryQuery merge deleted the toQuery bridge, so this
+     * pins collapsed shelves and sort surviving a search.
+     */
+    @Test
+    fun storedQuerySurvivesTextMerge() = runTest {
+        val preferences = FakePreferencesDataSource(
+            initialQuery = LibraryQuery(
+                sortOrder = LibrarySortOrder.TITLE,
+                collapsedShelfIds = setOf(7L),
+            ),
+        )
+        val viewModel = viewModel(preferences = preferences)
+        viewModel.uiState.test {
+            val initial = awaitAs<LibraryUiState.Success>()
+            assertEquals(LibrarySortOrder.TITLE, initial.query.sortOrder)
+            assertEquals(setOf(7L), initial.query.collapsedShelfIds)
+            viewModel.onAction(LibraryAction.SearchTextChanged("app"))
+            val searched = awaitAs<LibraryUiState.Success> { it.query.text == "app" }
+            assertEquals("app", searched.query.text)
+            assertEquals(LibrarySortOrder.TITLE, searched.query.sortOrder)
+            assertEquals(setOf(7L), searched.query.collapsedShelfIds)
         }
     }
 

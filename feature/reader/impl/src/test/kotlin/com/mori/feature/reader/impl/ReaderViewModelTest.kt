@@ -767,6 +767,52 @@ class ReaderViewModelTest {
         }
     }
 
+    /**
+     * Incognito switched on after the turn but before the debounced flush:
+     * the page was turned in private-by-intent, so nothing is saved.
+     */
+    @Test
+    fun incognitoEnabledAfterTurnStillSuppressesSave() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val viewModel = viewModel(repository = repository)
+        viewModel.uiState.test {
+            awaitReady()
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            viewModel.onAction(ReaderAction.ToggleIncognito)
+            awaitReadyWhere { it.incognito }
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(1_000L)
+            assertTrue(repository.progressSaves.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * Incognito switched off after a private turn but before the flush: the
+     * turn itself happened in private, so the schedule-time flag still wins
+     * and nothing is saved.
+     */
+    @Test
+    fun incognitoDisabledAfterPrivateTurnStillSuppressesSave() = runTest {
+        val repository = FakeComicsRepository(
+            mapOf("c" to FakeComicsRepository.comic("c")),
+        )
+        val preferences = FakePreferencesDataSource(
+            initialReader = ReaderPreferences(incognito = true),
+        )
+        val viewModel = viewModel(repository = repository, preferences = preferences)
+        viewModel.uiState.test {
+            awaitReadyWhere { it.incognito }
+            viewModel.onAction(ReaderAction.PageChanged(3))
+            viewModel.onAction(ReaderAction.ToggleIncognito)
+            awaitReadyWhere { !it.incognito }
+            dispatcherRule.testDispatcher.scheduler.advanceTimeBy(1_000L)
+            assertTrue(repository.progressSaves.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun Offset.assertOffset(x: Float, y: Float) {        // Delta comparison: zoom math can yield -0.0f, which boxed-equals rejects
         // against 0.0f despite rendering identically.
         assertEquals(x, this.x, 0.001f)

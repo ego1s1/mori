@@ -2,6 +2,7 @@ package com.mori.feature.stats.impl
 
 import app.cash.turbine.test
 import com.mori.core.model.dayStartMillis
+import com.mori.core.model.previousDayStartMillis
 import com.mori.core.testing.FakeComicsRepository
 import com.mori.core.testing.TestDispatcherRule
 import com.mori.core.testing.awaitWhere
@@ -12,6 +13,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.Calendar
+import java.util.TimeZone
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -46,7 +49,9 @@ class StatsViewModelTest {
             ),
         )
         val today = dayStartMillis(System.currentTimeMillis())
-        val yesterday = today - 86_400_000L
+        // Calendar predecessor, not minus-24h: the pair must be consecutive
+        // days even across a DST transition.
+        val yesterday = previousDayStartMillis(today)
         // b gets more time today; a read yesterday and briefly today.
         repository.recordSession("a", yesterday + 1_000L, yesterday + 61_000L, pagesTurned = 3)
         repository.recordSession("b", today + 1_000L, today + 301_000L, pagesTurned = 20)
@@ -91,8 +96,7 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun streakKeepsLongestAcrossGap() {
-        val today = dayStartMillis(System.currentTimeMillis())
+    fun streakKeepsLongestAcrossGap() {        val today = dayStartMillis(System.currentTimeMillis())
         val day = 86_400_000L
         val sessions = listOf(
             com.mori.core.model.ReadingSession("a", today - 5 * day, today - 5 * day + 60_000L, 1),
@@ -118,4 +122,56 @@ class StatsViewModelTest {
         assertEquals(listOf("a"), top.map { it.comic.id })
         assertEquals(30_000L, top[0].durationMs)
     }
+
+    /**
+     * Spring forward (23h Sunday): consecutive calendar days must streak.
+     * Pacific/Auckland skipped 2026-09-27 02:00→03:00, so fixed 24h
+     * arithmetic reads the pair as broken. Regression for DAY_MS streaks.
+     */
+    @Test
+    fun streakSurvivesSpringForward() {
+        val previous = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("Pacific/Auckland"))
+        try {
+            val saturday = dayStartMillis(noonMillis(2026, Calendar.SEPTEMBER, 26))
+            val sunday = dayStartMillis(noonMillis(2026, Calendar.SEPTEMBER, 27))
+            val sessions = listOf(
+                com.mori.core.model.ReadingSession("a", saturday + 3_600_000L, saturday + 3_660_000L, 4),
+                com.mori.core.model.ReadingSession("a", sunday + 3_600_000L, sunday + 3_660_000L, 4),
+            )
+
+            assertEquals(StreakInfo(2, 2), readingStreak(sessions, sunday + 7_200_000L))
+        } finally {
+            TimeZone.setDefault(previous)
+        }
+    }
+
+    /**
+     * Fall back (25h Sunday): Auckland ends DST 2026-04-05, repeating the
+     * 02:00 hour. Same consecutive-day streak must hold in the other
+     * direction.
+     */
+    @Test
+    fun streakSurvivesFallBack() {
+        val previous = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("Pacific/Auckland"))
+        try {
+            val saturday = dayStartMillis(noonMillis(2026, Calendar.APRIL, 4))
+            val sunday = dayStartMillis(noonMillis(2026, Calendar.APRIL, 5))
+            val sessions = listOf(
+                com.mori.core.model.ReadingSession("a", saturday + 3_600_000L, saturday + 3_660_000L, 4),
+                com.mori.core.model.ReadingSession("a", sunday + 3_600_000L, sunday + 3_660_000L, 4),
+            )
+
+            assertEquals(StreakInfo(2, 2), readingStreak(sessions, sunday + 7_200_000L))
+        } finally {
+            TimeZone.setDefault(previous)
+        }
+    }
+
+    private fun noonMillis(year: Int, month: Int, day: Int): Long =
+        Calendar.getInstance().apply {
+            set(year, month, day, 12, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
 }

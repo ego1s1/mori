@@ -9,6 +9,9 @@ import com.mori.core.model.PageFit
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.ThemeMode
 import com.mori.core.testing.TestDispatcherRule
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -82,6 +85,27 @@ class DataStorePreferencesDataSourceTest {
             assertEquals(LibraryFilter.ALL, updated.filter)
             assertEquals(true, updated.hideErrors)
         }
+    }
+
+    /**
+     * Concurrent read-modify-writes must not lose updates: with the old
+     * first()+edit pair two racing transforms read the same base and the
+     * second write clobbered the first. updateData serializes them.
+     */
+    @Test
+    fun concurrentLibraryQueryUpdatesDoNotLoseWrites() = runTest {
+        val dataSource = dataSource()
+        val jobs = (1L..50L).map { id ->
+            launch {
+                dataSource.updateLibraryQuery { query ->
+                    query.copy(collapsedShelfIds = query.collapsedShelfIds + id)
+                }
+            }
+        }
+        jobs.joinAll()
+
+        val final = dataSource.libraryQuery.first()
+        assertEquals((1L..50L).toSet(), final.collapsedShelfIds)
     }
 
     @Test
