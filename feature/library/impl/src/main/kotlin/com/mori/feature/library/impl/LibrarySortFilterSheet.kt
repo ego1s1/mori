@@ -2,8 +2,6 @@ package com.mori.feature.library.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,10 +9,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -23,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriChoiceGroup
 import com.mori.core.designsystem.MoriChoiceOption
+import com.mori.core.designsystem.MoriFilterPills
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.LibraryFilter
@@ -56,7 +55,6 @@ internal fun LibrarySortFilterSheet(
 }
 
 /** Sheet body, exposed for testing without the modal wrapper. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun LibrarySortFilterContent(
     query: LibraryQuery,
@@ -81,34 +79,29 @@ internal fun LibrarySortFilterContent(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(LibraryTestTags.CollectionRow),
-        ) {
-            FilterChip(
-                selected = selectedCollectionId == null,
-                onClick = { onAction(LibraryAction.SelectCollection(null)) },
-                label = { Text(stringResource(R.string.library_collection_all)) },
-            )
-            collections.forEach { collection ->
-                FilterChip(
-                    selected = selectedCollectionId == collection.id,
-                    onClick = { onAction(LibraryAction.SelectCollection(collection.id)) },
-                    label = {
-                        Text(
-                            stringResource(
-                                R.string.library_collection_labeled,
-                                collection.name,
-                                collection.bookCount,
-                            ),
-                        )
-                    },
-                    modifier = Modifier.testTag(LibraryTestTags.collectionChip(collection.id)),
+        val allLabel = stringResource(R.string.library_collection_all)
+        MoriFilterPills(
+            options = listOf(MoriChoiceOption(label = allLabel)) +
+                collections.map { collection ->
+                    MoriChoiceOption(
+                        label = shelfLabel(collection.name, collection.bookCount),
+                    )
+                },
+            selectedIndex = (listOf<Long?>(null) + collections.map { it.id })
+                .indexOf(selectedCollectionId).coerceAtLeast(0),
+            onSelect = { index ->
+                onAction(
+                    LibraryAction.SelectCollection(
+                        (listOf<Long?>(null) + collections.map { it.id })[index],
+                    ),
                 )
-            }
-        }
+            },
+            modifier = Modifier.testTag(LibraryTestTags.CollectionRow),
+            testTagFor = { index ->
+                val id = (listOf<Long?>(null) + collections.map { it.id })[index]
+                if (id == null) "collection:all" else LibraryTestTags.collectionChip(id)
+            },
+        )
 
         Text(
             text = stringResource(R.string.library_sheet_filter),
@@ -141,6 +134,13 @@ internal fun LibrarySortFilterContent(
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
+@Composable
+private fun shelfLabel(name: String, bookCount: Int): String = stringResource(
+    R.string.library_collection_labeled,
+    name,
+    bookCount,
+)
 
 @Composable
 private fun filterLabel(filter: LibraryFilter): String = stringResource(

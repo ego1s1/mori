@@ -1,6 +1,8 @@
 package com.mori.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -106,6 +108,55 @@ fun MoriChoiceGroup(
                         maxLines = 1,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Expressive single-choice pills for open-ended option counts (shelves,
+ * tags): same [ToggleButton] language as [MoriChoiceGroup], but wrapping in
+ * a [FlowRow] instead of squeezing into one weighted row. Haptics and
+ * selected-label emphasis match the connected group.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+@Composable
+fun MoriFilterPills(
+    options: List<MoriChoiceOption>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    testTagFor: (Int) -> String = { "filter:$it" },
+) {
+    val haptics = rememberMoriHaptics()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        options.forEachIndexed { index, option ->
+            val selected = index == selectedIndex
+            ToggleButton(
+                checked = selected,
+                onCheckedChange = {
+                    haptics(MoriHaptic.Select)
+                    onSelect(index)
+                },
+                shapes = ToggleButtonDefaults.shapes(CircleShape, CircleShape, CircleShape),
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .testTag(testTagFor(index))
+                    .semantics { this.selected = selected },
+            ) {
+                Text(
+                    text = option.label,
+                    style = if (selected) {
+                        MoriEmphasized.labelLarge
+                    } else {
+                        MaterialTheme.typography.labelLarge
+                    },
+                    maxLines = 1,
+                )
             }
         }
     }
