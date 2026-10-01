@@ -70,7 +70,7 @@ fun MoriSettingRow(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MoriEmphasized.bodyLarge,
                     color = titleColor,
                 )
                 Text(

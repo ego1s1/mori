@@ -871,8 +871,8 @@ private fun AboutSection(
                     Text(
                         text = stringResource(R.string.settings_about_app),
                         style = MoriEmphasized.headlineSmall.copy(
+                            fontFamily = LocalAppFonts.current.displayFlex,
                             fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
                             brush = Brush.linearGradient(
                                 colors = listOf(
                                     MaterialTheme.colorScheme.primary,
@@ -887,7 +887,6 @@ private fun AboutSection(
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontFamily = LocalAppFonts.current.topBarTitle,
                             fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -923,8 +922,8 @@ private fun AboutSection(
                         Text(
                             text = stringResource(R.string.settings_about_developer),
                             style = MoriEmphasized.titleLarge.copy(
+                                fontFamily = LocalAppFonts.current.displayFlex,
                                 fontWeight = FontWeight.Black,
-                                fontStyle = FontStyle.Italic,
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
