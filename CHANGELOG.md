@@ -1,163 +1,43 @@
 # Changelog
 
-## 0.3.2
+## 0.4.0
 
-- Fix slow zoomed pans shaking: the gesture ran inside the scale layer, so the
-  page's own translation fed back into the pointer delta and oscillated
-  (sign-flipped every frame). Deltas are now reconstructed in screen space,
-  which is provably stable and keeps pan/pinch/fling 1:1 at any zoom
-- Harden mid-gesture ownership so the pager cannot start or stop flapping as
-  the finger rides the pan clamp
-- Fix a flaky reading-stats test that read an intermediate database emission
-  (also the cause of recent red CI runs)
+### Highlights
 
-## 0.3.1
+**New Stats tab.** History is now Stats: reading totals, a 7-day / 30-day /
+yearly activity chart, day streaks, and most-read books — headlined by big
+italic expressive numerals that follow your wallpaper colors.
 
-Reader pan responsiveness and Material 3 Expressive compliance:
+**Floating library search.** Search is now a floating panel: entries glide
+behind it as you scroll, with full-text filter and sort pills
+(All / In progress / Unread / Finished / Favorites, Recently added /
+Recently opened / Title / Unfinished first) and a long-press quick-actions
+menu on every cover.
 
-- Zoomed panning now tracks the finger 1:1 at any zoom (was 1/scale, so
-  half-speed at 2x and a fifth at 5x); fling velocity, travel and engage
-  thresholds are measured in screen px so flicks register and glide fully
-- Pinch keeps the content point under the centroid while scaling
-- M3 Expressive pass: scheme colors replace hardcoded black/white across
-  chrome, badges, scrims and placeholders; 48dp touch targets; heading and
-  state semantics; sheet/section type demoted to standard roles; sheets gain
-  scroll and height bounds; light/AMOLED surface ramps completed; onboarding
-  reduced to a single hero moment
-- Floating navigator unchanged by design (not reproducible with the standard
-  NavigationBar in Material3 1.3.1)
+**Expressive Settings.** A Tomato-style hub with sub-screens (Appearance,
+Reader, Shelves, Privacy, Storage, About), slide + predictive-back
+transitions, haptic feedback throughout, per-section heroes, and new
+color schemes: Catppuccin, Nord, Gruvbox, Dracula, Tokyo Night, Everforest,
+and Monochrome — plus dynamic wallpaper color and AMOLED black.
 
-## 0.3.0
+**A reader that stays out of the way.** Visible chrome with auto-hide,
+a scrub slider, crossfade overview seeks, volume-key paging, dual-page
+spreads, display filters, and true incognito reading that never records
+progress, history, or stats.
 
-- Library drops the Continue Reading shelf; the bottom-pill resume button
-  remains the single continue path
-- Reader edge swipes starting at the clamp pour into the pager natively;
-  mid-gesture overshoot still turns explicitly as fallback
-- Double-tap-hold-drag zooms continuously (quick-scale)
-- Deep zoom past 2x fades in a higher-resolution overlay with hysteresis
-- Tap pipeline hardening: epoch-guarded pairing/rhythm, single-fire
-  early-confirm, max-drift tap validity
+**New app icon.** A centered brush-calligraphy 森 (forest) on a dark
+Rosé Pine × Everforest night scene with a gold moon.
 
-## 0.2.0
+**Privacy and storage.** Optional app lock with biometric / device
+credential, thumbnail-cache controls with storage usage, and an About
+page with open-source licenses.
 
-Reader gestures and library polish:
+### Reliability
 
-- App lock prompts biometrics instantly; the lock screen stays only as a
-  backdrop and retry path
-- Library and History headers are emphasized and pinned, matching Settings
-- History search collapses behind a top-bar toggle, like the library
-- Shelf filter moves from the grid chips row into the filter sheet; the
-  Tune icon lights while any filter is active
-- Zoomed pans release with momentum fling instead of stopping dead
-- Gesture engagement tightens to 5dp while clean taps still resolve to zones
-- Double-tap toggles 2x/fit with focus-center landing clamped to pan bounds;
-  pinch zooms to 5x
-- Mid-gesture edge-turn handoff: pushing past the clamped edge turns the page
-- Tap hold shortens 300ms to 250ms; the double-tap zoom window is unchanged
+- Safer archive indexing (cancellation, symlinks, truncated files) with a
+  distinct "file gone" state for moved or revoked files.
+- Streaks survive daylight-saving transitions; progress saves respect
+  incognito toggles in either order.
+- Bounded splash start, lockout messaging, and DST-safe daily buckets.
 
-## 0.2.1-alpha.1 (pre-release)
-
-- App lock fires the native biometric prompt immediately; the lock screen
-  stays only as a backdrop and retry path
-- Library and History headers match Settings (emphasized, pinned)
-- History search collapses behind a top-bar toggle, like the library
-- Shelf filter moves from the grid chips row into the filter sheet; the
-  Tune icon lights while any filter is active
-- Zoomed panning flings with momentum instead of stopping dead
-- Tap-to-turn hold shortens 300ms to 250ms; double-tap zoom window unchanged
-
-## 0.2.0-alpha.1 (pre-release)
-
-Shelves: group books into named shelves.
-
-- Library: sectioned grid with one collapsible section per shelf plus an
-  unsorted trailer, shelf filter chips, persisted collapse state
-- Detail: per-book shelf membership with inline shelf creation
-- Settings: shelf management (create, rename, delete)
-
-## 0.1.26
-
-Codebase cleanup: design documentation rewritten in the project's own
-terms, no external references in code, docs, or changelogs.
-
-## 0.1.25
-
-Full M3 Expressive UI audit, built in phases:
-
-- Motion foundation: centralized screen specs, calm setting threaded through
-  every nav transition, symmetric enter/exit pairs, overshoot-free progress
-- Theme: complete container/error/surface roles for every scheme, AMOLED
-  deepens instead of flattening, splash holds a black bed until prefs load
-- Library, history, detail: unified bar titles, tablet content well, list
-  animations, history clear-search, chip and error-card accessibility fixes
-- Reader chrome: safe-area insets, slimmer centered chrome, live slider
-  preview with continuous scrubbing, overview numbers + retry, honest
-  zone preview, predictive-back shrink, wizard completion fades home
-
-## 0.1.24
-
-Reader experience pass:
-
-- Volume keys are invertible (volume up forward / down back) in both
-  reader and system settings
-- Zoomed panning is hard-stop 1:1 with no mid-gesture page turns; a fresh
-  second swipe pushing past the clamped edge turns the page from anywhere,
-  like an unzoomed swipe — tap hop-to-edge kept
-- Tap rhythm fixed: fire-time stamping and same-zone repeats, so rapid
-  skipping stays consistent and direction flips never dispatch stale taps
-- README refocused on the reader, the shelf, and offline-first strengths
-
-## 0.1.23 (hotfix)
-
-Reader-backend rollback for the "all comics Can't read" regression: page
-reads and the SAF cache copy return to their pre-sweep implementations
-while the real-stack end-to-end tripwire stays green. Kept from the sweep:
-typed refresh errors, FileProvider share, bounded XML parsing, backup
-scoping, and all history/motion work.
-
-## 0.1.0
-
-Fresh line after the v1.x reset: versioning restarts at 0.1.0 with patch
-increments from here (0.1.1, …). Highlights since the reset point:
-
-- History tab (day-grouped reading history between Library and Settings)
-- Determinate rescan progress, coalesced refreshes, cancel-safe index locks
-- Typed refresh error rows, single-emission wide-page scan, stale-anchor guards
-- FileProvider share boundary with ClipData grants, capped ComicInfo parsing
-- Least-privilege backup rules, remount-on-rebuild zoom gate release
-
-- Unified onboarding storage choice (custom folders link in place with zero
-  copies; app storage copies), transient Done beat into the library
-- Reader gesture overhaul: hold-to-confirm taps, double-tap
-  zoom on second contact, instant rhythm skipping, pager-first swipe routing,
-  long-press guard
-- App-wide expressive motion standards (gated fade-through/fade transitions,
-  documented duration table)
-- Vector launcher icon with monochrome themed-icon layer; release pipeline
-  (`scripts/new-release.sh`) and signed local release builds
-
-## 1.0.0
-
-First production release.
-
-### comic-core
-- Archive decoding for CBZ (ZIP random access), CBR (junrar, RAR4), and image folders
-- Natural-order page sorting; hidden/non-image entry filtering; subdirectory support
-- `ComicInfo.xml` (ComicRack) metadata parsing with XXE hardening
-- Typed error hierarchy: unsupported / corrupt / empty / password-required / page-not-found / closed / decode
-- Image decoding with bounds-only probing, power-of-two subsampling (`maxDimension`),
-  region decode (`BitmapRegionDecoder` fast path + crop fallback), EXIF orientation, RGB_565
-- `DecodingComicArchive` suspend helpers (`decode`, `decodeRegion`, `pageDimensions`)
-- Closeable lifecycle guarantees; thread-safe concurrent reads; cancellation-safe
-
-### comic-ocr
-- Pluggable `OcrEngine` abstraction + thread-safe `OcrEngines` registry
-- `TesseractOcrEngine` (Tesseract 5, on-device, lazy init, language packs, word→line grouping)
-- `FakeOcrEngine` deterministic reference implementation for tests
-- Typed OCR errors: unavailable / recognition / language
-
-### Hardening
-- Consumer ProGuard/R8 rules for both artifacts
-- Binary-compatibility-validator API freeze (`./gradlew apiCheck`)
-- 131 unit tests (JVM + Robolectric) covering archives, decode, OCR, concurrency, lifecycle
-- detekt + Android lint + CI (test, lint, detekt, apiCheck, assemble)
+Full history: https://github.com/ego1s1/mori/compare/v0.3.2...v0.4.0
