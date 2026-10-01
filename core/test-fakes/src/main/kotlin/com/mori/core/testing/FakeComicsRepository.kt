@@ -32,7 +32,7 @@ class FakeComicsRepository(
     constructor(initial: List<Comic>) : this(initial.associateBy { it.id })
 
     private val comics = MutableStateFlow(initial)
-    var linkReport = ImportReport(0, 0, 0, emptyList())
+    var linkReport = ImportReport(0, 0, 0)
     val linkedTrees = mutableListOf<Uri>()
     var failLinkWith: Exception? = null
     var failRefreshWith: Exception? = null

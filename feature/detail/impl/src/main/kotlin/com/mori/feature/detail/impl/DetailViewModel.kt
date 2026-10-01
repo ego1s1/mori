@@ -148,8 +148,10 @@ internal class DetailViewModel @Inject constructor(
     }
 
     private fun createShelf(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val id = runCatching { repository.createCollection(name) }.getOrNull()
+            val id = runCatching { repository.createCollection(trimmed) }.getOrNull()
                 ?: return@launch
             runCatching { repository.addToCollection(id, args.comicId) }
         }

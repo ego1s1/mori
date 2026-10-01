@@ -19,6 +19,5 @@ object DetailTestTags {
     const val ShelfCreateField = "detailShelfCreateField"
     const val ShelfCreateConfirm = "detailShelfCreateConfirm"
 
-
     fun shelfRow(collectionId: Long): String = "detailShelf:$collectionId"
 }

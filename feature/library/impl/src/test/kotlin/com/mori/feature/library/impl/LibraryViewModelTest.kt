@@ -168,7 +168,7 @@ class LibraryViewModelTest {
     @Test
     fun refreshFailureMessageIsOneShot() = runTest {
         val repository = FakeComicsRepository()
-        repository.linkReport = com.mori.core.model.ImportReport(2, 0, 2, emptyList())
+        repository.linkReport = com.mori.core.model.ImportReport(2, 0, 2)
         val preferences = FakePreferencesDataSource()
         preferences.setSourceTreeUri("content://tree/linked")
         val viewModel = viewModel(repository, preferences = preferences)
@@ -243,7 +243,7 @@ class LibraryViewModelTest {
         // The index callback forwards done/total instead of being dropped,
         // so large rescans show a determinate bar, not a stuck spinner.
         val repository = FakeComicsRepository().apply {
-            linkReport = com.mori.core.model.ImportReport(2, 2, 0, emptyList())
+            linkReport = com.mori.core.model.ImportReport(2, 2, 0)
             indexGate = CompletableDeferred()
         }
         val preferences = FakePreferencesDataSource()

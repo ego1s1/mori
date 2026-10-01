@@ -40,7 +40,7 @@ internal class FakeComicsRepository(
         onProgress: (done: Int, total: Int) -> Unit,
     ): com.mori.core.model.ImportReport {
         linkedTrees += treeUri
-        return com.mori.core.model.ImportReport(0, 0, 0, emptyList())
+        return com.mori.core.model.ImportReport(0, 0, 0)
     }
 
     override suspend fun refreshComic(id: String): Comic? = getComic(id)

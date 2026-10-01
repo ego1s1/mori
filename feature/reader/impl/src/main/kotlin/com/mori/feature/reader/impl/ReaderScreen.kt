@@ -2,6 +2,7 @@ package com.mori.feature.reader.impl
 
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -95,6 +96,7 @@ import com.mori.core.model.ReadingDirection
 import com.mori.feature.reader.api.ReaderKeyInterceptor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -242,6 +244,8 @@ private fun ReaderContent(
     val sliderInteraction = remember { MutableInteractionSource() }
     val scrubbing by sliderInteraction.collectIsDraggedAsState()
     val contentScope = rememberCoroutineScope()
+    // Crossfade level for overview seeks; 1 at rest.
+    val pagerFade = remember { Animatable(1f) }
     // Detector epoch for the container taps: a direction flip bumps it so a
     // double-tap hold parked across the flip drops instead of dispatching
     // with the old zone. Starts at 1 — the launch effect below runs on first
@@ -379,6 +383,11 @@ private fun ReaderContent(
                     modifier = Modifier
                         .width(pageWidth)
                         .fillMaxHeight()
+                        .graphicsLayer {
+                            // Overview-seek crossfade level; swipes bypass it
+                            // (their physics own the pixels, per above).
+                            alpha = pagerFade.value
+                        }
                         .testTag(ReaderTestTags.Pager)
                         .semantics {
                             contentDescription = pagerDescription
@@ -505,6 +514,10 @@ private fun ReaderContent(
         }
 
         if (state.overviewOpen) {
+            // Overview seeks crossfade: dip the pager out, jump while
+            // invisible, ease back in — one arrival language, no glide
+            // through dozens of pages and no pop. Calm motion jumps
+            // instantly with no dip.
             ReaderOverviewSheet(
                 comicId = state.comicId,
                 currentPage = state.currentPage,
@@ -513,7 +526,17 @@ private fun ReaderContent(
                 archivePageCount = state.archivePageCount,
                 expandedForArchive = state.expandedForArchive,
                 cropMargins = state.cropMargins,
-                onAction = onAction,
+                onAction = { action ->
+                    if (action is ReaderAction.SeekPage && pagerExpressive) {
+                        contentScope.launch {
+                            pagerFade.animateTo(0f, MoriMotion.defaultEffectsSpec())
+                            onAction(action.copy(animated = false))
+                            pagerFade.animateTo(1f, MoriMotion.defaultEffectsSpec())
+                        }
+                    } else {
+                        onAction(action)
+                    }
+                },
             )
         }
 

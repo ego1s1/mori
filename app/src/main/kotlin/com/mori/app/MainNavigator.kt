@@ -6,7 +6,6 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,11 +27,11 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +67,9 @@ internal fun MainNavigator(
     val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
     val expressive = LocalExpressiveMotionEnabled.current
     val motionScheme = MaterialTheme.motionScheme
+    val toggleButtonColors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer)
+    val navExpandSpec: () -> androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntSize> =
+        { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() }
 
     // The pill is one element of a caller-centred row (pill + resume); together
     // they read as a single floating unit centred on the screen.
@@ -85,30 +87,30 @@ internal fun MainNavigator(
                 onClick = { onSelectTab(0) },
                 outlinedIcon = MoriIcons.MenuBookOutlined,
                 filledIcon = MoriIcons.MenuBook,
-                label = "Library",
+                label = stringResource(R.string.main_tab_library),
                 testTag = MainTestTags.LibraryTab,
-                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
-                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
+                colors = toggleButtonColors,
+                expandSpec = navExpandSpec,
             )
             NavDestination(
                 selected = selectedTab == 1,
                 onClick = { onSelectTab(1) },
                 outlinedIcon = MoriIcons.BarChartOutlined,
                 filledIcon = MoriIcons.BarChart,
-                label = "Stats",
+                label = stringResource(R.string.main_tab_stats),
                 testTag = MainTestTags.StatsTab,
-                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
-                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
+                colors = toggleButtonColors,
+                expandSpec = navExpandSpec,
             )
             NavDestination(
                 selected = selectedTab == 2,
                 onClick = { onSelectTab(2) },
                 outlinedIcon = MoriIcons.SettingsOutlined,
                 filledIcon = MoriIcons.Settings,
-                label = "Settings",
+                label = stringResource(R.string.main_tab_settings),
                 testTag = MainTestTags.SettingsTab,
-                colors = toggleColors(primary, onPrimary, primaryContainer, onPrimaryContainer),
-                expandSpec = { if (expressive) motionScheme.defaultSpatialSpec() else MoriMotion.calmFade() },
+                colors = toggleButtonColors,
+                expandSpec = navExpandSpec,
             )
     }
 }
@@ -224,7 +226,7 @@ internal fun ResumeButton(
         ) {
             Icon(
                 imageVector = MoriIcons.PlayArrow,
-                contentDescription = "Resume $title",
+                contentDescription = stringResource(R.string.main_resume_action, title),
                 modifier = Modifier.size(24.dp),
             )
         }

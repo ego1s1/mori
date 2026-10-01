@@ -16,9 +16,7 @@ import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
-import com.mori.core.model.ImportItem
 import com.mori.core.model.ImportReport
-import com.mori.core.model.ImportStatus
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
@@ -83,7 +81,6 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         // Batch like refreshLibrary: one fetch, one upsert, one emission.
         val knownById = dao.getAll().associateBy { it.id }
         val rows = mutableListOf<ComicEntity>()
-        val items = mutableListOf<ImportItem>()
         var failed = 0
         docs.forEachIndexed { index, doc ->
             val uri = doc.uri.toString()
@@ -109,15 +106,11 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                 rows += row
                 // indexFile converts backend failures into error rows rather
                 // than throwing: count them as failed, like refresh indexing.
-                if (row.error == null) {
-                    items += ImportItem(name, ImportStatus.SUCCEEDED, null)
-                } else {
+                if (row.error != null) {
                     failed += 1
-                    items += ImportItem(name, ImportStatus.FAILED, row.error)
                 }
             } catch (e: Exception) {
                 failed += 1
-                items += ImportItem(name, ImportStatus.FAILED, e.message)
             }
             onProgress(index + 1, docs.size)
         }
@@ -139,7 +132,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
             }
             pruned.forEach { deleteCover(it.coverPath) }
         }
-        ImportReport(docs.size, docs.size - failed, failed, items)
+        ImportReport(docs.size, docs.size - failed, failed)
     }
 
     override suspend fun refreshComic(id: String): Comic? = withContext(Dispatchers.IO) {
