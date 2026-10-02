@@ -53,6 +53,12 @@ sealed interface DetailMessage {
 
     data object RemoveFailed : DetailMessage
 
+    /** A shelf toggle or shelf create failed; the switch stays as it was. */
+    data object ShelfFailed : DetailMessage
+
+    /** Shelf create failed: the name is already taken. Typed text is kept. */
+    data object ShelfNameTaken : DetailMessage
+
     /** Open the Sharesheet for the comic file (URI + display name + MIME). */
     data class ShareFile(
         val uri: String,

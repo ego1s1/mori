@@ -10,6 +10,10 @@ import com.mori.core.model.StorageUsage
 import com.mori.core.model.UserCollection
 import kotlinx.coroutines.flow.Flow
 
+/** A shelf with this (case-insensitive) name already exists. */
+class DuplicateCollectionNameException(val name: String) :
+    IllegalArgumentException("Collection already exists: $name")
+
 /**
  * Single public API for library data. Room is the source of truth; the
  * library reads user folders in place (never copies), covers live in
@@ -38,6 +42,13 @@ interface ComicsRepository {
         treeUri: android.net.Uri,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
     ): ImportReport
+
+    suspend fun indexLinkedTrees(
+        treeUris: List<android.net.Uri>,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): ImportReport
+
+    suspend fun removeSourceTree(treeUri: String)
 
     /** Re-indexes a single comic (e.g. after retrying a failed one). */
     suspend fun refreshComic(id: String): Comic?

@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.sp
  * Mori type scale, built on the variable Google Sans Flex family.
  *
  * Mirrors the reference app's split: display/headline/label roles and
- * `bodyLarge` ride the semibold face, while `titleLarge` and the small body
+ * `bodyLarge` ride the semibold face, while the small body
  * roles ride the regular face — hierarchy comes from weight contrast rather
  * than bespoke sizes. Sizes and line heights keep the Material 3 baseline;
  * only the family and weights are overridden, exactly as the reference does.
@@ -69,7 +69,7 @@ val MoriTypography = baseline.copy(
     headlineLarge = baseline.headlineLarge.heading(),
     headlineMedium = baseline.headlineMedium.heading(),
     headlineSmall = baseline.headlineSmall.heading(),
-    titleLarge = baseline.titleLarge.body(),
+    titleLarge = baseline.titleLarge.heading(),
     titleMedium = baseline.titleMedium.heading(),
     titleSmall = baseline.titleSmall.heading(),
     bodyLarge = baseline.bodyLarge.heading(),

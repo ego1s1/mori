@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.mori.core.data.ComicsRepository
+import com.mori.core.data.DuplicateCollectionNameException
 import com.mori.core.model.Comic
 import com.mori.feature.detail.api.DetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -138,11 +139,19 @@ internal class DetailViewModel @Inject constructor(
 
     private fun toggleShelfMember(collectionId: Long) {
         viewModelScope.launch {
-            val members = repository.observeComicCollections(args.comicId).first()
-            if (collectionId in members) {
-                repository.removeFromCollection(collectionId, args.comicId)
-            } else {
-                repository.addToCollection(collectionId, args.comicId)
+            // Serialized with refresh: a toggle racing a rescan/prune must
+            // not read a stale membership set and flip the wrong way.
+            refreshMutex.withLock {
+                try {
+                    val members = repository.observeComicCollections(args.comicId).first()
+                    if (collectionId in members) {
+                        repository.removeFromCollection(collectionId, args.comicId)
+                    } else {
+                        repository.addToCollection(collectionId, args.comicId)
+                    }
+                } catch (e: Exception) {
+                    messageChannel.send(DetailMessage.ShelfFailed)
+                }
             }
         }
     }
@@ -151,9 +160,14 @@ internal class DetailViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val id = runCatching { repository.createCollection(trimmed) }.getOrNull()
-                ?: return@launch
-            runCatching { repository.addToCollection(id, args.comicId) }
+            try {
+                val id = repository.createCollection(trimmed)
+                repository.addToCollection(id, args.comicId)
+            } catch (e: DuplicateCollectionNameException) {
+                messageChannel.send(DetailMessage.ShelfNameTaken)
+            } catch (e: Exception) {
+                messageChannel.send(DetailMessage.ShelfFailed)
+            }
         }
     }
 

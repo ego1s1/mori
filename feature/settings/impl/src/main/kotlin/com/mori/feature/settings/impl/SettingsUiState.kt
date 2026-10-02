@@ -1,14 +1,22 @@
 package com.mori.feature.settings.impl
 
+import android.net.Uri
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 import com.mori.core.model.UserCollection
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
+
+data class SourceFolder(
+    val uri: String,
+    val bookCount: Int,
+)
 
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState
@@ -21,6 +29,8 @@ sealed interface SettingsUiState {
         val appLock: Boolean = false,
         val groups: List<UserCollection> = emptyList(),
         val groupDialog: GroupDialog? = null,
+        val sourceFolders: List<SourceFolder> = emptyList(),
+        val removeFolderUri: String? = null,
     ) : SettingsUiState
 }
 
@@ -31,6 +41,8 @@ sealed interface SettingsAction {
 
     data class SetAmoled(val enabled: Boolean) : SettingsAction
 
+    data class SetHapticsEnabled(val enabled: Boolean) : SettingsAction
+
     data class SetMotionStyle(val style: MotionStyle) : SettingsAction
 
     data class SetColorScheme(val scheme: ColorSchemeChoice) : SettingsAction
@@ -38,6 +50,10 @@ sealed interface SettingsAction {
     data class SetDirection(val direction: ReadingDirection) : SettingsAction
 
     data class SetPageFit(val fit: PageFit) : SettingsAction
+
+    data class SetReaderNavMode(val navMode: ReaderNavMode) : SettingsAction
+
+    data class SetTapInvertMode(val invertMode: TapInvertMode) : SettingsAction
 
     data object ToggleVolumeKeys : SettingsAction
 
@@ -67,6 +83,16 @@ sealed interface SettingsAction {
     data object ResetDisplayFilter : SettingsAction
 
     data object ClearThumbnailCache : SettingsAction
+
+    data class AddSourceTree(val uri: Uri) : SettingsAction
+
+    data class AskRemoveSource(val uri: String) : SettingsAction
+
+    data object ConfirmRemoveSource : SettingsAction
+
+    data object DismissRemoveSource : SettingsAction
+
+    data class RelinkSource(val oldUri: String, val newUri: Uri) : SettingsAction
 
     data object OpenCreateGroup : SettingsAction
 

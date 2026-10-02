@@ -162,10 +162,10 @@ class LibraryViewModel @Inject constructor(
             comics,
             query,
             combine(refreshing, filterOpen, ::Chrome),
-            preferences.sourceTreeUri,
+            preferences.sourceTreeUris,
             indexProgress,
-        ) { comics, query, chrome, treeUri, progress ->
-            LibraryBase(comics, query, chrome, treeUri != null, progress)
+        ) { comics, query, chrome, treeUris, progress ->
+            LibraryBase(comics, query, chrome, treeUris.isNotEmpty(), progress)
         }.distinctUntilChanged(),
         collectionsState,
         preferences.libraryQuery.map { it.collapsedShelfIds }.distinctUntilChanged(),
@@ -237,8 +237,27 @@ class LibraryViewModel @Inject constructor(
         // the app. With no tree linked there is nothing to rescan; manual
         // rescans stay on pull-to-refresh (plus the empty-state button).
         viewModelScope.launch {
-            if (preferences.sourceTreeUri.first() == null) return@launch
+            if (preferences.sourceTreeUris.first().isEmpty()) return@launch
             reindex()
+        }
+        // Prune shelf references deleted elsewhere (Settings): a selected
+        // shelf that no longer exists is cleared instead of lingering as a
+        // ghost filter id, and collapsed ids of gone shelves stop
+        // accumulating in persisted prefs.
+        viewModelScope.launch {
+            repository.observeCollections().distinctUntilChanged().collect { collections ->
+                val ids = collections.map { it.id }.toSet()
+                val selected = selectedCollection.value
+                if (selected != null && selected !in ids) {
+                    selectedCollection.value = null
+                    savedStateHandle.remove<Long>(KEY_COLLECTION)
+                }
+                val collapsed = preferences.libraryQuery.first().collapsedShelfIds
+                val pruned = collapsed.intersect(ids)
+                if (pruned != collapsed) {
+                    updateQuery { it.copy(collapsedShelfIds = pruned) }
+                }
+            }
         }
     }
 
@@ -251,6 +270,8 @@ class LibraryViewModel @Inject constructor(
             is LibraryAction.SortSelected -> updateQuery { it.copy(sortOrder = action.sort) }
             is LibraryAction.FilterSelected -> updateQuery { it.copy(filter = action.filter) }
             is LibraryAction.ToggleHideErrors -> updateQuery { it.copy(hideErrors = action.hide) }
+            is LibraryAction.SetDisplayMode -> updateQuery { it.copy(displayMode = action.displayMode) }
+            is LibraryAction.SetGridColumns -> updateQuery { it.copy(gridColumns = action.columns) }
             LibraryAction.OpenFilter -> filterOpen.value = true
             LibraryAction.CloseFilter -> filterOpen.value = false
             LibraryAction.Refresh -> reindex()
@@ -335,7 +356,7 @@ class LibraryViewModel @Inject constructor(
      */
     private fun reindex(linkUri: String? = null) {
         viewModelScope.launch {
-            if (linkUri != null) preferences.setSourceTreeUri(linkUri)
+            if (linkUri != null) preferences.addSourceTreeUri(linkUri)
             if (!reindexMutex.tryLock()) {
                 // A run is active (or a follow-up already folded): merge this
                 // tap into it. Folder picks persist above, so the follow-up
@@ -352,14 +373,15 @@ class LibraryViewModel @Inject constructor(
                 do {
                     reindexQueued.set(false)
                     try {
-                        val treeUri = preferences.sourceTreeUri.first() ?: return@launch
-                        val failed = repository.indexLinkedTree(android.net.Uri.parse(treeUri)) { done, total ->
+                        val treeUris = preferences.sourceTreeUris.first().map(android.net.Uri::parse)
+                        if (treeUris.isEmpty()) return@launch
+                        val report = repository.indexLinkedTrees(treeUris) { done, total ->
                             if (done % 10 == 0 || done == total) {
                                 indexProgress.value = IndexProgress(done, total)
                             }
-                        }.failed
-                        if (failed > 0) {
-                            messageChannel.trySend(LibraryMessage.IndexFailed(failed))
+                        }
+                        if (report.failed > 0) {
+                            messageChannel.trySend(LibraryMessage.IndexFailed(report.failed))
                         }
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e

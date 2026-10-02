@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibraryFilter
+import com.mori.core.model.LibraryDisplayMode
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.UserCollection
 import com.mori.core.testing.FakeComicsRepository
@@ -171,22 +172,39 @@ class LibraryViewModelTest {
      */
     @Test
     fun storedQuerySurvivesTextMerge() = runTest {
+        val repository = FakeComicsRepository()
+        val shelfId = repository.createCollection("Action")
         val preferences = FakePreferencesDataSource(
             initialQuery = LibraryQuery(
                 sortOrder = LibrarySortOrder.TITLE,
-                collapsedShelfIds = setOf(7L),
+                collapsedShelfIds = setOf(shelfId),
             ),
         )
-        val viewModel = viewModel(preferences = preferences)
+        val viewModel = viewModel(repository, preferences = preferences)
         viewModel.uiState.test {
             val initial = awaitAs<LibraryUiState.Success>()
             assertEquals(LibrarySortOrder.TITLE, initial.query.sortOrder)
-            assertEquals(setOf(7L), initial.query.collapsedShelfIds)
+            assertEquals(setOf(shelfId), initial.query.collapsedShelfIds)
             viewModel.onAction(LibraryAction.SearchTextChanged("app"))
             val searched = awaitAs<LibraryUiState.Success> { it.query.text == "app" }
             assertEquals("app", searched.query.text)
             assertEquals(LibrarySortOrder.TITLE, searched.query.sortOrder)
-            assertEquals(setOf(7L), searched.query.collapsedShelfIds)
+            assertEquals(setOf(shelfId), searched.query.collapsedShelfIds)
+        }
+    }
+
+    @Test
+    fun deletedSelectedShelfClearsGhostFilter() = runTest {
+        val repository = FakeComicsRepository()
+        val shelfId = repository.createCollection("Action")
+        val viewModel = viewModel(repository)
+        viewModel.uiState.test {
+            awaitAs<LibraryUiState.Success>()
+            viewModel.onAction(LibraryAction.SelectCollection(shelfId))
+            awaitAs<LibraryUiState.Success> { it.selectedCollectionId == shelfId }
+            repository.deleteCollection(shelfId)
+            awaitAs<LibraryUiState.Success> { it.selectedCollectionId == null }
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -194,8 +212,7 @@ class LibraryViewModelTest {
     fun refreshFailureMessageIsOneShot() = runTest {
         val repository = FakeComicsRepository()
         repository.linkReport = com.mori.core.model.ImportReport(2, 0, 2)
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/linked")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/linked"))
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
@@ -211,8 +228,7 @@ class LibraryViewModelTest {
     fun refreshExceptionMessageIsOneShot() = runTest {
         val repository = FakeComicsRepository()
         repository.failLinkWith = IllegalStateException("disk gone")
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/linked")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/linked"))
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.messages.test {
             viewModel.onAction(LibraryAction.Refresh)
@@ -242,7 +258,7 @@ class LibraryViewModelTest {
             repository = repository,
             preferences = preferences,
         )
-        preferences.setSourceTreeUri("content://tree/linked")
+        preferences.addSourceTreeUri("content://tree/linked")
         viewModel.uiState.test {
             awaitAs<LibraryUiState.Success>()
             viewModel.onAction(LibraryAction.Refresh)
@@ -271,8 +287,7 @@ class LibraryViewModelTest {
             linkReport = com.mori.core.model.ImportReport(2, 2, 0)
             indexGate = CompletableDeferred()
         }
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/old")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/old"))
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.uiState.test {
             // The launch rescan parks inside the gate with its opening
@@ -294,8 +309,7 @@ class LibraryViewModelTest {
         // pass instead of queueing three full reindexes.
         val repository = FakeComicsRepository()
         repository.indexGate = CompletableDeferred()
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/old")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/old"))
         val viewModel = viewModel(repository, preferences = preferences)
         viewModel.uiState.test {
             awaitAs<LibraryUiState.Success>()
@@ -327,8 +341,8 @@ class LibraryViewModelTest {
             assertEquals(false, (settled as LibraryUiState.Success).refreshing)
             cancelAndIgnoreRemainingEvents()
         }
-        preferences.sourceTreeUri.test {
-            assertEquals("content://tree/new", awaitItem())
+        preferences.sourceTreeUris.test {
+            assertEquals(setOf("content://tree/new"), awaitItem())
         }
         assertEquals(
             listOf(android.net.Uri.parse("content://tree/new")),
@@ -340,18 +354,18 @@ class LibraryViewModelTest {
     fun folderPickDuringRescanIsQueuedNotDropped() = runTest {
         val repository = FakeComicsRepository()
         repository.indexGate = CompletableDeferred()
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/old")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/old"))
         // init holds the launch rescan inside the gate...
         val viewModel = viewModel(repository, preferences = preferences)
         // ...so this pick queues behind the lock instead of returning early.
         viewModel.onAction(LibraryAction.FolderSelected(android.net.Uri.parse("content://tree/new")))
         // The new URI persists immediately even while indexing runs.
-        assertEquals("content://tree/new", preferences.sourceTreeUri.first())
+        assertEquals(setOf("content://tree/old", "content://tree/new"), preferences.sourceTreeUris.first())
         repository.indexGate?.complete(Unit)
         dispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(
             listOf(
+                android.net.Uri.parse("content://tree/old"),
                 android.net.Uri.parse("content://tree/old"),
                 android.net.Uri.parse("content://tree/new"),
             ),
@@ -361,8 +375,7 @@ class LibraryViewModelTest {
     @Test
     fun emptyShelfAutoIndexesLinkedTree() = runTest {
         val repository = FakeComicsRepository()
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/linked")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/linked"))
         viewModel(
             repository = repository,
             preferences = preferences,
@@ -379,8 +392,7 @@ class LibraryViewModelTest {
         val repository = FakeComicsRepository(
             listOf(FakeComicsRepository.comic("a", title = "Apple")),
         )
-        val preferences = FakePreferencesDataSource()
-        preferences.setSourceTreeUri("content://tree/linked")
+        val preferences = FakePreferencesDataSource(initialTrees = setOf("content://tree/linked"))
         viewModel(
             repository = repository,
             preferences = preferences,
@@ -414,6 +426,26 @@ class LibraryViewModelTest {
             assertEquals(LibrarySortOrder.TITLE, state.query.sortOrder)
             assertEquals(LibraryFilter.FINISHED, state.query.filter)
             assertTrue(state.query.hideErrors)
+        }
+    }
+
+    @Test
+    fun displayModeAndColumnsPersistAcrossViewModels() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val first = viewModel(preferences = preferences)
+        first.uiState.test {
+            awaitAs<LibraryUiState.Success>()
+            first.onAction(LibraryAction.SetDisplayMode(LibraryDisplayMode.COMFORTABLE_GRID))
+            awaitAs<LibraryUiState.Success> { it.query.displayMode == LibraryDisplayMode.COMFORTABLE_GRID }
+            first.onAction(LibraryAction.SetGridColumns(4))
+            awaitAs<LibraryUiState.Success> { it.query.gridColumns == 4 }
+            cancelAndIgnoreRemainingEvents()
+        }
+        val second = viewModel(preferences = preferences)
+        second.uiState.test {
+            val state = awaitAs<LibraryUiState.Success>()
+            assertEquals(LibraryDisplayMode.COMFORTABLE_GRID, state.query.displayMode)
+            assertEquals(4, state.query.gridColumns)
         }
     }
 

@@ -4,25 +4,30 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.mori.core.model.LibraryQuery
+import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.LibraryDisplayMode
 import com.mori.core.model.LibraryFilter
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
+import com.mori.core.model.MotionStyle
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
-import com.mori.core.model.MotionStyle
-import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.TapInvertMode
 import com.mori.core.model.ThemeMode
 import com.mori.core.model.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,8 +38,12 @@ internal class DataStorePreferencesDataSource @Inject constructor(
     override val onboardingCompleted: Flow<Boolean> =
         dataStore.data.map { it[ONBOARDING_COMPLETED] ?: false }.distinctUntilChanged()
 
-    override val sourceTreeUri: Flow<String?> =
-        dataStore.data.map { it[SOURCE_TREE_URI] }.distinctUntilChanged()
+    override val sourceTreeUris: Flow<Set<String>> =
+        dataStore.data.map { prefs ->
+            val uris = prefs[SOURCE_TREE_URIS].orEmpty()
+            val legacy = prefs[SOURCE_TREE_URI]
+            if (legacy != null) uris + legacy else uris
+        }.distinctUntilChanged().onStart { migrateLegacyTreeUriIfNeeded() }
 
     override val readerPreferences: Flow<ReaderPreferences> =
         dataStore.data.map { it.toReaderPreferences() }.distinctUntilChanged()
@@ -43,9 +52,26 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
     }
 
-    override suspend fun setSourceTreeUri(uri: String?) {
-        dataStore.edit {
-            if (uri == null) it.remove(SOURCE_TREE_URI) else it[SOURCE_TREE_URI] = uri
+    override suspend fun addSourceTreeUri(uri: String) {
+        dataStore.updateData { prefs ->
+            prefs.toMutablePreferences().apply {
+                val legacy = this[SOURCE_TREE_URI]
+                val base = this[SOURCE_TREE_URIS].orEmpty()
+                this[SOURCE_TREE_URIS] = if (legacy != null) base + legacy + uri else base + uri
+                remove(SOURCE_TREE_URI)
+            }
+        }
+    }
+
+    override suspend fun removeSourceTreeUri(uri: String) {
+        dataStore.updateData { prefs ->
+            prefs.toMutablePreferences().apply {
+                val legacy = this[SOURCE_TREE_URI]
+                val base = this[SOURCE_TREE_URIS].orEmpty()
+                val merged = if (legacy != null) base + legacy else base
+                this[SOURCE_TREE_URIS] = merged - uri
+                remove(SOURCE_TREE_URI)
+            }
         }
     }
 
@@ -68,6 +94,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 this[DYNAMIC_COLOR] = updated.dynamicColor
                 this[COLOR_SCHEME] = updated.colorScheme.name
                 this[AMOLED] = updated.amoled
+                this[HAPTICS_ENABLED] = updated.hapticsEnabled
             }
         }
     }
@@ -94,6 +121,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
                 this[LIBRARY_FILTER] = updated.filter.name
                 this[LIBRARY_HIDE_ERRORS] = updated.hideErrors
                 this[LIBRARY_COLLAPSED_SHELVES] = updated.collapsedShelfIds.map { id -> id.toString() }.toSet()
+                this[LIBRARY_DISPLAY_MODE] = updated.displayMode.name
+                this[LIBRARY_GRID_COLUMNS] = updated.gridColumns
             }
         }
     }
@@ -112,6 +141,16 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         dataStore.edit { it[APP_LOCK_ENABLED] = enabled }
     }
 
+    private suspend fun migrateLegacyTreeUriIfNeeded() {
+        val legacy = dataStore.data.first()[SOURCE_TREE_URI] ?: return
+        dataStore.updateData { prefs ->
+            prefs.toMutablePreferences().apply {
+                this[SOURCE_TREE_URIS] = this[SOURCE_TREE_URIS].orEmpty() + legacy
+                remove(SOURCE_TREE_URI)
+            }
+        }
+    }
+
     private fun Preferences.toReaderPreferences(): ReaderPreferences = ReaderPreferences(
         direction = this[READING_DIRECTION]?.let {
             runCatching { ReadingDirection.valueOf(it) }.getOrDefault(ReadingDirection.LEFT_TO_RIGHT)
@@ -128,6 +167,12 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         showTapZones = this[SHOW_TAP_ZONES] ?: false,
         dualPageSplit = this[DUAL_PAGE_SPLIT] ?: false,
         dualPageInvert = this[DUAL_PAGE_INVERT] ?: false,
+        navMode = this[READER_NAV_MODE]?.let {
+            runCatching { ReaderNavMode.valueOf(it) }.getOrDefault(ReaderNavMode.DEFAULT)
+        } ?: ReaderNavMode.DEFAULT,
+        invertTaps = this[READER_INVERT_TAPS]?.let {
+            runCatching { TapInvertMode.valueOf(it) }.getOrDefault(TapInvertMode.NONE)
+        } ?: TapInvertMode.NONE,
         displayFilter = com.mori.core.model.DisplayFilter(
             brightness = this[FILTER_BRIGHTNESS] ?: 0f,
             grayscale = this[FILTER_GRAYSCALE] ?: false,
@@ -150,6 +195,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             this[SHOW_TAP_ZONES] = updated.showTapZones
             this[DUAL_PAGE_SPLIT] = updated.dualPageSplit
             this[DUAL_PAGE_INVERT] = updated.dualPageInvert
+            this[READER_NAV_MODE] = updated.navMode.name
+            this[READER_INVERT_TAPS] = updated.invertTaps.name
             this[FILTER_BRIGHTNESS] = updated.displayFilter.brightness
             this[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
             this[FILTER_INVERT] = updated.displayFilter.invert
@@ -166,6 +213,7 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             runCatching { ColorSchemeChoice.valueOf(it) }.getOrDefault(ColorSchemeChoice.MORI)
         } ?: ColorSchemeChoice.MORI,
         amoled = this[AMOLED] ?: false,
+        hapticsEnabled = this[HAPTICS_ENABLED] ?: true,
     )
 
     private fun Preferences.toLibraryQuery(): LibraryQuery = LibraryQuery(
@@ -179,10 +227,16 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         collapsedShelfIds = this[LIBRARY_COLLAPSED_SHELVES]?.mapNotNull {
             it.toLongOrNull()
         }.orEmpty().toSet(),
+        displayMode = this[LIBRARY_DISPLAY_MODE]?.let {
+            runCatching { LibraryDisplayMode.valueOf(it) }.getOrDefault(LibraryDisplayMode.COMPACT_GRID)
+        } ?: LibraryDisplayMode.COMPACT_GRID,
+        gridColumns = this[LIBRARY_GRID_COLUMNS] ?: 0,
     )
 
-    private companion object {        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    private companion object {
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val SOURCE_TREE_URI = stringPreferencesKey("source_tree_uri")
+        val SOURCE_TREE_URIS = stringSetPreferencesKey("source_tree_uris")
         val READING_DIRECTION = stringPreferencesKey("reading_direction")
         val PAGE_FIT = stringPreferencesKey("page_fit")
         val CROP_MARGINS = booleanPreferencesKey("crop_margins")
@@ -194,6 +248,8 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val SHOW_TAP_ZONES = booleanPreferencesKey("show_tap_zones")
         val DUAL_PAGE_SPLIT = booleanPreferencesKey("dual_page_split")
         val DUAL_PAGE_INVERT = booleanPreferencesKey("dual_page_invert")
+        val READER_NAV_MODE = stringPreferencesKey("reader_nav_mode")
+        val READER_INVERT_TAPS = stringPreferencesKey("reader_invert_taps")
         val FILTER_BRIGHTNESS = floatPreferencesKey("display_filter_brightness")
         val FILTER_GRAYSCALE = booleanPreferencesKey("display_filter_grayscale")
         val FILTER_INVERT = booleanPreferencesKey("display_filter_invert")
@@ -203,11 +259,14 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val AMOLED = booleanPreferencesKey("amoled")
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val MOTION_STYLE = stringPreferencesKey("motion_style")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
         val LIBRARY_FILTER = stringPreferencesKey("library_filter")
         val LIBRARY_HIDE_ERRORS = booleanPreferencesKey("library_hide_errors")
         val LIBRARY_COLLAPSED_SHELVES = stringSetPreferencesKey("library_collapsed_shelves")
+        val LIBRARY_DISPLAY_MODE = stringPreferencesKey("library_display_mode")
+        val LIBRARY_GRID_COLUMNS = intPreferencesKey("library_grid_columns")
         val READER_OVERVIEW_SEEN = booleanPreferencesKey("reader_overview_seen")
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     }

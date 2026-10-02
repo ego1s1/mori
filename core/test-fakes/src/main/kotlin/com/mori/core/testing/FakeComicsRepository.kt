@@ -2,6 +2,7 @@ package com.mori.core.testing
 
 import android.net.Uri
 import com.mori.core.data.ComicsRepository
+import com.mori.core.data.DuplicateCollectionNameException
 import com.mori.core.data.applyQuery
 import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
@@ -9,6 +10,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.MAX_COLLECTION_NAME
 import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
@@ -71,8 +73,16 @@ class FakeComicsRepository(
     override suspend fun indexLinkedTree(
         treeUri: Uri,
         onProgress: (done: Int, total: Int) -> Unit,
+    ): ImportReport = indexLinkedTrees(listOf(treeUri), onProgress)
+
+    override suspend fun indexLinkedTrees(
+        treeUris: List<Uri>,
+        onProgress: (done: Int, total: Int) -> Unit,
     ): ImportReport {
-        linkedTrees += treeUri
+        if (treeUris.isEmpty()) {
+            return ImportReport(0, 0, 0)
+        }
+        linkedTrees += treeUris
         // Opening tick before the gate: lets tests observe in-flight
         // progress deterministically while the run is still parked.
         onProgress(0, linkReport.total)
@@ -80,6 +90,17 @@ class FakeComicsRepository(
         failLinkWith?.let { throw it }
         onProgress(linkReport.succeeded.coerceAtMost(linkReport.total), linkReport.total)
         return linkReport
+    }
+
+    override suspend fun removeSourceTree(treeUri: String) {
+        val ids = comics.value.values.filter { it.id.startsWith(treeUri) || it.sourcePath.startsWith(treeUri) }.map { it.id }
+        if (ids.isNotEmpty()) {
+            removedIds += ids
+            comics.value = comics.value.filterKeys { it !in ids.toSet() }
+            // Mirror prod: memberships die with the row so counts never inflate.
+            memberships.values.forEach { members -> members.removeAll(ids.toSet()) }
+            refreshCounts()
+        }
     }
 
     override suspend fun refreshComic(id: String): Comic? {
@@ -93,6 +114,9 @@ class FakeComicsRepository(
         removedIds += id
         failRefreshWith?.let { throw it }
         comics.value = comics.value - id
+        // Mirror prod: memberships die with the row so counts never inflate.
+        memberships.values.forEach { it.remove(id) }
+        refreshCounts()
     }
 
     override suspend fun saveProgress(id: String, pageIndex: Int) {
@@ -158,6 +182,12 @@ class FakeComicsRepository(
     override suspend fun createCollection(name: String): Long {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty())
+        require(trimmed.length <= MAX_COLLECTION_NAME) {
+            "Collection name must be at most $MAX_COLLECTION_NAME characters"
+        }
+        if (collectionsFlow.value.any { it.name.equals(trimmed, ignoreCase = true) }) {
+            throw DuplicateCollectionNameException(trimmed)
+        }
         val id = nextCollectionId++
         collectionsFlow.value += UserCollection(
             id = id,
@@ -171,6 +201,12 @@ class FakeComicsRepository(
     override suspend fun renameCollection(id: Long, name: String) {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty())
+        require(trimmed.length <= MAX_COLLECTION_NAME) {
+            "Collection name must be at most $MAX_COLLECTION_NAME characters"
+        }
+        if (collectionsFlow.value.any { it.id != id && it.name.equals(trimmed, ignoreCase = true) }) {
+            throw DuplicateCollectionNameException(trimmed)
+        }
         collectionsFlow.value = collectionsFlow.value.map {
             if (it.id == id) it.copy(name = trimmed) else it
         }

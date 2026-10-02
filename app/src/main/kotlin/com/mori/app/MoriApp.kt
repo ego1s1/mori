@@ -67,6 +67,7 @@ fun MoriApp(
         dynamicColor = theme?.dynamicColor ?: true,
         colorScheme = theme?.colorScheme ?: ColorSchemeChoice.MORI,
         amoled = theme?.amoled ?: false,
+        hapticsEnabled = theme?.hapticsEnabled ?: true,
     ) {
         // System-bar glyphs follow the Compose theme, not the system night
         // mode: forcing dark while the system is light left dark glyphs on a

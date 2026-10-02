@@ -13,4 +13,5 @@ data class ThemePreferences(
     val dynamicColor: Boolean = true,
     val colorScheme: ColorSchemeChoice = ColorSchemeChoice.MORI,
     val amoled: Boolean = false,
+    val hapticsEnabled: Boolean = true,
 )

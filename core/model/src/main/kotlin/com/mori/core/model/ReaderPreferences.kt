@@ -13,6 +13,24 @@ enum class PageFit {
     ORIGINAL,
 }
 
+/** Tap navigation layout modes for the reader pager. */
+enum class ReaderNavMode {
+    DEFAULT,
+    L_SHAPE,
+    KINDLISH,
+    EDGE,
+    RIGHT_AND_LEFT,
+    DISABLED,
+}
+
+/** Inversion mode for reader tap zones. */
+enum class TapInvertMode {
+    NONE,
+    HORIZONTAL,
+    VERTICAL,
+    BOTH,
+}
+
 /** Reader preferences persisted in DataStore. */
 data class ReaderPreferences(
     val direction: ReadingDirection = ReadingDirection.LEFT_TO_RIGHT,
@@ -35,14 +53,13 @@ data class ReaderPreferences(
     val dualPageSplit: Boolean = false,
     /** Read the second half before the first. */
     val dualPageInvert: Boolean = false,
+    val navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    val invertTaps: TapInvertMode = TapInvertMode.NONE,
     /**
      * Display filters for page art. This is the global default; a per-comic
      * override (when present) replaces it wholesale.
      */
-    val displayFilter: DisplayFilter = DisplayFilter.Neutral,
-    /**
-     * Incognito reading: progress, history, and session stats are not
-     * recorded while on. The reader still works normally otherwise.
-     */
+    val displayFilter: DisplayFilter = DisplayFilter(),
+    /** Pause progress, history, and stats recording while in the reader. */
     val incognito: Boolean = false,
 )

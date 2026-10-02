@@ -172,6 +172,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = OceanColors.SecondaryDark,
                 tertiary = OceanColors.TertiaryDark,
             )
+
             ColorSchemeChoice.FOREST -> presetDarkScheme(
                 primary = ForestColors.PrimaryDark,
                 onPrimary = ForestColors.OnPrimaryDark,
@@ -180,6 +181,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = ForestColors.SecondaryDark,
                 tertiary = ForestColors.TertiaryDark,
             )
+
             ColorSchemeChoice.SUNSET -> presetDarkScheme(
                 primary = SunsetColors.PrimaryDark,
                 onPrimary = SunsetColors.OnPrimaryDark,
@@ -188,6 +190,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = SunsetColors.SecondaryDark,
                 tertiary = SunsetColors.TertiaryDark,
             )
+
             ColorSchemeChoice.CATPPUCCIN -> presetDarkScheme(
                 primary = CatppuccinColors.PrimaryDark,
                 onPrimary = CatppuccinColors.OnPrimaryDark,
@@ -196,6 +199,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = CatppuccinColors.SecondaryDark,
                 tertiary = CatppuccinColors.TertiaryDark,
             )
+
             ColorSchemeChoice.NORD -> presetDarkScheme(
                 primary = NordColors.PrimaryDark,
                 onPrimary = NordColors.OnPrimaryDark,
@@ -204,6 +208,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = NordColors.SecondaryDark,
                 tertiary = NordColors.TertiaryDark,
             )
+
             ColorSchemeChoice.GRUVBOX -> presetDarkScheme(
                 primary = GruvboxColors.PrimaryDark,
                 onPrimary = GruvboxColors.OnPrimaryDark,
@@ -212,6 +217,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = GruvboxColors.SecondaryDark,
                 tertiary = GruvboxColors.TertiaryDark,
             )
+
             ColorSchemeChoice.DRACULA -> presetDarkScheme(
                 primary = DraculaColors.PrimaryDark,
                 onPrimary = DraculaColors.OnPrimaryDark,
@@ -220,6 +226,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = DraculaColors.SecondaryDark,
                 tertiary = DraculaColors.TertiaryDark,
             )
+
             ColorSchemeChoice.TOKYO_NIGHT -> presetDarkScheme(
                 primary = TokyoNightColors.PrimaryDark,
                 onPrimary = TokyoNightColors.OnPrimaryDark,
@@ -228,6 +235,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = TokyoNightColors.SecondaryDark,
                 tertiary = TokyoNightColors.TertiaryDark,
             )
+
             ColorSchemeChoice.EVERFOREST -> presetDarkScheme(
                 primary = EverforestColors.PrimaryDark,
                 onPrimary = EverforestColors.OnPrimaryDark,
@@ -236,6 +244,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
                 secondary = EverforestColors.SecondaryDark,
                 tertiary = EverforestColors.TertiaryDark,
             )
+
             ColorSchemeChoice.MONOCHROME -> presetDarkScheme(
                 primary = MonochromeColors.PrimaryDark,
                 onPrimary = MonochromeColors.OnPrimaryDark,
@@ -256,6 +265,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = OceanColors.SecondaryLight,
             tertiary = OceanColors.TertiaryLight,
         )
+
         ColorSchemeChoice.FOREST -> presetLightScheme(
             primary = ForestColors.PrimaryLight,
             onPrimary = ForestColors.OnPrimaryLight,
@@ -264,6 +274,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = ForestColors.SecondaryLight,
             tertiary = ForestColors.TertiaryLight,
         )
+
         ColorSchemeChoice.SUNSET -> presetLightScheme(
             primary = SunsetColors.PrimaryLight,
             onPrimary = SunsetColors.OnPrimaryLight,
@@ -272,6 +283,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = SunsetColors.SecondaryLight,
             tertiary = SunsetColors.TertiaryLight,
         )
+
         ColorSchemeChoice.CATPPUCCIN -> presetLightScheme(
             primary = CatppuccinColors.PrimaryLight,
             onPrimary = CatppuccinColors.OnPrimaryLight,
@@ -280,6 +292,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = CatppuccinColors.SecondaryLight,
             tertiary = CatppuccinColors.TertiaryLight,
         )
+
         ColorSchemeChoice.NORD -> presetLightScheme(
             primary = NordColors.PrimaryLight,
             onPrimary = NordColors.OnPrimaryLight,
@@ -288,6 +301,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = NordColors.SecondaryLight,
             tertiary = NordColors.TertiaryLight,
         )
+
         ColorSchemeChoice.GRUVBOX -> presetLightScheme(
             primary = GruvboxColors.PrimaryLight,
             onPrimary = GruvboxColors.OnPrimaryLight,
@@ -296,6 +310,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = GruvboxColors.SecondaryLight,
             tertiary = GruvboxColors.TertiaryLight,
         )
+
         ColorSchemeChoice.DRACULA -> presetLightScheme(
             primary = DraculaColors.PrimaryLight,
             onPrimary = DraculaColors.OnPrimaryLight,
@@ -304,6 +319,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = DraculaColors.SecondaryLight,
             tertiary = DraculaColors.TertiaryLight,
         )
+
         ColorSchemeChoice.TOKYO_NIGHT -> presetLightScheme(
             primary = TokyoNightColors.PrimaryLight,
             onPrimary = TokyoNightColors.OnPrimaryLight,
@@ -312,6 +328,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = TokyoNightColors.SecondaryLight,
             tertiary = TokyoNightColors.TertiaryLight,
         )
+
         ColorSchemeChoice.EVERFOREST -> presetLightScheme(
             primary = EverforestColors.PrimaryLight,
             onPrimary = EverforestColors.OnPrimaryLight,
@@ -320,6 +337,7 @@ private fun presetScheme(choice: ColorSchemeChoice, darkTheme: Boolean): ColorSc
             secondary = EverforestColors.SecondaryLight,
             tertiary = EverforestColors.TertiaryLight,
         )
+
         ColorSchemeChoice.MONOCHROME -> presetLightScheme(
             primary = MonochromeColors.PrimaryLight,
             onPrimary = MonochromeColors.OnPrimaryLight,
@@ -347,6 +365,7 @@ fun MoriTheme(
     dynamicColor: Boolean = true,
     colorScheme: ColorSchemeChoice = ColorSchemeChoice.MORI,
     amoled: Boolean = false,
+    hapticsEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val baseScheme = when {
@@ -354,6 +373,7 @@ fun MoriTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+
         else -> presetScheme(colorScheme, darkTheme)
     }
     val scheme = if (amoled && darkTheme) baseScheme.amoled() else baseScheme
@@ -361,6 +381,7 @@ fun MoriTheme(
     androidx.compose.runtime.CompositionLocalProvider(
         LocalAppFonts provides appFonts(darkTheme),
         LocalAmoled provides (amoled && darkTheme),
+        LocalHapticsEnabled provides hapticsEnabled,
     ) {
         MaterialExpressiveTheme(
             colorScheme = scheme,

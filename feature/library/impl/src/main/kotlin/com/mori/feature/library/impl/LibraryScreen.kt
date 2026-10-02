@@ -92,6 +92,7 @@ import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryDisplayMode
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.UserCollection
@@ -207,11 +208,24 @@ fun LibraryScreen(
     }
     Scaffold(
         topBar = {
-            LibraryTopBar(
-                filterActive = (uiState as? LibraryUiState.Success)?.query?.hasActiveFilters() == true,
-                onAction = onAction,
-                scrollBehavior = scrollBehavior,
-            )
+            val success = uiState as? LibraryUiState.Success
+            if (success != null) {
+                LibraryTopBar(
+                    // Shelf selection or any non-default sort/filter lights
+                    // the Tune icon: with the chips row gone, the grid alone
+                    // must show that a filter is active.
+                    filterActive = success.selectedCollectionId != null ||
+                            success.query.hasActiveFilters(),
+                    onAction = onAction,
+                    scrollBehavior = scrollBehavior,
+                )
+            } else {
+                LibraryTopBar(
+                    filterActive = false,
+                    onAction = {},
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
         snackbarHost = {
             SnackbarHost(
@@ -306,10 +320,6 @@ private fun LibraryContent(
                 )
             }
         }
-        // Search overlay: the grid lives full-bleed underneath with a
-        // fixed [SearchSlotTop] reserve, and a fixed floating panel
-        // rides on top. Scrolled entries pass behind it; only paint
-        // (tone, elevation) responds to scroll.
         val haptics = rememberMoriHaptics()
         val keyboard = LocalSoftwareKeyboardController.current
         val focusManager = LocalFocusManager.current
@@ -414,6 +424,7 @@ private fun LibraryContent(
                             .testTag(LibraryTestTags.SearchField),
                     )
                 }
+
 
                 // Quick filter chips capsule
                 LibraryQuickFilters(
@@ -532,14 +543,21 @@ private fun LibraryBody(
                 // Expanded windows get roomier book cells; Compact/Medium
                 // keep the phone-tuned minimum. Adaptive still decides the
                 // final column count — only the floor changes.
-                val minCell = if (windowWidthClass() == WindowWidthClass.Expanded) {
-                    160.dp
-                } else {
-                    GRID_CELL_MIN
+                val gridCells = when {
+                    query.displayMode == LibraryDisplayMode.LIST -> GridCells.Fixed(1)
+                    query.gridColumns > 0 -> GridCells.Fixed(query.gridColumns)
+                    else -> {
+                        val minCell = if (windowWidthClass() == WindowWidthClass.Expanded) {
+                            160.dp
+                        } else {
+                            GRID_CELL_MIN
+                        }
+                        GridCells.Adaptive(minCell)
+                    }
                 }
                 LazyVerticalGrid(
                     state = gridState,
-                    columns = GridCells.Adaptive(minCell),
+                    columns = gridCells,
                     contentPadding = gridPadding,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -588,6 +606,7 @@ private fun LibraryBody(
                             comicItems(
                                 comics = section.comics,
                                 keyPrefix = "shelf-${section.id}",
+                                displayMode = query.displayMode,
                                 onCardRead = onCardRead,
                                 onCardDetails = onCardDetails,
                                 launchingId = launchingId,
@@ -598,6 +617,7 @@ private fun LibraryBody(
                         comicItems(
                             comics = comics,
                             keyPrefix = "card",
+                            displayMode = query.displayMode,
                             onCardRead = onCardRead,
                             onCardDetails = onCardDetails,
                             launchingId = launchingId,
@@ -617,33 +637,53 @@ private fun LibraryBody(
 private fun LazyGridScope.comicItems(
     comics: List<Comic>,
     keyPrefix: String,
+    displayMode: LibraryDisplayMode,
     onCardRead: (Comic) -> Unit,
     onCardDetails: (Comic) -> Unit,
     launchingId: String?,
     contentVisible: Boolean = true,
 ) {
-    // Collapsed shelves skip emission entirely (no per-item
-    // AnimatedVisibility): items snap out on toggle instead of animating.
     if (!contentVisible) return
     items(
-        items = comics,
+        comics,
         key = { comic -> "$keyPrefix-${comic.id}" },
         contentType = { comic ->
-            when {
-                comic.error != null -> "error"
-                comic.isInProgress -> "inProgress"
-                comic.isFinished -> "finished"
-                else -> "unread"
-            }
+            displayMode.ordinal * 16 +
+                (if (comic.error != null) 4 else 0) +
+                (if (comic.isInProgress) 2 else 0) +
+                (if (comic.isFinished) 1 else 0) +
+                (if (comic.bookmarked) 8 else 0)
         },
     ) { comic ->
-        ComicCard(
-            comic = comic,
-            onRead = onCardRead,
-            onDetails = onCardDetails,
-            sharedCover = comic.id == launchingId,
-            modifier = Modifier.animateItem(),
-        )
+        when (displayMode) {
+            LibraryDisplayMode.COMPACT_GRID -> ComicCard(
+                comic = comic,
+                onRead = onCardRead,
+                onDetails = onCardDetails,
+                sharedCover = launchingId == comic.id,
+                modifier = Modifier.animateItem(),
+            )
+            LibraryDisplayMode.COMFORTABLE_GRID -> ComfortableComicCard(
+                comic = comic,
+                onRead = onCardRead,
+                onDetails = onCardDetails,
+                sharedCover = launchingId == comic.id,
+                modifier = Modifier.animateItem(),
+            )
+            LibraryDisplayMode.COVER_ONLY_GRID -> CoverOnlyComicCard(
+                comic = comic,
+                onRead = onCardRead,
+                onDetails = onCardDetails,
+                sharedCover = launchingId == comic.id,
+                modifier = Modifier.animateItem(),
+            )
+            LibraryDisplayMode.LIST -> ComicListRow(
+                comic = comic,
+                onRead = onCardRead,
+                onDetails = onCardDetails,
+                modifier = Modifier.animateItem(),
+            )
+        }
     }
 }
 
@@ -764,9 +804,8 @@ private fun ShelfSectionHeader(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
+                style = MoriEmphasized.titleLarge.copy(
                     fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Bold,
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

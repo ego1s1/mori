@@ -10,3 +10,6 @@ data class UserCollection(
     val bookCount: Int,
     val createdAt: Long,
 )
+
+/** Shelf names cap here; rows render as chips, not documents. */
+const val MAX_COLLECTION_NAME = 48

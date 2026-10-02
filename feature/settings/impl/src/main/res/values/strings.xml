@@ -51,6 +51,18 @@
     <string name="settings_applock_subtitle">Require biometric or device credential on launch</string>
     <string name="settings_card_storage">Storage</string>
     <string name="settings_storage_summary">%1$d comics • %2$s read cache • %3$s covers</string>
+    <string name="settings_storage_folders_title">Library folders</string>
+    <string name="settings_storage_folders_empty">No folders added. Link a folder to scan for comics.</string>
+    <string name="settings_folder_books_count">%1$d books</string>
+    <string name="settings_folder_books_count_one">1 book</string>
+    <string name="settings_folder_unreachable">Permission missing or moved</string>
+    <string name="settings_folder_relink">Relink</string>
+    <string name="settings_folder_add">Add folder</string>
+    <string name="settings_folder_remove_title">Remove folder?</string>
+    <string name="settings_folder_remove_message">Comics from this folder will be removed from your library. Your original comic files will not be deleted.</string>
+    <string name="settings_folder_remove_confirm">Remove</string>
+    <string name="settings_folder_remove_cancel">Cancel</string>
+    <string name="settings_folder_remove_button_desc">Remove folder</string>
     <string name="settings_card_groups">Shelves</string>
     <string name="settings_groups_empty">No shelves yet — create one to group books.</string>
     <string name="settings_groups_create">New shelf</string>
@@ -93,4 +105,18 @@
     <string name="settings_hub_privacy_sub">App lock, incognito</string>
     <string name="settings_hub_storage_sub">Library size, thumbnail cache</string>
     <string name="settings_hub_about_sub">Version, licenses</string>
+    <string name="settings_haptics_title">Haptic feedback</string>
+    <string name="settings_haptics_subtitle">Semantic vibration feedback on interactions</string>
+    <string name="settings_nav_mode_title">Navigation layout</string>
+    <string name="settings_nav_mode_default">Default</string>
+    <string name="settings_nav_mode_l_shape">L-shaped</string>
+    <string name="settings_nav_mode_kindlish">Kindlish</string>
+    <string name="settings_nav_mode_edge">Edge</string>
+    <string name="settings_nav_mode_right_and_left">Right and left</string>
+    <string name="settings_nav_mode_disabled">Disabled</string>
+    <string name="settings_tap_invert_title">Invert tap zones</string>
+    <string name="settings_tap_invert_none">None</string>
+    <string name="settings_tap_invert_horizontal">Horizontal</string>
+    <string name="settings_tap_invert_vertical">Vertical</string>
+    <string name="settings_tap_invert_both">Both</string>
 </resources>

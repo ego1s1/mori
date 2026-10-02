@@ -3,12 +3,16 @@ package com.mori.core.designsystem
 import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.swmansion.pulsar.Pulsar
 import com.swmansion.pulsar.presets.PresetsWrapper
 import com.swmansion.pulsar.types.CompatibilityMode
+
+/** Ambient toggle controlling whether semantic haptic feedback is dispatched. */
+val LocalHapticsEnabled = staticCompositionLocalOf { true }
 
 /**
  * Pulsar-backed player for [MoriHaptic] events.
@@ -43,9 +47,14 @@ import com.swmansion.pulsar.types.CompatibilityMode
  * - Bounded presets only. No `RealtimeComposer` here: none of our current
  *   events (tabs, toggles, slider release, scrub ticks) need live modulation.
  * - Must be called from the click handler, not composition or `LaunchedEffect`.
+ * - Silenced cleanly when [LocalHapticsEnabled] resolves to false.
  */
 @Composable
 fun rememberMoriHaptics(): (MoriHaptic) -> Unit {
+    val enabled = LocalHapticsEnabled.current
+    if (!enabled) {
+        return remember { {} }
+    }
     val context = LocalContext.current
     val framework = LocalHapticFeedback.current
     // Pulsar holds the context; re-create only when it changes. Construction
@@ -58,7 +67,7 @@ fun rememberMoriHaptics(): (MoriHaptic) -> Unit {
     val pulsarCapable = remember(pulsar) {
         runCatching {
             (pulsar?.hapticSupport() ?: CompatibilityMode.NO_SUPPORT) >=
-                CompatibilityMode.LIMITED_SUPPORT
+                    CompatibilityMode.LIMITED_SUPPORT
         }.getOrDefault(false)
     }
     return remember(pulsar, framework, pulsarCapable) {

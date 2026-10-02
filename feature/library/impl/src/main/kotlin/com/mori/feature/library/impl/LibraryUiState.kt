@@ -1,6 +1,7 @@
 package com.mori.feature.library.impl
 
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryDisplayMode
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
@@ -78,6 +79,10 @@ sealed interface LibraryAction {
     data class OpenMenu(val comicId: String) : LibraryAction
 
     data object CloseMenu : LibraryAction
+
+    data class SetDisplayMode(val displayMode: LibraryDisplayMode) : LibraryAction
+
+    data class SetGridColumns(val columns: Int) : LibraryAction
 
     data object ToggleMenuBookmark : LibraryAction
 

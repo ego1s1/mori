@@ -63,7 +63,9 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -97,6 +99,8 @@ internal fun ZoomablePage(
     half: PageHalf = PageHalf.FULL,
     displayFilter: DisplayFilter = DisplayFilter.Neutral,
     swipeToTurn: Boolean = true,
+    navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    invertMode: TapInvertMode = TapInvertMode.NONE,
 ) {
     var scale by remember(comicId, pageIndex, pageFit, direction, half) { mutableFloatStateOf(1f) }
     var offset by remember(comicId, pageIndex, pageFit, direction, half) { mutableStateOf(Offset.Zero) }
@@ -235,6 +239,8 @@ internal fun ZoomablePage(
                     direction = direction,
                     scope = scope,
                     epoch = tapEpoch,
+                    navMode = navMode,
+                    invertMode = invertMode,
                     onZoneTap = { zone ->
                         if ((zone == ReaderZone.PREV || zone == ReaderZone.NEXT) && scale > 1f) {
                             val towardTrailing =
