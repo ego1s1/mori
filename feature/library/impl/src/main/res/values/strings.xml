@@ -49,7 +49,7 @@
     <string name="library_menu_delete_confirm">Remove</string>
     <string name="library_dialog_cancel">Cancel</string>
     <string name="library_hero_eyebrow">NOW READING</string>
-    <string name="library_hero_page_progress">Page %1 of %2</string>
+    <string name="library_hero_page_progress">Page %1$d of %2$d</string>
     <string name="library_sheet_display">Display</string>
     <string name="library_display_compact">Compact</string>
     <string name="library_display_comfortable">Comfortable</string>
