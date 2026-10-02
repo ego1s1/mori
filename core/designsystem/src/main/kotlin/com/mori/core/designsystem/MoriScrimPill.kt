@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
 /**
@@ -29,10 +30,11 @@ fun MoriScrimPill(
     shape: Shape = MaterialTheme.shapes.small,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
     icon: ImageVector? = null,
+    textStyle: TextStyle = MaterialTheme.typography.labelSmall,
 ) {
     Surface(
         shape = shape,
-        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.65f),
         modifier = modifier,
     ) {
         Row(
@@ -41,16 +43,16 @@ fun MoriScrimPill(
         ) {
             if (icon != null) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp),
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
                 )
             }
             if (text.isNotBlank()) {
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = textStyle,
                     color = Color.White,
                     maxLines = 1,
                 )

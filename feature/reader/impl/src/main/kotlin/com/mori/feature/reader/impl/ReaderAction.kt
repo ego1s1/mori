@@ -1,7 +1,9 @@
 package com.mori.feature.reader.impl
 
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 
 /** User intentions in the reader. State changes flow through [ReaderViewModel.onAction]. */
 sealed interface ReaderAction {
@@ -43,6 +45,10 @@ sealed interface ReaderAction {
     data object ToggleKeepScreenOn : ReaderAction
 
     data object ToggleTapZones : ReaderAction
+
+    data class SetNavMode(val navMode: ReaderNavMode) : ReaderAction
+
+    data class SetInvertTaps(val invertMode: TapInvertMode) : ReaderAction
 
     /** Pause progress, history, and stats recording while on. */
     data object ToggleIncognito : ReaderAction

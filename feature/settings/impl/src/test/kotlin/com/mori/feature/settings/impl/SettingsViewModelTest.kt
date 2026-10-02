@@ -1,5 +1,6 @@
 package com.mori.feature.settings.impl
 
+import android.net.Uri
 import app.cash.turbine.test
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.DisplayFilter
@@ -234,6 +235,102 @@ class SettingsViewModelTest {
             )
             viewModel.onAction(SettingsAction.ConfirmDeleteGroup(id))
             assertEquals(true, awaitAs<SettingsUiState.Ready> { it.groups.isEmpty() }.groups.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun sourceFoldersEmitWithBookCounts() = runTest {
+        val preferences = FakePreferencesDataSource()
+        preferences.addSourceTreeUri("content://tree/comics")
+        val comic1 = FakeComicsRepository.comic("c1").copy(sourcePath = "content://tree/comics/book1.cbz")
+        val comic2 = FakeComicsRepository.comic("c2").copy(sourcePath = "content://tree/comics/book2.cbz")
+        val repository = FakeComicsRepository(listOf(comic1, comic2))
+        val viewModel = SettingsViewModel(preferences, repository)
+
+        viewModel.uiState.test {
+            val ready = awaitAs<SettingsUiState.Ready> { it.sourceFolders.isNotEmpty() }
+            assertEquals(1, ready.sourceFolders.size)
+            assertEquals("content://tree/comics", ready.sourceFolders.first().uri)
+            assertEquals(2, ready.sourceFolders.first().bookCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun addSourceTreePersistsAndReindexes() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val repository = FakeComicsRepository()
+        val viewModel = SettingsViewModel(preferences, repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+            val uri = Uri.parse("content://tree/manga")
+            viewModel.onAction(SettingsAction.AddSourceTree(uri))
+
+            val ready = awaitAs<SettingsUiState.Ready> { it.sourceFolders.any { f -> f.uri == uri.toString() } }
+            assertEquals(1, ready.sourceFolders.size)
+            assertEquals(uri.toString(), ready.sourceFolders.first().uri)
+            assertTrue(repository.linkedTrees.contains(uri))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun removeSourceTreeFlow() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val folderUri = "content://tree/comics"
+        preferences.addSourceTreeUri(folderUri)
+        val comic = FakeComicsRepository.comic("c1").copy(id = "$folderUri/book1.cbz", sourcePath = "$folderUri/book1.cbz")
+        val repository = FakeComicsRepository(listOf(comic))
+        val viewModel = SettingsViewModel(preferences, repository)
+
+        viewModel.uiState.test {
+            awaitAs<SettingsUiState.Ready> { it.sourceFolders.isNotEmpty() }
+
+            // Ask to remove
+            viewModel.onAction(SettingsAction.AskRemoveSource(folderUri))
+            val askReady = awaitAs<SettingsUiState.Ready> { it.removeFolderUri == folderUri }
+            assertEquals(folderUri, askReady.removeFolderUri)
+
+            // Dismiss
+            viewModel.onAction(SettingsAction.DismissRemoveSource)
+            val dismissReady = awaitAs<SettingsUiState.Ready> { it.removeFolderUri == null }
+            assertEquals(null, dismissReady.removeFolderUri)
+            assertEquals(1, dismissReady.sourceFolders.size)
+
+            // Ask again and confirm
+            viewModel.onAction(SettingsAction.AskRemoveSource(folderUri))
+            awaitAs<SettingsUiState.Ready> { it.removeFolderUri == folderUri }
+            viewModel.onAction(SettingsAction.ConfirmRemoveSource)
+
+            val confirmedReady = awaitAs<SettingsUiState.Ready> { it.sourceFolders.isEmpty() }
+            assertEquals(null, confirmedReady.removeFolderUri)
+            assertEquals(0, confirmedReady.sourceFolders.size)
+            assertTrue(repository.removedIds.contains(comic.id))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun relinkSourceTreeReplacesAndReindexes() = runTest {
+        val preferences = FakePreferencesDataSource()
+        val oldUri = "content://tree/old"
+        val newUri = Uri.parse("content://tree/new")
+        preferences.addSourceTreeUri(oldUri)
+        val comic = FakeComicsRepository.comic("c1").copy(id = "$oldUri/book1.cbz", sourcePath = "$oldUri/book1.cbz")
+        val repository = FakeComicsRepository(listOf(comic))
+        val viewModel = SettingsViewModel(preferences, repository)
+
+        viewModel.uiState.test {
+            awaitAs<SettingsUiState.Ready> { it.sourceFolders.isNotEmpty() }
+
+            viewModel.onAction(SettingsAction.RelinkSource(oldUri = oldUri, newUri = newUri))
+
+            val ready = awaitAs<SettingsUiState.Ready> { it.sourceFolders.any { f -> f.uri == newUri.toString() } }
+            assertEquals(1, ready.sourceFolders.size)
+            assertEquals(newUri.toString(), ready.sourceFolders.first().uri)
+            assertTrue(repository.linkedTrees.contains(newUri))
             cancelAndIgnoreRemainingEvents()
         }
     }

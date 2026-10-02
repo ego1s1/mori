@@ -1,6 +1,9 @@
 package com.mori.core.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.cash.turbine.test
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.LibraryFilter
@@ -109,15 +112,45 @@ class DataStorePreferencesDataSourceTest {
     }
 
     @Test
-    fun sourceTreeUriRoundTripsIncludingNull() = runTest {
+    fun sourceTreeUrisRoundTripAddRemove() = runTest {
         val dataSource = dataSource()
-        dataSource.sourceTreeUri.test {
-            assertNull(awaitItem())
-            dataSource.setSourceTreeUri("content://tree/1")
-            assertEquals("content://tree/1", awaitItem())
-            dataSource.setSourceTreeUri(null)
-            assertNull(awaitItem())
+        dataSource.sourceTreeUris.test {
+            assertEquals(emptySet<String>(), awaitItem())
+            dataSource.addSourceTreeUri("content://tree/1")
+            assertEquals(setOf("content://tree/1"), awaitItem())
+            dataSource.addSourceTreeUri("content://tree/2")
+            assertEquals(setOf("content://tree/1", "content://tree/2"), awaitItem())
+            dataSource.removeSourceTreeUri("content://tree/1")
+            assertEquals(setOf("content://tree/2"), awaitItem())
+            dataSource.removeSourceTreeUri("content://tree/2")
+            assertEquals(emptySet<String>(), awaitItem())
         }
+    }
+
+    @Test
+    fun sourceTreeUrisRemoveUnknownIsNoOp() = runTest {
+        val dataSource = dataSource()
+        dataSource.addSourceTreeUri("content://tree/1")
+        dataSource.removeSourceTreeUri("content://tree/unknown")
+        assertEquals(setOf("content://tree/1"), dataSource.sourceTreeUris.first())
+    }
+
+    @Test
+    fun sourceTreeUrisMigratesLegacySingleKey() = runTest {
+        val store = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { temporaryFolder.newFile("prefs-legacy.preferences_pb") },
+        )
+        store.edit { it[stringPreferencesKey("source_tree_uri")] = "content://tree/legacy" }
+        val dataSource = DataStorePreferencesDataSource(store)
+        dataSource.sourceTreeUris.test {
+            assertEquals(setOf("content://tree/legacy"), awaitItem())
+        }
+        assertNull(store.data.first()[stringPreferencesKey("source_tree_uri")])
+        assertEquals(
+            setOf("content://tree/legacy"),
+            store.data.first()[stringSetPreferencesKey("source_tree_uris")],
+        )
     }
 
     @Test

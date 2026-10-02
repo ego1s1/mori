@@ -1,7 +1,9 @@
 package com.mori.feature.reader.impl
 
 import androidx.compose.ui.geometry.Offset
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 import kotlin.math.abs
 
 /**
@@ -24,12 +26,75 @@ enum class ReaderZone {
  * Outer thirds navigate; the center third toggles chrome. Mirrored for right-to-left
  * so "forward" always follows the reading direction.
  */
-fun zoneForTap(fraction: Float, direction: ReadingDirection): ReaderZone {
+fun zoneForTap(fraction: Float, direction: ReadingDirection): ReaderZone =
+    zoneForTap(fraction, 0.5f, direction, ReaderNavMode.DEFAULT, TapInvertMode.NONE)
+
+/**
+ * Resolves which zone a tap at ([fractionX], [fractionY]) falls into,
+ * respecting reading direction, 2D navigation mode, and tap inversion.
+ */
+fun zoneForTap(
+    fractionX: Float,
+    fractionY: Float,
+    direction: ReadingDirection,
+    navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    invertMode: TapInvertMode = TapInvertMode.NONE,
+): ReaderZone {
+    if (navMode == ReaderNavMode.DISABLED) return ReaderZone.MENU
+
+    val x = when (invertMode) {
+        TapInvertMode.HORIZONTAL, TapInvertMode.BOTH -> 1f - fractionX
+        else -> fractionX
+    }.coerceIn(0f, 1f)
+
+    val y = when (invertMode) {
+        TapInvertMode.VERTICAL, TapInvertMode.BOTH -> 1f - fractionY
+        else -> fractionY
+    }.coerceIn(0f, 1f)
+
+    if (y < 0.05f) return ReaderZone.MENU
+
     val forwardRight = direction == ReadingDirection.LEFT_TO_RIGHT
-    return when {
-        fraction < ZONE_EDGE -> if (forwardRight) ReaderZone.PREV else ReaderZone.NEXT
-        fraction > 1f - ZONE_EDGE -> if (forwardRight) ReaderZone.NEXT else ReaderZone.PREV
-        else -> ReaderZone.MENU
+
+    val rawZone = when (navMode) {
+        ReaderNavMode.DEFAULT -> when {
+            x < 1f / 3f -> ReaderZone.PREV
+            x > 2f / 3f -> ReaderZone.NEXT
+            else -> ReaderZone.MENU
+        }
+        ReaderNavMode.L_SHAPE -> when {
+            y < 1f / 3f -> ReaderZone.PREV
+            y > 2f / 3f -> ReaderZone.NEXT
+            x < 1f / 3f -> ReaderZone.PREV
+            x > 2f / 3f -> ReaderZone.NEXT
+            else -> ReaderZone.MENU
+        }
+        ReaderNavMode.KINDLISH -> when {
+            y < 1f / 3f -> ReaderZone.MENU
+            x < 1f / 3f -> ReaderZone.PREV
+            else -> ReaderZone.NEXT
+        }
+        ReaderNavMode.EDGE -> when {
+            x in (1f / 3f)..(2f / 3f) && y in (1f / 3f)..(2f / 3f) -> ReaderZone.MENU
+            x in (1f / 3f)..(2f / 3f) && y > 2f / 3f -> ReaderZone.PREV
+            else -> ReaderZone.NEXT
+        }
+        ReaderNavMode.RIGHT_AND_LEFT -> when {
+            x < 1f / 3f -> if (forwardRight) ReaderZone.PREV else ReaderZone.NEXT
+            x > 2f / 3f -> if (forwardRight) ReaderZone.NEXT else ReaderZone.PREV
+            else -> ReaderZone.MENU
+        }
+        ReaderNavMode.DISABLED -> ReaderZone.MENU
+    }
+
+    return if (navMode != ReaderNavMode.RIGHT_AND_LEFT && !forwardRight) {
+        when (rawZone) {
+            ReaderZone.PREV -> ReaderZone.NEXT
+            ReaderZone.NEXT -> ReaderZone.PREV
+            ReaderZone.MENU -> ReaderZone.MENU
+        }
+    } else {
+        rawZone
     }
 }
 

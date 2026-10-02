@@ -34,8 +34,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,6 +113,7 @@ internal fun StatsScreen(
                 StatsUiState.Loading -> MoriLoading(
                     modifier = Modifier.testTag(StatsTestTags.Loading),
                 )
+
                 is StatsUiState.Success -> StatsContent(
                     state = uiState,
                     onAction = onAction,
@@ -343,7 +345,7 @@ private fun HeroNumber(
         Text(
             text = value.uppercase(),
             style = MaterialTheme.typography.displayLarge.copy(
-                fontFamily = LocalAppFonts.current.displaySoft,
+                fontFamily = LocalAppFonts.current.displayFlex,
                 fontWeight = FontWeight.Black,
                 fontStyle = FontStyle.Italic,
                 fontSize = heroSize,
@@ -360,7 +362,7 @@ private fun HeroNumber(
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MoriEmphasized.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
@@ -404,7 +406,7 @@ private fun TopBookRow(
                     formatDuration(book.durationMs),
                     book.pagesTurned,
                 ),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MoriEmphasized.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -415,9 +417,11 @@ private fun TopBookRow(
 private fun SectionHeading(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MoriEmphasized.titleSmall,
+        style = MoriEmphasized.titleLarge,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+            .semantics { heading() },
     )
 }
 

@@ -35,7 +35,9 @@ import com.mori.core.designsystem.MoriSheet
 import com.mori.core.designsystem.MoriSliderRow
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 
 /**
  * Modal sheet hosting [ReaderSettingsSheetContent].
@@ -59,6 +61,8 @@ internal fun ReaderSettingsSheet(
     swipeToTurn: Boolean,
     dualPageSplit: Boolean,
     dualPageInvert: Boolean,
+    navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    invertTaps: TapInvertMode = TapInvertMode.NONE,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -81,6 +85,8 @@ internal fun ReaderSettingsSheet(
             swipeToTurn = swipeToTurn,
             dualPageSplit = dualPageSplit,
             dualPageInvert = dualPageInvert,
+            navMode = navMode,
+            invertTaps = invertTaps,
             onAction = onAction,
         )
     }
@@ -103,6 +109,8 @@ internal fun ReaderSettingsSheetContent(
     swipeToTurn: Boolean,
     dualPageSplit: Boolean,
     dualPageInvert: Boolean,
+    navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    invertTaps: TapInvertMode = TapInvertMode.NONE,
     onAction: (ReaderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -185,7 +193,45 @@ internal fun ReaderSettingsSheetContent(
             text = stringResource(R.string.reader_sheet_zones),
             style = MoriEmphasized.titleSmall,
         )
-        TapZoneLegend(direction = direction)
+        TapZoneLegend(
+            direction = direction,
+            navMode = navMode,
+            invertMode = invertTaps,
+        )
+
+        Text(
+            text = stringResource(R.string.reader_sheet_nav_mode),
+            style = MoriEmphasized.titleSmall,
+        )
+        MoriChoiceGroup(
+            options = listOf(
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_default)),
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_l_shape)),
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_kindlish)),
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_edge)),
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_right_and_left)),
+                MoriChoiceOption(label = stringResource(R.string.reader_nav_mode_disabled)),
+            ),
+            selectedIndex = navMode.ordinal,
+            onSelect = { onAction(ReaderAction.SetNavMode(ReaderNavMode.entries[it])) },
+            fillWidth = false,
+        )
+
+        Text(
+            text = stringResource(R.string.reader_sheet_tap_invert),
+            style = MoriEmphasized.titleSmall,
+        )
+        MoriChoiceGroup(
+            options = listOf(
+                MoriChoiceOption(label = stringResource(R.string.reader_tap_invert_none)),
+                MoriChoiceOption(label = stringResource(R.string.reader_tap_invert_horizontal)),
+                MoriChoiceOption(label = stringResource(R.string.reader_tap_invert_vertical)),
+                MoriChoiceOption(label = stringResource(R.string.reader_tap_invert_both)),
+            ),
+            selectedIndex = invertTaps.ordinal,
+            onSelect = { onAction(ReaderAction.SetInvertTaps(TapInvertMode.entries[it])) },
+            fillWidth = false,
+        )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_zones_preview_title),
             subtitle = stringResource(R.string.reader_zones_preview_subtitle),

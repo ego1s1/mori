@@ -58,4 +58,7 @@ interface ComicDao {
 
     @Query("DELETE FROM comics WHERE sourcePath LIKE 'content://%'")
     suspend fun deleteAllLinked()
+
+    @Query("DELETE FROM comics WHERE sourcePath LIKE (:prefix || '%') ESCAPE '\\'")
+    suspend fun deleteLinkedByPrefix(prefix: String)
 }

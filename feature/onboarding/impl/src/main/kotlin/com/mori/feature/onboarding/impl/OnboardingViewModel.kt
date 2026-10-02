@@ -61,7 +61,7 @@ internal class OnboardingViewModel @Inject constructor(
             }
             is OnboardingAction.FolderSelected -> {
                 viewModelScope.launch {
-                    preferences.setSourceTreeUri(action.uri.toString())
+                    preferences.addSourceTreeUri(action.uri.toString())
                 }
                 folderHintVisible.value = false
                 step.value = Step.APPEARANCE

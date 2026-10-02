@@ -17,8 +17,16 @@ enum class LibraryFilter {
     FAVORITES,
 }
 
+/** Visual layout representation for library books. */
+enum class LibraryDisplayMode {
+    COMPACT_GRID,
+    COMFORTABLE_GRID,
+    COVER_ONLY_GRID,
+    LIST,
+}
+
 /**
- * A text query plus sort/filter preferences for the library grid.
+ * A text query plus sort/filter/display preferences for the library grid.
  *
  * The non-text fields are persisted display options (survive full restarts);
  * only [text] is ephemeral (restored across process death, cleared on full
@@ -31,10 +39,16 @@ data class LibraryQuery(
     val hideErrors: Boolean = false,
     /** Shelves collapsed in the sectioned grid, by collection id. */
     val collapsedShelfIds: Set<Long> = emptySet(),
+    val displayMode: LibraryDisplayMode = LibraryDisplayMode.COMPACT_GRID,
+    /** 0 = Adaptive column sizing, or 1..6 for fixed column counts. */
+    val gridColumns: Int = 0,
 ) {
     /**
-     * True when any control beyond the text field diverges from defaults.
-     * Collapsed shelves are view state, not a filter, and never count.
+     * True when any control beyond display styling and text field diverges from defaults.
+     * Collapsed shelves and display modes are view state / layout preferences and never count.
      */
-    fun hasActiveFilters(): Boolean = this != copy(text = "", collapsedShelfIds = emptySet())
+    fun hasActiveFilters(): Boolean =
+        sortOrder != LibrarySortOrder.RECENTLY_ADDED ||
+                filter != LibraryFilter.ALL ||
+                hideErrors
 }

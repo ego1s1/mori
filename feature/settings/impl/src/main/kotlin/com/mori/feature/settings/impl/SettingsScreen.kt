@@ -1,6 +1,17 @@
 package com.mori.feature.settings.impl
 
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.documentfile.provider.DocumentFile
+import com.mori.core.designsystem.MoriSectionCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -95,6 +106,8 @@ import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.common.formatBytes
 import com.mori.core.common.formatPercent
 import com.mori.core.model.PageFit
+import com.mori.core.model.ReaderNavMode
+import com.mori.core.model.TapInvertMode
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.UserCollection
@@ -176,6 +189,8 @@ internal fun SettingsScreen(
                 appLock = uiState.appLock,
                 groups = uiState.groups,
                 groupDialog = uiState.groupDialog,
+                sourceFolders = uiState.sourceFolders,
+                removeFolderUri = uiState.removeFolderUri,
                 onAction = onAction,
                 onLicensesClick = onLicensesClick,
                 appVersion = appVersion,
@@ -211,6 +226,8 @@ internal fun SettingsContent(
     appLock: Boolean = false,
     groups: List<UserCollection> = emptyList(),
     groupDialog: GroupDialog? = null,
+    sourceFolders: List<SourceFolder> = emptyList(),
+    removeFolderUri: String? = null,
     onAction: (SettingsAction) -> Unit,
     onLicensesClick: () -> Unit = {},
     appVersion: String = "",
@@ -318,6 +335,8 @@ internal fun SettingsContent(
                     )
                     SettingsCategory.STORAGE -> StorageSection(
                         storage = storage,
+                        folders = sourceFolders,
+                        removeFolderUri = removeFolderUri,
                         onAction = onAction,
                     )
                     SettingsCategory.ABOUT -> AboutSection(
@@ -505,6 +524,13 @@ private fun AppearanceSection(
                 onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
                 icon = MoriIcons.Palette,
             )
+            MoriSettingSwitch(
+                title = stringResource(R.string.settings_haptics_title),
+                subtitle = stringResource(R.string.settings_haptics_subtitle),
+                checked = theme.hapticsEnabled,
+                onCheckedChange = { onAction(SettingsAction.SetHapticsEnabled(it)) },
+                icon = MoriIcons.Vibration,
+            )
             // True-black only applies in dark mode; hide it under explicit
             // light so the toggle never reads as broken.
             AnimatedVisibility(
@@ -603,6 +629,32 @@ private fun ReaderSection(
                     )
                 },
             )
+            OptionLabel(stringResource(R.string.settings_nav_mode_title))
+            SegmentedChoiceRow(
+                options = listOf(
+                    stringResource(R.string.settings_nav_mode_default),
+                    stringResource(R.string.settings_nav_mode_l_shape),
+                    stringResource(R.string.settings_nav_mode_kindlish),
+                    stringResource(R.string.settings_nav_mode_edge),
+                    stringResource(R.string.settings_nav_mode_right_and_left),
+                    stringResource(R.string.settings_nav_mode_disabled),
+                ),
+                selectedIndex = reader.navMode.ordinal,
+                onSelect = { onAction(SettingsAction.SetReaderNavMode(ReaderNavMode.entries[it])) },
+                fillWidth = false,
+            )
+            OptionLabel(stringResource(R.string.settings_tap_invert_title))
+            SegmentedChoiceRow(
+                options = listOf(
+                    stringResource(R.string.settings_tap_invert_none),
+                    stringResource(R.string.settings_tap_invert_horizontal),
+                    stringResource(R.string.settings_tap_invert_vertical),
+                    stringResource(R.string.settings_tap_invert_both),
+                ),
+                selectedIndex = reader.invertTaps.ordinal,
+                onSelect = { onAction(SettingsAction.SetTapInvertMode(TapInvertMode.entries[it])) },
+                fillWidth = false,
+            )
             MoriSettingSwitch(
                 title = stringResource(R.string.settings_volume_title),
                 subtitle = stringResource(R.string.settings_volume_subtitle),
@@ -689,51 +741,306 @@ private fun ReaderSection(
 @Composable
 private fun StorageSection(
     storage: StorageUsage?,
+    folders: List<SourceFolder>,
+    removeFolderUri: String?,
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val haptics = rememberMoriHaptics()
+
+    val addFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            onAction(SettingsAction.AddSourceTree(uri))
+        }
+    }
+
+    var relinkingTargetUri by remember { mutableStateOf<String?>(null) }
+    val relinkFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        val oldUri = relinkingTargetUri
+        relinkingTargetUri = null
+        if (uri != null && oldUri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            onAction(SettingsAction.RelinkSource(oldUri = oldUri, newUri = uri))
+        }
+    }
+
+    val persistedUris = remember(context) {
+        runCatching {
+            context.contentResolver.persistedUriPermissions
+                .filter { it.isReadPermission }
+                .map { it.uri.toString() }
+                .toSet()
+        }.getOrDefault(emptySet())
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-            if (storage != null) {
-                // Finance-card hero: everything the app holds on disk. Covers
-                // plus the transient read cache (materialized working copies),
-                // reported on separate lines so one comic's read cache can
-                // never again read as "covers".
+        if (storage != null) {
+            // Finance-card hero: everything the app holds on disk. Covers
+            // plus the transient read cache (materialized working copies),
+            // reported on separate lines so one comic's read cache can
+            // never again read as "covers".
+            Text(
+                text = formatBytes(storage.coversBytes + storage.cacheBytes),
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontFamily = LocalAppFonts.current.displaySoft,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(
+                    R.string.settings_storage_summary,
+                    storage.comicCount,
+                    formatBytes(storage.cacheBytes),
+                    formatBytes(storage.coversBytes),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        FilledTonalButton(
+            onClick = {
+                haptics(MoriHaptic.Select)
+                onAction(SettingsAction.ClearThumbnailCache)
+            },
+            modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
+        ) {
+            Text(stringResource(R.string.settings_clear_cache))
+        }
+        Text(
+            text = stringResource(R.string.settings_clear_caption),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        MoriSectionCard(
+            title = stringResource(R.string.settings_storage_folders_title),
+        ) {
+            if (folders.isEmpty()) {
                 Text(
-                    text = formatBytes(storage.coversBytes + storage.cacheBytes),
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontFamily = LocalAppFonts.current.displaySoft,
-                        fontWeight = FontWeight.Black,
-                        fontStyle = FontStyle.Italic,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.settings_storage_summary,
-                        storage.comicCount,
-                        formatBytes(storage.cacheBytes),
-                        formatBytes(storage.coversBytes),
-                    ),
+                    text = stringResource(R.string.settings_storage_folders_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                folders.forEach { folder ->
+                    val isReachable = folder.uri in persistedUris
+                    val displayName = remember(folder.uri) {
+                        resolveFolderDisplayName(context, folder.uri)
+                    }
+
+                    if (isReachable) {
+                        MoriSettingRow(
+                            title = displayName,
+                            subtitle = if (folder.bookCount == 1) {
+                                stringResource(R.string.settings_folder_books_count_one)
+                            } else {
+                                stringResource(R.string.settings_folder_books_count, folder.bookCount)
+                            },
+                            icon = MoriIcons.Folder,
+                            modifier = Modifier.testTag(SettingsTestTags.folderRow(folder.uri)),
+                            trailing = {
+                                IconButton(
+                                    onClick = {
+                                        haptics(MoriHaptic.Select)
+                                        onAction(SettingsAction.AskRemoveSource(folder.uri))
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = MoriIcons.Delete,
+                                        contentDescription = stringResource(R.string.settings_folder_remove_button_desc),
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            },
+                        )
+                    } else {
+                        UnreachableFolderRow(
+                            displayName = displayName,
+                            onRelink = {
+                                haptics(MoriHaptic.Select)
+                                relinkingTargetUri = folder.uri
+                                relinkFolderLauncher.launch(null)
+                            },
+                            onRemove = {
+                                haptics(MoriHaptic.Select)
+                                onAction(SettingsAction.AskRemoveSource(folder.uri))
+                            },
+                            modifier = Modifier.testTag(SettingsTestTags.folderRow(folder.uri)),
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    haptics(MoriHaptic.Select)
+                    addFolderLauncher.launch(null)
+                },
+                shape = MaterialTheme.shapes.extraLarge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .testTag(SettingsTestTags.FolderAddButton),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.CreateNewFolder,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_folder_add),
+                    style = MoriEmphasized.labelLarge,
+                )
+            }
+        }
+    }
+
+    if (removeFolderUri != null) {
+        AlertDialog(
+            onDismissRequest = { onAction(SettingsAction.DismissRemoveSource) },
+            icon = {
+                Icon(
+                    imageVector = MoriIcons.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = {
+                Text(stringResource(R.string.settings_folder_remove_title))
+            },
+            text = {
+                Text(stringResource(R.string.settings_folder_remove_message))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptics(MoriHaptic.Reject)
+                        onAction(SettingsAction.ConfirmRemoveSource)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                    modifier = Modifier.testTag(SettingsTestTags.FolderRemoveConfirm),
+                ) {
+                    Text(stringResource(R.string.settings_folder_remove_confirm))
+                }
+            },
+            dismissButton = {
+                FilledTonalButton(
+                    onClick = { onAction(SettingsAction.DismissRemoveSource) },
+                ) {
+                    Text(stringResource(R.string.settings_folder_remove_cancel))
+                }
+            },
+            modifier = Modifier.testTag(SettingsTestTags.FolderRemoveDialog),
+        )
+    }
+}
+
+@Composable
+private fun UnreachableFolderRow(
+    displayName: String,
+    onRelink: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+        modifier = modifier
+            .fillMaxWidth()
+            .sizeIn(minHeight = 72.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
+            ) {
+                Icon(
+                    imageVector = MoriIcons.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+            ) {
+                Text(
+                    text = displayName,
+                    style = MoriEmphasized.bodyLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.settings_folder_unreachable),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             FilledTonalButton(
-                onClick = { onAction(SettingsAction.ClearThumbnailCache) },
-                modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
+                onClick = onRelink,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.heightIn(min = 36.dp),
             ) {
-                Text(stringResource(R.string.settings_clear_cache))
+                Text(
+                    text = stringResource(R.string.settings_folder_relink),
+                    style = MaterialTheme.typography.labelMedium,
+                )
             }
-            Text(
-                text = stringResource(R.string.settings_clear_caption),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(onClick = onRemove) {
+                Icon(
+                    imageVector = MoriIcons.Delete,
+                    contentDescription = stringResource(R.string.settings_folder_remove_button_desc),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
     }
+}
+
+private fun resolveFolderDisplayName(context: Context, uriString: String): String {
+    val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return uriString
+    val docName = runCatching { DocumentFile.fromTreeUri(context, uri)?.name }.getOrNull()
+    if (!docName.isNullOrBlank()) return docName
+    val decoded = Uri.decode(uriString)
+    val candidate = decoded.substringAfterLast(':').substringAfterLast('/')
+    return if (candidate.isNotBlank()) candidate else uriString
 }
 
 @Composable
@@ -1157,6 +1464,7 @@ private fun SegmentedChoiceRow(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     icons: List<ImageVector?>? = null,
+    fillWidth: Boolean = true,
 ) {
     MoriChoiceGroup(
         options = options.mapIndexed { index, label ->
@@ -1166,6 +1474,7 @@ private fun SegmentedChoiceRow(
         onSelect = onSelect,
         modifier = modifier,
         testTagFor = SettingsTestTags::segmentFor,
+        fillWidth = fillWidth,
     )
 }
 

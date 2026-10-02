@@ -6,7 +6,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -66,7 +68,9 @@ internal fun Modifier.zoneTaps(
     onZoom: (tap: Offset, center: Offset) -> Unit,
     consumeUp: Boolean,
     quickScale: QuickScaleState? = null,
-): Modifier = pointerInput(direction) {
+    navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+    invertMode: TapInvertMode = TapInvertMode.NONE,
+): Modifier = pointerInput(direction, navMode, invertMode) {
     val touchSlop = viewConfiguration.touchSlop
     val longPressTimeoutMs = android.view.ViewConfiguration.getLongPressTimeout().toLong()
     // Same engage budget as zoomPan: a press that drifts past it is a
@@ -193,10 +197,14 @@ internal fun Modifier.zoneTaps(
         // space, so the same physical x always lands in the same zone.
         fun rebase(position: Offset): Triple<Offset, Offset, ReaderZone> {
             val widthPx = viewportWidth.value.coerceAtLeast(1f)
+            val heightPx = size.height.toFloat().coerceAtLeast(1f)
             val x = position.x + (widthPx - size.width) / 2f
+            val y = position.y
             val center = Offset(size.width / 2f, size.height / 2f)
-            val rebased = Offset(x, position.y)
-            return Triple(rebased, center, zoneForTap((x / widthPx).coerceIn(0f, 1f), direction))
+            val rebased = Offset(x, y)
+            val fx = (x / widthPx).coerceIn(0f, 1f)
+            val fy = (y / heightPx).coerceIn(0f, 1f)
+            return Triple(rebased, center, zoneForTap(fx, fy, direction, navMode, invertMode))
         }
         while (true) {
             val event = awaitPointerEvent()

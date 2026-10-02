@@ -20,10 +20,11 @@ class FakePreferencesDataSource(
     initialMotion: MotionStyle = MotionStyle.EXPRESSIVE,
     initialQuery: LibraryQuery = LibraryQuery(),
     overviewSeen: Boolean = true,
+    initialTrees: Set<String> = emptySet(),
 ) : MoriPreferencesDataSource {
 
     private val completed = MutableStateFlow(false)
-    private val treeUri = MutableStateFlow<String?>(null)
+    private val treeUris = MutableStateFlow(initialTrees)
     private val readerPreferencesFlow = MutableStateFlow(initialReader)
     private val themePreferencesFlow = MutableStateFlow(initialTheme)
     private val motionStyleFlow = MutableStateFlow(initialMotion)
@@ -32,7 +33,7 @@ class FakePreferencesDataSource(
     val updates = mutableListOf<ReaderPreferences>()
 
     override val onboardingCompleted: Flow<Boolean> = completed.asStateFlow()
-    override val sourceTreeUri: Flow<String?> = treeUri.asStateFlow()
+    override val sourceTreeUris: Flow<Set<String>> = treeUris.asStateFlow()
     override val readerPreferences: Flow<ReaderPreferences> = readerPreferencesFlow.asStateFlow()
     override val themePreferences: Flow<ThemePreferences> = themePreferencesFlow.asStateFlow()
     override val motionStyle: Flow<MotionStyle> = motionStyleFlow.asStateFlow()
@@ -45,8 +46,12 @@ class FakePreferencesDataSource(
         this.completed.value = completed
     }
 
-    override suspend fun setSourceTreeUri(uri: String?) {
-        treeUri.value = uri
+    override suspend fun addSourceTreeUri(uri: String) {
+        treeUris.value = treeUris.value + uri
+    }
+
+    override suspend fun removeSourceTreeUri(uri: String) {
+        treeUris.value = treeUris.value - uri
     }
 
     override suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences) {

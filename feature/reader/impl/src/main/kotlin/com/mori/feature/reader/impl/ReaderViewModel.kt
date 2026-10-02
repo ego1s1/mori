@@ -287,6 +287,8 @@ internal class ReaderViewModel @Inject constructor(
             volumeKeysInverted = prefs.volumeKeysInverted,
             keepScreenOn = prefs.keepScreenOn,
             showTapZones = prefs.showTapZones,
+            navMode = prefs.navMode,
+            invertTaps = prefs.invertTaps,
             showPageCounter = prefs.showPageCounter,
             swipeToTurn = prefs.swipeToTurn,
             turnAnimated = turnAnimated,
@@ -424,6 +426,8 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.TogglePageCounter -> updatePrefs { it.copy(showPageCounter = !it.showPageCounter) }
             ReaderAction.ToggleSwipeToTurn -> updatePrefs { it.copy(swipeToTurn = !it.swipeToTurn) }
             ReaderAction.ToggleTapZones -> updatePrefs { it.copy(showTapZones = !it.showTapZones) }
+            is ReaderAction.SetNavMode -> updatePrefs { it.copy(navMode = action.navMode) }
+            is ReaderAction.SetInvertTaps -> updatePrefs { it.copy(invertTaps = action.invertMode) }
         }
     }
 

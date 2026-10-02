@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -315,7 +316,9 @@ class LibraryScreenTest {
         composeTestRule.onNodeWithText("Sort by").assertIsDisplayed()
         composeTestRule.onNodeWithText("In progress").assertIsDisplayed()
         composeTestRule.onNodeWithText("Recently added").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Hide unreadable comics").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Display").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Grid columns").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Hide unreadable comics").performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -4,7 +4,9 @@ import com.mori.core.model.ComicError
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.PageFit
 import com.mori.core.model.PageHalf
+import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.TapInvertMode
 
 sealed interface ReaderUiState {
     data object Loading : ReaderUiState
@@ -26,6 +28,8 @@ sealed interface ReaderUiState {
         val volumeKeysInverted: Boolean,
         val keepScreenOn: Boolean,
         val showTapZones: Boolean,
+        val navMode: ReaderNavMode = ReaderNavMode.DEFAULT,
+        val invertTaps: TapInvertMode = TapInvertMode.NONE,
         val showPageCounter: Boolean,
         val swipeToTurn: Boolean,
         /** False for slider seeks (direct manipulation jumps); true for turns. */

@@ -20,6 +20,7 @@ import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.MAX_COLLECTION_NAME
 import com.mori.core.model.ReadingSession
 import com.mori.core.model.ReadingStats
 import com.mori.core.model.StorageUsage
@@ -79,8 +80,25 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     override suspend fun indexLinkedTree(
         treeUri: Uri,
         onProgress: (done: Int, total: Int) -> Unit,
+    ): ImportReport = indexLinkedTrees(listOf(treeUri), onProgress)
+
+    override suspend fun indexLinkedTrees(
+        treeUris: List<Uri>,
+        onProgress: (done: Int, total: Int) -> Unit,
     ): ImportReport = withContext(Dispatchers.IO) {
-        val (docs, walkFailed) = treeLister.listArchives(treeUri)
+        if (treeUris.isEmpty()) {
+            return@withContext ImportReport(0, 0, 0)
+        }
+        val allDocs = mutableListOf<LinkedDocument>()
+        var walkFailed = false
+        for (treeUri in treeUris) {
+            val result = treeLister.listArchives(treeUri)
+            if (result.walkFailed) {
+                walkFailed = true
+            }
+            allDocs += result.documents
+        }
+        val docs = allDocs.distinctBy { it.uri.toString() }
         // Batch like refreshLibrary: one fetch, one upsert, one emission.
         val knownById = dao.getAll().associateBy { it.id }
         val rows = mutableListOf<ComicEntity>()
@@ -180,12 +198,22 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     }
 
     override suspend fun removeComic(id: String) = withContext(Dispatchers.IO) {
-        // Unlink only: user originals must survive removal.
+        // Unlink only: user originals must survive removal. Memberships die
+        // with the row so shelf counts never inflate on ghosts.
         val row = dao.getById(id)
         if (row != null) {
             deleteCover(row.coverPath)
             dao.deleteById(id)
+            collectionDao.deleteMembersByComic(id)
         }
+        Unit
+    }
+
+    override suspend fun removeSourceTree(treeUri: String) = withContext(Dispatchers.IO) {
+        // Unlink only: user originals must survive removal.
+        val rows = dao.getAll().filter { it.sourcePath.startsWith(treeUri) }
+        rows.forEach { deleteCover(it.coverPath) }
+        dao.deleteLinkedByPrefix(escapeLikePrefix(treeUri))
         Unit
     }
 
@@ -319,9 +347,15 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             val trimmed = name.trim()
             require(trimmed.isNotEmpty()) { "Collection name must not be blank" }
+            require(trimmed.length <= MAX_COLLECTION_NAME) {
+                "Collection name must be at most $MAX_COLLECTION_NAME characters"
+            }
+            if (collectionDao.findByName(trimmed) != null) {
+                throw DuplicateCollectionNameException(trimmed)
+            }
             collectionDao.insertCollection(
                 com.mori.core.database.CollectionEntity(
-                    name = trimmed.take(MAX_COLLECTION_NAME),
+                    name = trimmed,
                     createdAt = System.currentTimeMillis(),
                 ),
             )
@@ -331,11 +365,20 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             val trimmed = name.trim()
             require(trimmed.isNotEmpty()) { "Collection name must not be blank" }
-            collectionDao.renameCollection(id, trimmed.take(MAX_COLLECTION_NAME))
+            require(trimmed.length <= MAX_COLLECTION_NAME) {
+                "Collection name must be at most $MAX_COLLECTION_NAME characters"
+            }
+            val clash = collectionDao.findByName(trimmed)
+            if (clash != null && clash.id != id) {
+                throw DuplicateCollectionNameException(trimmed)
+            }
+            collectionDao.renameCollection(id, trimmed)
         }
 
     override suspend fun deleteCollection(id: Long) =
-        withContext(Dispatchers.IO) { collectionDao.deleteCollection(id) }
+        withContext(Dispatchers.IO) {
+            collectionDao.deleteCollectionWithMembers(id)
+        }
 
     override suspend fun addToCollection(collectionId: Long, comicId: String) =
         withContext(Dispatchers.IO) {
@@ -346,6 +389,7 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                     addedAt = System.currentTimeMillis(),
                 ),
             )
+            Unit
         }
 
     override suspend fun removeFromCollection(collectionId: Long, comicId: String) =
@@ -531,11 +575,11 @@ internal class OfflineFirstComicsRepository @Inject constructor(
     private fun linkedCoverId(documentUri: String): String =
         "$LINKED_COVER_PREFIX${sha256Hex(documentUri).take(24)}"
 
+    private fun escapeLikePrefix(prefix: String): String =
+        prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     companion object {
         /** Cover filename prefix for linked documents (see [linkedCoverId]). */
         const val LINKED_COVER_PREFIX = "linked-"
-
-        /** Collection names truncate here; the row is a chip, not a document. */
-        const val MAX_COLLECTION_NAME = 48
     }
 }

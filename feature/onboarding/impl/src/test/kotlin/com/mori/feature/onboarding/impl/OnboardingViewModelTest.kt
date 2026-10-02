@@ -58,8 +58,8 @@ class OnboardingViewModelTest {
             assertTrue(awaitItem() is OnboardingUiState.Appearance)
             cancelAndIgnoreRemainingEvents()
         }
-        preferences.sourceTreeUri.test {
-            assertEquals(treeUri().toString(), awaitItem())
+        preferences.sourceTreeUris.test {
+            assertEquals(setOf(treeUri().toString()), awaitItem())
         }
     }
 

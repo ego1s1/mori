@@ -1,9 +1,11 @@
 package com.mori.feature.settings.impl
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mori.core.data.ComicsRepository
 import com.mori.core.datastore.MoriPreferencesDataSource
+import com.mori.core.model.LibraryQuery
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.StorageUsage
@@ -11,6 +13,7 @@ import com.mori.core.model.ThemePreferences
 import com.mori.core.model.UserCollection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -29,7 +32,6 @@ internal class SettingsViewModel @Inject constructor(
     private val preferences: MoriPreferencesDataSource,
     private val repository: ComicsRepository,
 ) : ViewModel() {
-
     private val storageRefresh = MutableStateFlow(0)
     private val storageInfo = MutableStateFlow<StorageUsage?>(null)
 
@@ -37,6 +39,19 @@ internal class SettingsViewModel @Inject constructor(
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
     private val groupDialog = MutableStateFlow<GroupDialog?>(null)
+    private val removeFolderUri = MutableStateFlow<String?>(null)
+
+    private val storageFoldersState: Flow<StorageFoldersState> = combine(
+        preferences.sourceTreeUris,
+        repository.observeLibrary(LibraryQuery()),
+        removeFolderUri,
+    ) { uris, comics, removeUri ->
+        val folders = uris.map { uri ->
+            val count = comics.count { it.sourcePath.startsWith(uri) || it.id.startsWith(uri) }
+            SourceFolder(uri = uri, bookCount = count)
+        }
+        StorageFoldersState(folders = folders, removeFolderUri = removeUri)
+    }
 
     val uiState: StateFlow<SettingsUiState> = combine(
         combine(
@@ -50,6 +65,7 @@ internal class SettingsViewModel @Inject constructor(
         preferences.appLockEnabled,
         repository.observeCollections(),
         groupDialog,
+        storageFoldersState,
         ::toUiState,
     ).stateIn(
         scope = viewModelScope,
@@ -70,6 +86,7 @@ internal class SettingsViewModel @Inject constructor(
         appLock: Boolean,
         groups: List<UserCollection>,
         groupDialog: GroupDialog?,
+        storageFolders: StorageFoldersState,
     ): SettingsUiState = SettingsUiState.Ready(
         theme = combined.theme,
         reader = combined.reader,
@@ -78,6 +95,8 @@ internal class SettingsViewModel @Inject constructor(
         appLock = appLock,
         groups = groups,
         groupDialog = groupDialog,
+        sourceFolders = storageFolders.folders,
+        removeFolderUri = storageFolders.removeFolderUri,
     )
 
     /** Four-flow combine carrier (fixed-arity combine caps at five). */
@@ -88,17 +107,25 @@ internal class SettingsViewModel @Inject constructor(
         val storage: StorageUsage?,
     )
 
+    private data class StorageFoldersState(
+        val folders: List<SourceFolder>,
+        val removeFolderUri: String?,
+    )
+
     fun onAction(action: SettingsAction) {
         when (action) {
             is SettingsAction.SetThemeMode -> updateTheme { it.copy(mode = action.mode) }
             is SettingsAction.SetDynamicColor -> updateTheme { it.copy(dynamicColor = action.enabled) }
             is SettingsAction.SetAmoled -> updateTheme { it.copy(amoled = action.enabled) }
+            is SettingsAction.SetHapticsEnabled -> updateTheme { it.copy(hapticsEnabled = action.enabled) }
             is SettingsAction.SetMotionStyle -> updateMotion(action.style)
             is SettingsAction.SetColorScheme -> updateTheme {
                 it.copy(colorScheme = action.scheme, dynamicColor = false)
             }
             is SettingsAction.SetDirection -> updateReader { it.copy(direction = action.direction) }
             is SettingsAction.SetPageFit -> updateReader { it.copy(pageFit = action.fit) }
+            is SettingsAction.SetReaderNavMode -> updateReader { it.copy(navMode = action.navMode) }
+            is SettingsAction.SetTapInvertMode -> updateReader { it.copy(invertTaps = action.invertMode) }
             SettingsAction.ToggleVolumeKeys -> updateReader { it.copy(volumeKeys = !it.volumeKeys) }
             SettingsAction.ToggleVolumeKeysInverted -> updateReader { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
             SettingsAction.ToggleKeepScreenOn -> updateReader { it.copy(keepScreenOn = !it.keepScreenOn) }
@@ -123,6 +150,11 @@ internal class SettingsViewModel @Inject constructor(
                 it.copy(displayFilter = com.mori.core.model.DisplayFilter.Neutral)
             }
             SettingsAction.ClearThumbnailCache -> clearCache()
+            is SettingsAction.AddSourceTree -> addSourceTree(action.uri)
+            is SettingsAction.AskRemoveSource -> removeFolderUri.value = action.uri
+            SettingsAction.DismissRemoveSource -> removeFolderUri.value = null
+            SettingsAction.ConfirmRemoveSource -> confirmRemoveSource()
+            is SettingsAction.RelinkSource -> relinkSourceTree(action.oldUri, action.newUri)
             SettingsAction.OpenCreateGroup -> groupDialog.value = GroupDialog.Create
             SettingsAction.CloseGroupDialog -> groupDialog.value = null
             is SettingsAction.CreateGroup -> createGroup(action.name)
@@ -130,6 +162,40 @@ internal class SettingsViewModel @Inject constructor(
             is SettingsAction.RenameGroup -> renameGroup(action.groupId, action.name)
             is SettingsAction.OpenDeleteGroup -> groupDialog.value = GroupDialog.Delete(action.groupId, action.name)
             is SettingsAction.ConfirmDeleteGroup -> deleteGroup(action.groupId)
+        }
+    }
+
+    private fun addSourceTree(uri: Uri) {
+        viewModelScope.launch {
+            preferences.addSourceTreeUri(uri.toString())
+            val allUris = preferences.sourceTreeUris.first().map { Uri.parse(it) }
+            runCatching {
+                repository.indexLinkedTrees(allUris) { _, _ -> }
+            }
+            storageRefresh.update { it + 1 }
+        }
+    }
+
+    private fun confirmRemoveSource() {
+        val uri = removeFolderUri.value ?: return
+        removeFolderUri.value = null
+        viewModelScope.launch {
+            preferences.removeSourceTreeUri(uri)
+            repository.removeSourceTree(uri)
+            storageRefresh.update { it + 1 }
+        }
+    }
+
+    private fun relinkSourceTree(oldUri: String, newUri: Uri) {
+        viewModelScope.launch {
+            preferences.removeSourceTreeUri(oldUri)
+            repository.removeSourceTree(oldUri)
+            preferences.addSourceTreeUri(newUri.toString())
+            val allUris = preferences.sourceTreeUris.first().map { Uri.parse(it) }
+            runCatching {
+                repository.indexLinkedTrees(allUris) { _, _ -> }
+            }
+            storageRefresh.update { it + 1 }
         }
     }
 

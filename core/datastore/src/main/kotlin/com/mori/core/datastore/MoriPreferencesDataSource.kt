@@ -13,8 +13,8 @@ interface MoriPreferencesDataSource {
     /** True once the user completes onboarding (folder selected/imported). */
     val onboardingCompleted: Flow<Boolean>
 
-    /** The last-selected SAF source tree URI, if the user granted one for rescans. */
-    val sourceTreeUri: Flow<String?>
+    /** The user-granted SAF source tree URIs for rescans. */
+    val sourceTreeUris: Flow<Set<String>>
 
     /** Reader preferences (direction, fit, toggles). */
     val readerPreferences: Flow<ReaderPreferences>
@@ -38,7 +38,9 @@ interface MoriPreferencesDataSource {
 
     suspend fun setAppLockEnabled(enabled: Boolean)
 
-    suspend fun setSourceTreeUri(uri: String?)
+    suspend fun addSourceTreeUri(uri: String)
+
+    suspend fun removeSourceTreeUri(uri: String)
 
     suspend fun updateReaderPreferences(transform: (ReaderPreferences) -> ReaderPreferences)
 
