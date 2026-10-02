@@ -2,6 +2,7 @@ package com.mori.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -22,6 +23,17 @@ private fun MoriComponentsPreview() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(16.dp),
         ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MoriPrimaryButton(onClick = {}) {
+                    Text("Primary")
+                }
+                MoriTonalButton(onClick = {}) {
+                    Text("Tonal")
+                }
+                MoriOutlinedButton(onClick = {}) {
+                    Text("Outlined")
+                }
+            }
             MoriSettingRow(
                 title = "Reader",
                 subtitle = "Direction, display, incognito",
