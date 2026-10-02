@@ -67,11 +67,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriCollapsingTopBar
@@ -88,12 +90,13 @@ import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
-import com.mori.core.designsystem.MoriTheme
-import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.model.Comic
+import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
+import com.mori.core.model.UserCollection
 import com.mori.core.model.ResumeTarget
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Public tab content for the main viewport pager. Route and tab share one
@@ -106,48 +109,38 @@ fun LibraryTabContent(
     modifier: Modifier = Modifier,
     onResumeAvailable: (ResumeTarget?) -> Unit = {},
 ) {
-    LibraryRouteContent(
+    LibraryRoute(
         onReadClick = onReadClick,
         onComicLongClick = onComicLongClick,
+        onResumeAvailable = onResumeAvailable,
         modifier = modifier,
         viewModel = hiltViewModel(),
-        onResumeAvailable = onResumeAvailable,
     )
 }
 
+/**
+ * Top-level route for the library screen. Hoists ViewModel state and wires
+ * navigation and system pickers.
+ */
 @Composable
-private fun LibraryRouteContent(
+fun LibraryRoute(
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel,
+    onComicLongClick: (comicId: String) -> Unit,
     onResumeAvailable: (ResumeTarget?) -> Unit = {},
+    modifier: Modifier = Modifier,
+    viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val context = LocalContext.current
-    // Post-onboarding rescue: linking straight from the empty shelf, with the
-    // same persistable permission the onboarding picker takes.
-    val folderLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            viewModel.onAction(LibraryAction.FolderSelected(uri))
-        }
-    }
-    LaunchedEffect(Unit) {
-        viewModel.messages.collect { message ->
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collectLatest { message ->
             val text = when (message) {
                 is LibraryMessage.IndexFailed -> context.getString(
                     R.string.library_snack_index_failed,
                     message.failed,
                 )
+
                 LibraryMessage.RescanFailed ->
                     context.getString(R.string.library_snack_rescan_failed)
             }
@@ -179,48 +172,46 @@ private fun LibraryRouteContent(
         onDetailsClick = onComicLongClick,
         menuComic = menuComic,
         menuDeleteConfirm = menuState.deleteConfirm,
-        onChooseFolder = { folderLauncher.launch(null) },
         snackbarHost = snackbarHost,
         modifier = modifier,
     )
 }
 
+/**
+ * Pure presentation: consumes [LibraryUiState] and emits user actions.
+ * No ViewModel dependencies — previews and tests construct state directly.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LibraryScreen(
+fun LibraryScreen(
     uiState: LibraryUiState,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    onDetailsClick: (String) -> Unit = {},
+    onComicLongClick: (comicId: String) -> Unit,
+    onDetailsClick: (comicId: String) -> Unit = onComicLongClick,
     menuComic: Comic? = null,
     menuDeleteConfirm: Boolean = false,
-    onChooseFolder: () -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    modifier: Modifier = Modifier,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val gridState = rememberLazyGridState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) {
+            onAction(LibraryAction.FolderSelected(uri))
+        }
+    }
+    val onChooseFolder: () -> Unit = {
+        folderPicker.launch(null)
+    }
     Scaffold(
         topBar = {
-            val success = uiState as? LibraryUiState.Success
-            if (success != null) {
-                LibraryTopBar(
-                    // Shelf selection or any non-default sort/filter lights
-                    // the Tune icon: with the chips row gone, the grid alone
-                    // must show that a filter is active.
-                    filterActive = success.selectedCollectionId != null ||
-                        success.query.hasActiveFilters(),
-                    onAction = onAction,
-                    scrollBehavior = scrollBehavior,
-                )
-            } else {
-                LibraryTopBar(
-                    filterActive = false,
-                    onAction = {},
-                    scrollBehavior = scrollBehavior,
-                )
-            }
+            LibraryTopBar(
+                filterActive = (uiState as? LibraryUiState.Success)?.query?.hasActiveFilters() == true,
+                onAction = onAction,
+                scrollBehavior = scrollBehavior,
+            )
         },
         snackbarHost = {
             SnackbarHost(
@@ -229,41 +220,42 @@ internal fun LibraryScreen(
             )
         },
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-    ) { padding ->
-        Surface(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
-            when (uiState) {
-                LibraryUiState.Loading -> MoriLoading(
-                    modifier = Modifier.testTag(LibraryTestTags.Loading),
-                )
+    ) { innerPadding ->
+        MoriContentWell(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            when (val state = uiState) {
+                is LibraryUiState.Loading -> {
+                    MoriLoading(modifier = Modifier.testTag(LibraryTestTags.Loading))
+                }
 
                 is LibraryUiState.Success -> {
                     LibraryContent(
-                        comics = uiState.comics,
-                        query = uiState.query,
-                        refreshing = uiState.refreshing,
-                        indexProgress = uiState.indexProgress,
-                        linked = uiState.linked,
-                        sections = uiState.sections,
+                        comics = state.comics,
+                        query = state.query,
+                        refreshing = state.refreshing,
+                        indexProgress = state.indexProgress,
+                        linked = state.linked,
+                        sections = state.sections,
                         onAction = onAction,
                         onReadClick = onReadClick,
                         onComicLongClick = onComicLongClick,
                         onChooseFolder = onChooseFolder,
-                        gridState = gridState,
+                        modifier = Modifier.fillMaxSize(),
                     )
-                    if (uiState.filterOpen) {
+                    if (state.filterOpen) {
                         LibrarySortFilterSheet(
-                            query = uiState.query,
+                            query = state.query,
+                            collections = state.collections,
+                            selectedCollectionId = state.selectedCollectionId,
                             onAction = onAction,
-                            collections = uiState.collections,
-                            selectedCollectionId = uiState.selectedCollectionId,
                         )
                     }
-                    val menu = menuComic
-                    if (menu != null) {
+                    if (menuComic != null) {
                         LibraryMenuSheet(
-                            comic = menu,
+                            comic = menuComic,
                             deleteConfirm = menuDeleteConfirm,
                             onAction = onAction,
                             onReadClick = onReadClick,
@@ -287,65 +279,67 @@ private fun LibraryContent(
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
+    onComicLongClick: (comicId: String) -> Unit,
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
-    gridState: LazyGridState = rememberLazyGridState(),
 ) {
-    // Centered well on expanded windows; phones stay full-bleed.
-    MoriContentWell(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Determinate rescan bar: done/total from the index callback,
-            // so large rescans never read as a stuck spinner. Animated in
-            // place so its arrival never shoves the content down.
-            val progress = indexProgress
-            AnimatedVisibility(
-                visible = refreshing && progress != null && progress.total > 0,
-                enter = MoriMotion.enter(MoriEnterKind.SEARCH),
-                exit = MoriMotion.exit(MoriEnterKind.SEARCH),
-            ) {
+    val gridState = rememberLazyGridState()
+    Column(modifier = modifier) {
+        AnimatedVisibility(
+            visible = indexProgress != null,
+            enter = MoriMotion.enter(MoriEnterKind.SEARCH),
+            exit = MoriMotion.exit(MoriEnterKind.SEARCH),
+        ) {
+            if (indexProgress != null) {
+                val fraction = if (indexProgress.total > 0) {
+                    indexProgress.done.toFloat() / indexProgress.total
+                } else {
+                    0f
+                }
+                val label = stringResource(
+                    R.string.library_rescan_progress,
+                )
                 MoriProgressBar(
-                    contentDescription = stringResource(R.string.library_rescan_progress),
-                    progress = {
-                        val done = (progress?.done ?: 0).coerceAtMost(progress?.total ?: 1)
-                        done.toFloat() / (progress?.total ?: 1)
-                    },
+                    progress = { fraction },
+                    contentDescription = label,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            // Search overlay: the grid lives full-bleed underneath with a
-            // fixed [SearchSlotTop] reserve, and a fixed floating panel
-            // rides on top. Scrolled entries pass behind it; only paint
-            // (tone, elevation) responds to scroll.
-            val haptics = rememberMoriHaptics()
-            val keyboard = LocalSoftwareKeyboardController.current
-            val focusManager = LocalFocusManager.current
-            val searchFloating by remember {
-                derivedStateOf {
-                    gridState.firstVisibleItemIndex > 0 ||
+        }
+        // Search overlay: the grid lives full-bleed underneath with a
+        // fixed [SearchSlotTop] reserve, and a fixed floating panel
+        // rides on top. Scrolled entries pass behind it; only paint
+        // (tone, elevation) responds to scroll.
+        val haptics = rememberMoriHaptics()
+        val keyboard = LocalSoftwareKeyboardController.current
+        val focusManager = LocalFocusManager.current
+        val searchFloating by remember {
+            derivedStateOf {
+                gridState.firstVisibleItemIndex > 0 ||
                         gridState.firstVisibleItemScrollOffset > 0
-                }
             }
-            val floatColor by animateColorAsState(
-                if (searchFloating) {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                },
-            )
-            val floatElevation by animateDpAsState(if (searchFloating) 6.dp else 0.dp)
-            // Overlay: the grid lives full-bleed underneath and the search
-            // floats on top, so scrolled entries truly pass behind it.
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
+        }
+        val floatColor by animateColorAsState(
+            if (searchFloating) {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
+            label = "searchPanelColor",
+        )
+        val floatElevation by animateDpAsState(
+            if (searchFloating) 6.dp else 0.dp,
+            label = "searchPanelElevation",
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
             LibraryBody(
                 comics = comics,
-                queryText = query.text,
-                // Spinner only when no determinate bar: the two indicators
-                // overlap otherwise during indexed rescans.
+                query = query,
                 refreshing = refreshing && indexProgress == null,
                 linked = linked,
                 sections = sections,
@@ -356,64 +350,78 @@ private fun LibraryContent(
                 gridState = gridState,
                 modifier = Modifier.fillMaxSize(),
             )
-            Surface(
-                color = floatColor,
-                shadowElevation = floatElevation,
-                shape = MaterialTheme.shapes.extraExtraLarge,
+
+            // Expressive floating capsule: search bar and quick filter chips
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(top = 8.dp),
             ) {
-            TextField(
-                value = query.text,
-                onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
-                placeholder = { Text(stringResource(R.string.library_search_label)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = MoriIcons.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                trailingIcon = {
-                    if (query.text.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                haptics(MoriHaptic.Select)
-                                onAction(LibraryAction.SearchTextChanged(""))
-                            },
-                            modifier = Modifier.testTag(LibraryTestTags.SearchClear),
-                        ) {
+                Surface(
+                    color = floatColor,
+                    shadowElevation = floatElevation,
+                    shape = MaterialTheme.shapes.extraExtraLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                ) {
+                    TextField(
+                        value = query.text,
+                        onValueChange = { onAction(LibraryAction.SearchTextChanged(it)) },
+                        placeholder = { Text(stringResource(R.string.library_search_label)) },
+                        leadingIcon = {
                             Icon(
-                                imageVector = MoriIcons.Close,
-                                contentDescription = stringResource(R.string.library_action_clear_search),
+                                imageVector = MoriIcons.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                    }
-                },
-                singleLine = true,
-                textStyle = MoriEmphasized.bodyLarge,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        keyboard?.hide()
-                        focusManager.clearFocus()
-                    },
-                ),
-                shape = MaterialTheme.shapes.extraExtraLarge,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sizeIn(minHeight = 56.dp)
-                    .testTag(LibraryTestTags.SearchField),
-            )
+                        },
+                        trailingIcon = {
+                            if (query.text.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        haptics(MoriHaptic.Select)
+                                        onAction(LibraryAction.SearchTextChanged(""))
+                                    },
+                                    modifier = Modifier.testTag(LibraryTestTags.SearchClear),
+                                ) {
+                                    Icon(
+                                        imageVector = MoriIcons.Close,
+                                        contentDescription = stringResource(R.string.library_action_clear_search),
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        textStyle = MoriEmphasized.bodyLarge,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                keyboard?.hide()
+                                focusManager.clearFocus()
+                            },
+                        ),
+                        shape = MaterialTheme.shapes.extraExtraLarge,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sizeIn(minHeight = 56.dp)
+                            .testTag(LibraryTestTags.SearchField),
+                    )
+                }
+
+                // Quick filter chips capsule
+                LibraryQuickFilters(
+                    selectedFilter = query.filter,
+                    onFilterSelect = { onAction(LibraryAction.FilterSelected(it)) },
+                    modifier = Modifier.padding(top = 6.dp),
+                )
             }
-        }
         }
     }
 }
@@ -468,13 +476,13 @@ private fun LibraryTopBar(
 @Composable
 private fun LibraryBody(
     comics: List<Comic>,
-    queryText: String,
+    query: LibraryQuery,
     refreshing: Boolean,
     linked: Boolean,
     sections: List<ShelfSection>,
     onAction: (LibraryAction) -> Unit,
     onReadClick: (comicId: String, pageIndex: Int) -> Unit,
-    onComicLongClick: (String) -> Unit,
+    onComicLongClick: (comicId: String) -> Unit,
     onChooseFolder: () -> Unit,
     modifier: Modifier = Modifier,
     gridState: LazyGridState = rememberLazyGridState(),
@@ -502,7 +510,7 @@ private fun LibraryBody(
             onComicLongClick(comic.id)
         }
     }
-    // Fixed reserve for the floating search panel (72dp) plus breathing
+    // Fixed reserve for the floating search panel (112dp) plus breathing
     // room: constant by construction, so scroll never relayouts the grid.
     val gridPadding = PaddingValues(
         start = 12.dp,
@@ -513,7 +521,7 @@ private fun LibraryBody(
     Box(modifier = modifier.fillMaxWidth()) {
         if (comics.isEmpty()) {
             LibraryEmptyState(
-                searching = queryText.isNotBlank(),
+                searching = query.text.isNotBlank(),
                 linked = linked,
                 onRefresh = { onAction(LibraryAction.Refresh) },
                 onChooseFolder = onChooseFolder,
@@ -539,42 +547,62 @@ private fun LibraryBody(
                         .fillMaxSize()
                         .testTag(LibraryTestTags.Grid),
                 ) {
-                if (sections.isNotEmpty()) {
-                    // Sectioned grid: one collapsible shelf after another.
-                    sections.forEach { section ->
+                    // "Now Reading" Hero Spotlight Card
+                    val nowReading = if (query.text.isBlank() && query.filter == LibraryFilter.ALL) {
+                        comics.firstOrNull { it.isInProgress && it.error == null }
+                    } else null
+
+                    if (nowReading != null && sections.isEmpty()) {
                         item(
                             span = { GridItemSpan(maxLineSpan) },
-                            key = "shelf-header-${section.id}",
-                            contentType = "shelfHeader",
+                            key = "hero_now_reading_${nowReading.id}",
+                            contentType = "nowReadingHero",
                         ) {
-                            ShelfSectionHeader(
-                                section = section,
-                                onToggle = {
-                                    onAction(
-                                        LibraryAction.ToggleShelfCollapsed(section.id),
-                                    )
-                                },
+                            NowReadingHeroCard(
+                                comic = nowReading,
+                                onResume = onCardRead,
+                                onDetails = onCardDetails,
                                 modifier = Modifier.animateItem(),
                             )
                         }
+                    }
+
+                    if (sections.isNotEmpty()) {
+                        // Sectioned grid: one collapsible shelf after another.
+                        sections.forEach { section ->
+                            item(
+                                span = { GridItemSpan(maxLineSpan) },
+                                key = "shelf-header-${section.id}",
+                                contentType = "shelfHeader",
+                            ) {
+                                ShelfSectionHeader(
+                                    section = section,
+                                    onToggle = {
+                                        onAction(
+                                            LibraryAction.ToggleShelfCollapsed(section.id),
+                                        )
+                                    },
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                            comicItems(
+                                comics = section.comics,
+                                keyPrefix = "shelf-${section.id}",
+                                onCardRead = onCardRead,
+                                onCardDetails = onCardDetails,
+                                launchingId = launchingId,
+                                contentVisible = !section.collapsed,
+                            )
+                        }
+                    } else {
                         comicItems(
-                            comics = section.comics,
-                            keyPrefix = "shelf-${section.id}",
+                            comics = comics,
+                            keyPrefix = "card",
                             onCardRead = onCardRead,
                             onCardDetails = onCardDetails,
                             launchingId = launchingId,
-                            contentVisible = !section.collapsed,
                         )
                     }
-                } else {
-                    comicItems(
-                        comics = comics,
-                        keyPrefix = "card",
-                        onCardRead = onCardRead,
-                        onCardDetails = onCardDetails,
-                        launchingId = launchingId,
-                    )
-                }
                 }
             }
         }
@@ -598,23 +626,71 @@ private fun LazyGridScope.comicItems(
     // AnimatedVisibility): items snap out on toggle instead of animating.
     if (!contentVisible) return
     items(
-        comics,
-        key = { it.id },
-        // Bitmask bucket: error/in-progress/finished/bookmarked variants
-        // never cross-recycle, with no per-item string allocation.
+        items = comics,
+        key = { comic -> "$keyPrefix-${comic.id}" },
         contentType = { comic ->
-            (if (comic.error != null) 4 else 0) +
-                (if (comic.isInProgress) 2 else 0) +
-                (if (comic.isFinished) 1 else 0) +
-                (if (comic.bookmarked) 8 else 0)
+            when {
+                comic.error != null -> "error"
+                comic.isInProgress -> "inProgress"
+                comic.isFinished -> "finished"
+                else -> "unread"
+            }
         },
     ) { comic ->
         ComicCard(
             comic = comic,
             onRead = onCardRead,
             onDetails = onCardDetails,
-            sharedCover = launchingId == comic.id,
+            sharedCover = comic.id == launchingId,
             modifier = Modifier.animateItem(),
+        )
+    }
+}
+
+/** Empty state branch with rescue actions. */
+@Composable
+private fun LibraryEmptyState(
+    searching: Boolean,
+    linked: Boolean,
+    onRefresh: () -> Unit,
+    onChooseFolder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = rememberMoriHaptics()
+    if (searching) {
+        MoriEmptyState(
+            icon = MoriIcons.Search,
+            title = stringResource(R.string.library_empty_search_title),
+            body = stringResource(R.string.library_empty_search_body),
+            actionLabel = null,
+            onAction = null,
+            modifier = modifier.testTag(LibraryTestTags.EmptyState),
+        )
+    } else {
+        val actionLabel = stringResource(
+            if (linked) {
+                R.string.library_empty_rescan
+            } else {
+                R.string.library_empty_choose_folder
+            },
+        )
+        val onAction = if (linked) onRefresh else onChooseFolder
+        val actionTag = if (linked) {
+            LibraryTestTags.EmptyRescan
+        } else {
+            LibraryTestTags.EmptyChooseFolder
+        }
+        MoriEmptyState(
+            icon = MoriIcons.MenuBook,
+            title = stringResource(R.string.library_empty_title),
+            body = stringResource(R.string.library_empty_body),
+            actionLabel = actionLabel,
+            onAction = {
+                haptics(MoriHaptic.PrimaryAction)
+                onAction()
+            },
+            actionTestTag = actionTag,
+            modifier = modifier.testTag(LibraryTestTags.EmptyState),
         )
     }
 }
@@ -688,7 +764,10 @@ private fun ShelfSectionHeader(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontFamily = LocalAppFonts.current.displaySoft,
+                    fontWeight = FontWeight.Bold,
+                ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -697,12 +776,15 @@ private fun ShelfSectionHeader(
                     .semantics { heading() },
             )
             Surface(
-                shape = MaterialTheme.shapes.small,
+                shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 Text(
                     text = count.toString(),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = LocalAppFonts.current.displaySoft,
+                        fontWeight = FontWeight.Bold,
+                    ),
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
@@ -716,68 +798,6 @@ private fun ShelfSectionHeader(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun LibraryEmptyState(
-    searching: Boolean,
-    linked: Boolean,
-    onRefresh: () -> Unit,
-    onChooseFolder: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Unlinked and not searching, rescan is a dead end: offer the folder
-    // rescue instead. Searching or linked shelves keep rescan.
-    val rescue = !searching && !linked
-    MoriEmptyState(
-        icon = MoriIcons.MenuBook,
-        title = if (searching) {
-            stringResource(R.string.library_empty_search_title)
-        } else {
-            stringResource(R.string.library_empty_title)
-        },
-        body = if (searching) {
-            stringResource(R.string.library_empty_search_body)
-        } else {
-            stringResource(R.string.library_empty_body)
-        },
-        actionLabel = if (rescue) {
-            stringResource(R.string.library_empty_choose_folder)
-        } else {
-            stringResource(R.string.library_empty_rescan)
-        },
-        onAction = if (rescue) onChooseFolder else onRefresh,
-        modifier = modifier
-            .testTag(LibraryTestTags.EmptyState)
-            .padding(bottom = FloatingChromeBottomReserve),
-        actionTestTag = if (rescue) {
-            LibraryTestTags.EmptyChooseFolder
-        } else {
-            LibraryTestTags.EmptyRescan
-        },
-    )
-}
-
-@ThemePreviews
-@Composable
-private fun LibraryScreenPreview() {
-    MoriTheme {
-        LibraryScreen(
-            uiState = LibraryUiState.Success(
-                comics = listOf(
-                    previewComic("1", "Batman: Court of Owls", 2, 10),
-                    previewComic("2", "Saga", 0, 0),
-                ),
-                query = com.mori.core.model.LibraryQuery(),
-                refreshing = false,
-                filterOpen = false,
-                linked = true,
-            ),
-            onAction = {},
-            onReadClick = { _, _ -> },
-            onComicLongClick = {},
-        )
     }
 }
 
@@ -798,9 +818,11 @@ private fun previewComic(id: String, title: String, lastPage: Int, pages: Int) =
 
 private val GRID_CELL_MIN = 128.dp
 
-/** Fixed search geometry: 8dp top + 56dp field + 8dp bottom. */
-private val SearchPanelHeight = 72.dp
+/** Fixed search & quick-filter geometry: 8dp top + 56dp field + 6dp gap + 36dp filters + 6dp bottom. */
+private val SearchPanelHeight = 112.dp
+
 /** Breathing room between the floating panel and the grid it covers. */
 private val SearchGridGap = 12.dp
+
 /** Grid top reserve: panel slot plus gap. Constant — never measured. */
 private val SearchSlotTop = SearchPanelHeight + SearchGridGap

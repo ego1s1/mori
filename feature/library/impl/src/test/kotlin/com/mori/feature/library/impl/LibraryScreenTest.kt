@@ -398,4 +398,21 @@ class LibraryScreenTest {
         assert(actions.contains(LibraryAction.ConfirmMenuDelete))
     }
 
+    @Test
+    fun heroSpotlightCardRendersForInProgressComic() {
+        setScreen(success())
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.NowReadingHero).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.HeroResume).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LibraryTestTags.HeroDetails).assertIsDisplayed()
+    }
+
+    @Test
+    fun quickFilterChipDispatchesSelection() {
+        val actions = mutableListOf<LibraryAction>()
+        setScreen(success(), actions = actions)
+
+        composeTestRule.onNodeWithTag(LibraryTestTags.quickFilterChip(LibraryFilter.IN_PROGRESS)).performClick()
+        assert(actions.contains(LibraryAction.FilterSelected(LibraryFilter.IN_PROGRESS)))
+    }
 }
