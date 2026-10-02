@@ -60,6 +60,7 @@ import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriSectionCard
+import com.mori.core.designsystem.MoriSectionHeader
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.ThemePreviews
 import com.mori.core.model.DailyReadingStat
@@ -180,8 +181,8 @@ private fun StatsContent(
             }
             if (state.topBooks.isNotEmpty()) {
                 item("topHeader") {
-                    SectionHeading(
-                        text = stringResource(R.string.stats_top_books),
+                    MoriSectionHeader(
+                        title = stringResource(R.string.stats_top_books),
                         modifier = Modifier.testTag(StatsTestTags.TopBooks),
                     )
                 }
@@ -413,17 +414,6 @@ private fun TopBookRow(
     }
 }
 
-@Composable
-private fun SectionHeading(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MoriEmphasized.titleLarge,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier
-            .padding(horizontal = 4.dp)
-            .semantics { heading() },
-    )
-}
 
 @ThemePreviews
 @Composable

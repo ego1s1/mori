@@ -73,7 +73,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mori.core.designsystem.LocalAppFonts
 import com.mori.core.designsystem.LocalExpressiveMotionEnabled
 import com.mori.core.designsystem.FloatingChromeBottomReserve
 import com.mori.core.designsystem.MoriCollapsingTopBar
@@ -804,9 +803,7 @@ private fun ShelfSectionHeader(
         ) {
             Text(
                 text = title,
-                style = MoriEmphasized.titleLarge.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                ),
+                style = MoriEmphasized.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -820,10 +817,7 @@ private fun ShelfSectionHeader(
             ) {
                 Text(
                     text = count.toString(),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontFamily = LocalAppFonts.current.displaySoft,
-                        fontWeight = FontWeight.Bold,
-                    ),
+                    style = MoriEmphasized.labelLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )

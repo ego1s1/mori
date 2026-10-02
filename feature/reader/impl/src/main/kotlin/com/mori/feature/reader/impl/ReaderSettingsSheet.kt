@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mori.core.common.formatPercent
 import com.mori.core.designsystem.MoriChoiceGroup
@@ -129,14 +131,18 @@ internal fun ReaderSettingsSheetContent(
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
     ) {
-    Text(
-        text = stringResource(R.string.reader_sheet_title),
-        style = MaterialTheme.typography.titleMedium,
+        Text(
+            text = stringResource(R.string.reader_sheet_title),
+            style = MoriEmphasized.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
 
         Text(
             text = stringResource(R.string.reader_sheet_direction),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         MoriChoiceGroup(
             options = listOf(
@@ -155,7 +161,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_fit),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         MoriChoiceGroup(
             options = listOf(
@@ -191,7 +199,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_zones),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         TapZoneLegend(
             direction = direction,
@@ -201,7 +211,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_nav_mode),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         MoriChoiceGroup(
             options = listOf(
@@ -219,7 +231,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_tap_invert),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         MoriChoiceGroup(
             options = listOf(
@@ -281,7 +295,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_dual),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         MoriSettingSwitch(
             title = stringResource(R.string.reader_dual_title),
@@ -300,7 +316,9 @@ internal fun ReaderSettingsSheetContent(
 
         Text(
             text = stringResource(R.string.reader_sheet_display),
-            style = MoriEmphasized.titleSmall,
+            style = MoriEmphasized.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = stringResource(R.string.reader_display_scope),
