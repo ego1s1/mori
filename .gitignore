@@ -37,4 +37,5 @@ scripts/build-apk.sh
 # Local agent skill installs: reproducible via the skills CLI, machine-specific.
 /.agents/
 /.claude/
+/.gemini/
 /skills-lock.json
