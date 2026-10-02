@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilledTonalButton
+import com.mori.core.designsystem.MoriTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -290,7 +290,7 @@ internal fun ReaderSettingsSheetContent(
             onCheckedChange = { onAction(ReaderAction.ToggleFilterInvert) },
         )
         if (hasFilterOverride) {
-            FilledTonalButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
+            MoriTonalButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
                 Text(stringResource(R.string.reader_filter_reset))
             }
         }

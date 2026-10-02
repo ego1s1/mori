@@ -65,6 +65,9 @@ import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.topSheet
+import com.mori.core.designsystem.MoriIconButton
+import com.mori.core.designsystem.MoriPrimaryButton
+import com.mori.core.designsystem.MoriTextButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -249,7 +252,7 @@ private fun WelcomeContent(
                     .weight(1f)
                     .padding(horizontal = 12.dp, vertical = 16.dp),
             )
-            TextButton(onClick = onSkip) {
+            MoriTextButton(onClick = onSkip) {
                 Text(stringResource(R.string.onboarding_skip))
             }
         }
@@ -336,7 +339,7 @@ private fun WelcomeContent(
                 exit = MoriMotion.exit(MoriEnterKind.RISE),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
+                    MoriPrimaryButton(
                         onClick = onGetStarted,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -372,11 +375,10 @@ private fun FolderOptions(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Button(
+        MoriPrimaryButton(
             onClick = onPickFolder,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
                 .testTag(OnboardingTestTags.PickFolder),
         ) {
             Text(stringResource(R.string.onboarding_pick_folder))
@@ -434,7 +436,7 @@ private fun WizardStep(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = 8.dp),
         ) {
-            IconButton(onClick = onBack) {
+            MoriIconButton(onClick = onBack) {
                 Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.onboarding_back))
             }
             Text(
@@ -445,7 +447,7 @@ private fun WizardStep(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onSkip) {
+            MoriTextButton(onClick = onSkip) {
                 Text(stringResource(R.string.onboarding_skip))
             }
         }
@@ -521,11 +523,10 @@ private fun WizardStep(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .windowInsetsPadding(WindowInsets.navigationBars),
                 ) {
-                    Button(
+                    MoriPrimaryButton(
                         onClick = { onContinue() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
                             .testTag(OnboardingTestTags.StepContinue),
                     ) {
                         Text(continueLabel)

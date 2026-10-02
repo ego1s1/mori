@@ -68,6 +68,12 @@ import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.rememberMoriHaptics
+import com.mori.core.designsystem.MoriAlertDialog
+import com.mori.core.designsystem.MoriConfirmDialog
+import com.mori.core.designsystem.MoriFilledTonalIconButton
+import com.mori.core.designsystem.MoriPrimaryButton
+import com.mori.core.designsystem.MoriTextButton
+import com.mori.core.designsystem.MoriTonalButton
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
@@ -138,7 +144,7 @@ internal fun DetailScreen(
                         )
                     },
                     navigationIcon = {
-                        FilledTonalIconButton(onClick = onBackClick) {
+                        MoriFilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -160,7 +166,7 @@ internal fun DetailScreen(
                         )
                     },
                     navigationIcon = {
-                        FilledTonalIconButton(onClick = onBackClick) {
+                        MoriFilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -405,7 +411,7 @@ private fun DetailContent(
             )
         } else {
             val startPage = comic.resumeIndex
-            Button(
+            MoriPrimaryButton(
                 onClick = { onReadClick(comic.id, startPage) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -419,7 +425,7 @@ private fun DetailContent(
                     },
                 )
             }
-            FilledTonalButton(
+            MoriTonalButton(
                 onClick = { onAction(DetailAction.OpenShelves) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -497,45 +503,19 @@ private fun RemoveDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.detail_remove_title),
-                style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
-            )
+    val haptics = rememberMoriHaptics()
+    MoriConfirmDialog(
+        title = stringResource(R.string.detail_remove_title),
+        message = stringResource(R.string.detail_remove_body, title),
+        confirmLabel = stringResource(R.string.detail_remove_confirm),
+        onConfirm = {
+            haptics(MoriHaptic.Confirm)
+            onConfirm()
         },
-        text = {
-            Text(
-                text = stringResource(R.string.detail_remove_body, title),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        confirmButton = {
-            val haptics = rememberMoriHaptics()
-            Button(
-                onClick = {
-                    haptics(MoriHaptic.Confirm)
-                    onConfirm()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-                modifier = Modifier.testTag(DetailTestTags.ConfirmRemove),
-            ) {
-                Text(stringResource(R.string.detail_remove_confirm))
-            }
-        },
-        dismissButton = {
-            FilledTonalButton(onClick = onDismiss) {
-                Text(stringResource(R.string.detail_remove_cancel))
-            }
-        },
+        dismissLabel = stringResource(R.string.detail_remove_cancel),
+        onDismiss = onDismiss,
+        destructive = true,
+        confirmTestTag = DetailTestTags.ConfirmRemove,
         modifier = modifier.testTag(DetailTestTags.RemoveDialog),
     )
 }
@@ -548,7 +528,7 @@ private fun ShelvesDialog(
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    MoriAlertDialog(
         onDismissRequest = { onAction(DetailAction.CloseShelves) },
         title = {
             Text(
@@ -594,7 +574,7 @@ private fun ShelvesDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            MoriTextButton(
                 onClick = {
                     onAction(DetailAction.CreateShelf(name))
                     name = ""
@@ -606,7 +586,7 @@ private fun ShelvesDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = { onAction(DetailAction.CloseShelves) }) {
+            MoriTextButton(onClick = { onAction(DetailAction.CloseShelves) }) {
                 Text(stringResource(R.string.detail_shelves_close))
             }
         },

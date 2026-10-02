@@ -88,6 +88,12 @@ import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSliderRow
+import com.mori.core.designsystem.MoriAlertDialog
+import com.mori.core.designsystem.MoriConfirmDialog
+import com.mori.core.designsystem.MoriPrimaryButton
+import com.mori.core.designsystem.MoriTonalButton
+import com.mori.core.designsystem.MoriOutlinedButton
+import com.mori.core.designsystem.MoriTextButton
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.SchemePickerRow
 import com.mori.core.designsystem.ThemePreviews
@@ -679,7 +685,7 @@ private fun ReaderSection(
                 onCheckedChange = { onAction(SettingsAction.ToggleDisplayInvert) },
             )
             if (!reader.displayFilter.isNeutral) {
-                TextButton(onClick = { onAction(SettingsAction.ResetDisplayFilter) }) {
+                MoriTextButton(onClick = { onAction(SettingsAction.ResetDisplayFilter) }) {
                     Text(stringResource(R.string.settings_filter_reset))
                 }
             }
@@ -722,9 +728,9 @@ private fun StorageSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            FilledTonalButton(
+            MoriTonalButton(
                 onClick = { onAction(SettingsAction.ClearThumbnailCache) },
-                modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.settings_clear_cache))
             }
@@ -762,14 +768,12 @@ private fun ShelvesSection(
                     onDelete = { onAction(SettingsAction.OpenDeleteGroup(group.id, group.name)) },
                 )
             }
-            OutlinedButton(
+            MoriOutlinedButton(
                 onClick = {
-                    haptics(MoriHaptic.Select)
                     onAction(SettingsAction.OpenCreateGroup)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sizeIn(minHeight = 48.dp)
                     .testTag(SettingsTestTags.GroupCreateButton),
             ) {
                 Text(stringResource(R.string.settings_groups_create))
@@ -1068,15 +1072,15 @@ private fun AboutSection(
             }
     }
     if (privacyOpen) {
-        AlertDialog(
+        MoriAlertDialog(
             onDismissRequest = { privacyOpen = false },
             title = {
                 Text(
                     text = stringResource(R.string.settings_about_privacy),
                     style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
+                        fontFamily = LocalAppFonts.current.displaySoft,
+                        fontWeight = FontWeight.Black,
+                    ),
                 )
             },
             text = {
@@ -1087,7 +1091,7 @@ private fun AboutSection(
                 )
             },
             confirmButton = {
-                FilledTonalButton(onClick = { privacyOpen = false }) {
+                MoriTonalButton(onClick = { privacyOpen = false }) {
                     Text(stringResource(R.string.settings_dialog_understood))
                 }
             },
@@ -1240,45 +1244,15 @@ private fun GroupDialogHost(
             onDismiss = { onAction(SettingsAction.CloseGroupDialog) },
             modifier = modifier,
         )
-        is GroupDialog.Delete -> AlertDialog(
-            onDismissRequest = { onAction(SettingsAction.CloseGroupDialog) },
-            title = {
-                Text(
-                    text = stringResource(R.string.settings_group_delete_title),
-                    style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.settings_group_delete_body, dialog.name),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmButton = {
-                val haptics = rememberMoriHaptics()
-                Button(
-                    onClick = {
-                        haptics(MoriHaptic.Confirm)
-                        onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId))
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
-                    modifier = Modifier.testTag(SettingsTestTags.GroupDeleteConfirm),
-                ) {
-                    Text(text = stringResource(R.string.settings_group_delete_confirm))
-                }
-            },
-            dismissButton = {
-                FilledTonalButton(onClick = { onAction(SettingsAction.CloseGroupDialog) }) {
-                    Text(stringResource(R.string.settings_dialog_cancel))
-                }
-            },
+        is GroupDialog.Delete -> MoriConfirmDialog(
+            title = stringResource(R.string.settings_group_delete_title),
+            message = stringResource(R.string.settings_group_delete_body, dialog.name),
+            confirmLabel = stringResource(R.string.settings_group_delete_confirm),
+            onConfirm = { onAction(SettingsAction.ConfirmDeleteGroup(dialog.groupId)) },
+            dismissLabel = stringResource(R.string.settings_dialog_cancel),
+            onDismiss = { onAction(SettingsAction.CloseGroupDialog) },
+            destructive = true,
+            confirmTestTag = SettingsTestTags.GroupDeleteConfirm,
             modifier = modifier.testTag(SettingsTestTags.GroupDialog),
         )
     }
@@ -1296,7 +1270,7 @@ private fun GroupNameDialog(
     modifier: Modifier = Modifier,
 ) {
     var name by remember(initial) { mutableStateOf(initial) }
-    AlertDialog(
+    MoriAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -1319,20 +1293,17 @@ private fun GroupNameDialog(
             )
         },
         confirmButton = {
-            val haptics = rememberMoriHaptics()
-            Button(
-                onClick = {
-                    haptics(MoriHaptic.Confirm)
-                    onConfirm(name)
-                },
+            MoriPrimaryButton(
+                onClick = { onConfirm(name) },
                 enabled = name.isNotBlank(),
+                haptic = MoriHaptic.Confirm,
                 modifier = Modifier.testTag(SettingsTestTags.GroupConfirm),
             ) {
                 Text(confirmText)
             }
         },
         dismissButton = {
-            FilledTonalButton(onClick = onDismiss) {
+            MoriTonalButton(onClick = onDismiss) {
                 Text(stringResource(R.string.settings_dialog_cancel))
             }
         },
