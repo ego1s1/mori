@@ -5,4 +5,15 @@
     <string name="mori_error_empty">This archive has no readable pages.</string>
     <string name="mori_error_unsupported">This format isn\'t supported yet.</string>
     <string name="mori_error_not_found">This file is gone — it was moved, renamed, or access was revoked.</string>
+    <string name="filter_tone_amber">Warm Amber</string>
+    <string name="filter_tone_sepia">Sepia Paper</string>
+    <string name="filter_tone_slate">Cool Slate</string>
+    <string name="filter_tone_mint">Forest Mint</string>
+    <string name="filter_tone_eink">E-Ink</string>
+    <string name="filter_blend_default">Normal</string>
+    <string name="filter_blend_multiply">Multiply</string>
+    <string name="filter_blend_screen">Screen</string>
+    <string name="filter_blend_overlay">Overlay</string>
+    <string name="filter_blend_lighten">Lighten</string>
+    <string name="filter_blend_darken">Darken</string>
 </resources>

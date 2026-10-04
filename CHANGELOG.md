@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.5.0
+
+### Highlights
+
+**Material 3 Expressive Bento Stats.** A completely redesigned Stats screen
+crafted with Material 3 Expressive container tokens: spotlight hero card for
+reading time with staggered multi-size Google Sans Flex numerals, high-contrast
+bento companions for pages turned and books finished, and a centered sessions
+card with a 7-day animated rhythm sparkline graph and chronological day ordering.
+
+**Material 3 Expressive squiggly sliders.** Settings controls now feature
+spring-physics squiggly waveform sliders that playfully morph and animate when
+dragged, bringing lively expressive tactile feedback to font size, brightness,
+auto-scroll speed, corner radius, and cache sizes.
+
+**High-speed library browsing.** Instant, silky-smooth scrolling across
+large comic libraries with optimized sub-millisecond cover lookups and
+zero-jank pagination.
+
+**Comprehensive filters & quick toggles.** Refined library filter pills with
+tri-state toggles (All / In Progress / Unread / Finished / Favorites / Bookmarked)
+and a single-tap clear-all action to quickly reset active filters.
+
+**Expanded reader display filters.** Reader controls now feature an expanded
+suite of display enhancements — Grayscale, Invert, Sepia, High Contrast,
+Warm Tint, Cool Tint, and Manga E-Ink — with instant preview toggles and
+per-comic overrides.
+
+**Google Sans Flex typography.** Upright Google Sans Flex variable font
+deployed app-wide across headers, dialogs, empty states, and bento numerals.
+
+Full history: https://github.com/ego1s1/mori/compare/v0.4.0...v0.5.0
+
 ## 0.4.0
 
 ### Highlights

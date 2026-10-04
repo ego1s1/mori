@@ -80,4 +80,38 @@ class DisplayFilterRenderTest {
         assertEquals(1f, coerced.brightness, 0f)
         assertEquals(0f, coerced.nightTint, 0f)
     }
+    @Test
+    fun disabledFilterBypassesColorMatrix() {
+        val filter = DisplayFilter(enabled = false, grayscale = true, invert = true, contrast = 0.8f)
+        assertNull(colorMatrixFor(filter))
+    }
+
+    @Test
+    fun contrastMatrixScalesDiagonalAndOffset() {
+        val matrix = colorMatrixFor(DisplayFilter(contrast = 0.5f))
+        assertNotNull(matrix)
+        val v = matrix!!.values
+        // scale = 1 + 0.5 = 1.5, offset = 128 * (1 - 1.5) = -64
+        assertEquals(1.5f, v[0], 0.01f)
+        assertEquals(1.5f, v[6], 0.01f)
+        assertEquals(1.5f, v[12], 0.01f)
+        assertEquals(-64f, v[4], 0.01f)
+        assertEquals(-64f, v[9], 0.01f)
+        assertEquals(-64f, v[14], 0.01f)
+    }
+
+    @Test
+    fun blendModeAndToneColorMappings() {
+        assertEquals(androidx.compose.ui.graphics.BlendMode.Multiply, composeBlendModeFor(com.mori.core.model.FilterBlendMode.MULTIPLY))
+        assertEquals(androidx.compose.ui.graphics.BlendMode.Screen, composeBlendModeFor(com.mori.core.model.FilterBlendMode.SCREEN))
+        assertEquals(androidx.compose.ui.graphics.BlendMode.Overlay, composeBlendModeFor(com.mori.core.model.FilterBlendMode.OVERLAY))
+        assertEquals(androidx.compose.ui.graphics.BlendMode.Lighten, composeBlendModeFor(com.mori.core.model.FilterBlendMode.LIGHTEN))
+        assertEquals(androidx.compose.ui.graphics.BlendMode.Darken, composeBlendModeFor(com.mori.core.model.FilterBlendMode.DARKEN))
+        assertEquals(androidx.compose.ui.graphics.BlendMode.SrcOver, composeBlendModeFor(com.mori.core.model.FilterBlendMode.DEFAULT))
+
+        for (tone in com.mori.core.model.FilterColorTone.entries) {
+            val color = toneColorFor(tone)
+            assertEquals(tone.argb.toULong(), color.value shr 32 or (color.value shl 32 shr 32))
+        }
+    }
 }

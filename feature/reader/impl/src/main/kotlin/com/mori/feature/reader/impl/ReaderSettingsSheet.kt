@@ -43,7 +43,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mori.core.common.formatPercent
+import androidx.compose.animation.AnimatedVisibility
+import com.mori.core.designsystem.MoriBlendChoiceGroup
 import com.mori.core.designsystem.MoriChoiceGroup
+import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.MoriToneChoiceGroup
 import com.mori.core.designsystem.MoriChoiceOption
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriHaptic
@@ -136,6 +140,9 @@ internal fun ReaderSettingsSheetContent(
 ) {
     var previewBrightness by remember(displayFilter.brightness) {
         mutableStateOf(displayFilter.brightness)
+    }
+    var previewContrast by remember(displayFilter.contrast) {
+        mutableStateOf(displayFilter.contrast)
     }
     var previewNightTint by remember(displayFilter.nightTint) {
         mutableStateOf(displayFilter.nightTint)
@@ -326,34 +333,74 @@ internal fun ReaderSettingsSheetContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        MoriSliderRow(
-            label = stringResource(R.string.reader_filter_brightness),
-            value = previewBrightness,
-            valueRange = -1f..1f,
-            valueText = formatPercent(previewBrightness),
-            onValueChange = { previewBrightness = it },
-            onValueChangeFinished = { onAction(ReaderAction.SetFilterBrightness(previewBrightness)) },
-        )
-        MoriSliderRow(
-            label = stringResource(R.string.reader_filter_night),
-            value = previewNightTint,
-            valueRange = 0f..1f,
-            valueText = formatPercent(previewNightTint),
-            onValueChange = { previewNightTint = it },
-            onValueChangeFinished = { onAction(ReaderAction.SetFilterNightTint(previewNightTint)) },
-        )
         MoriSettingSwitch(
-            title = stringResource(R.string.reader_filter_grayscale_title),
-            subtitle = stringResource(R.string.reader_filter_grayscale_subtitle),
-            checked = displayFilter.grayscale,
-            onCheckedChange = { onAction(ReaderAction.ToggleFilterGrayscale) },
+            title = stringResource(R.string.reader_filter_master_title),
+            subtitle = stringResource(R.string.reader_filter_master_subtitle),
+            checked = displayFilter.enabled,
+            onCheckedChange = { onAction(ReaderAction.ToggleFilterEnabled) },
         )
-        MoriSettingSwitch(
-            title = stringResource(R.string.reader_filter_invert_title),
-            subtitle = stringResource(R.string.reader_filter_invert_subtitle),
-            checked = displayFilter.invert,
-            onCheckedChange = { onAction(ReaderAction.ToggleFilterInvert) },
-        )
+        AnimatedVisibility(
+            visible = displayFilter.enabled,
+            enter = MoriMotion.accordionEnter(),
+            exit = MoriMotion.accordionExit(),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = stringResource(R.string.reader_filter_tone_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                MoriToneChoiceGroup(
+                    selectedTone = displayFilter.colorTone,
+                    onSelectTone = { onAction(ReaderAction.SetFilterColorTone(it)) },
+                )
+                Text(
+                    text = stringResource(R.string.reader_filter_blend_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                MoriBlendChoiceGroup(
+                    selectedMode = displayFilter.blendMode,
+                    onSelectMode = { onAction(ReaderAction.SetFilterBlendMode(it)) },
+                )
+                MoriSliderRow(
+                    label = stringResource(R.string.reader_filter_brightness),
+                    value = previewBrightness,
+                    valueRange = -1f..1f,
+                    valueText = formatPercent(previewBrightness),
+                    onValueChange = { previewBrightness = it },
+                    onValueChangeFinished = { onAction(ReaderAction.SetFilterBrightness(previewBrightness)) },
+                )
+                MoriSliderRow(
+                    label = stringResource(R.string.reader_filter_contrast),
+                    value = previewContrast,
+                    valueRange = -1f..1f,
+                    valueText = formatPercent(previewContrast),
+                    onValueChange = { previewContrast = it },
+                    onValueChangeFinished = { onAction(ReaderAction.SetFilterContrast(previewContrast)) },
+                )
+                MoriSliderRow(
+                    label = stringResource(R.string.reader_filter_night),
+                    value = previewNightTint,
+                    valueRange = 0f..1f,
+                    valueText = formatPercent(previewNightTint),
+                    onValueChange = { previewNightTint = it },
+                    onValueChangeFinished = { onAction(ReaderAction.SetFilterNightTint(previewNightTint)) },
+                )
+                MoriSettingSwitch(
+                    title = stringResource(R.string.reader_filter_grayscale_title),
+                    subtitle = stringResource(R.string.reader_filter_grayscale_subtitle),
+                    checked = displayFilter.grayscale,
+                    onCheckedChange = { onAction(ReaderAction.ToggleFilterGrayscale) },
+                )
+                MoriSettingSwitch(
+                    title = stringResource(R.string.reader_filter_invert_title),
+                    subtitle = stringResource(R.string.reader_filter_invert_subtitle),
+                    checked = displayFilter.invert,
+                    onCheckedChange = { onAction(ReaderAction.ToggleFilterInvert) },
+                )
+            }
+        }
         if (hasFilterOverride) {
             MoriTonalButton(onClick = { onAction(ReaderAction.ResetDisplayFilter) }) {
                 Text(stringResource(R.string.reader_filter_reset))

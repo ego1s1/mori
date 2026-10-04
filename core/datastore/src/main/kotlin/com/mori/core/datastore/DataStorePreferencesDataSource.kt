@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mori.core.model.ColorSchemeChoice
+import com.mori.core.model.FilterBlendMode
+import com.mori.core.model.FilterColorTone
 import com.mori.core.model.LibraryDisplayMode
 import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
@@ -174,10 +176,18 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             runCatching { TapInvertMode.valueOf(it) }.getOrDefault(TapInvertMode.NONE)
         } ?: TapInvertMode.NONE,
         displayFilter = com.mori.core.model.DisplayFilter(
+            enabled = this[FILTER_ENABLED] ?: true,
             brightness = this[FILTER_BRIGHTNESS] ?: 0f,
+            contrast = this[FILTER_CONTRAST] ?: 0f,
             grayscale = this[FILTER_GRAYSCALE] ?: false,
             invert = this[FILTER_INVERT] ?: false,
             nightTint = this[FILTER_NIGHT_TINT] ?: 0f,
+            colorTone = this[FILTER_COLOR_TONE]?.let {
+                runCatching { FilterColorTone.valueOf(it) }.getOrDefault(FilterColorTone.WARM_AMBER)
+            } ?: FilterColorTone.WARM_AMBER,
+            blendMode = this[FILTER_BLEND_MODE]?.let {
+                runCatching { FilterBlendMode.valueOf(it) }.getOrDefault(FilterBlendMode.DEFAULT)
+            } ?: FilterBlendMode.DEFAULT,
         ),
         incognito = this[INCOGNITO] ?: false,
     )
@@ -197,10 +207,14 @@ internal class DataStorePreferencesDataSource @Inject constructor(
             this[DUAL_PAGE_INVERT] = updated.dualPageInvert
             this[READER_NAV_MODE] = updated.navMode.name
             this[READER_INVERT_TAPS] = updated.invertTaps.name
+            this[FILTER_ENABLED] = updated.displayFilter.enabled
             this[FILTER_BRIGHTNESS] = updated.displayFilter.brightness
+            this[FILTER_CONTRAST] = updated.displayFilter.contrast
             this[FILTER_GRAYSCALE] = updated.displayFilter.grayscale
             this[FILTER_INVERT] = updated.displayFilter.invert
             this[FILTER_NIGHT_TINT] = updated.displayFilter.nightTint
+            this[FILTER_COLOR_TONE] = updated.displayFilter.colorTone.name
+            this[FILTER_BLEND_MODE] = updated.displayFilter.blendMode.name
             this[INCOGNITO] = updated.incognito
         }
 
@@ -250,10 +264,14 @@ internal class DataStorePreferencesDataSource @Inject constructor(
         val DUAL_PAGE_INVERT = booleanPreferencesKey("dual_page_invert")
         val READER_NAV_MODE = stringPreferencesKey("reader_nav_mode")
         val READER_INVERT_TAPS = stringPreferencesKey("reader_invert_taps")
+        val FILTER_ENABLED = booleanPreferencesKey("display_filter_enabled")
         val FILTER_BRIGHTNESS = floatPreferencesKey("display_filter_brightness")
+        val FILTER_CONTRAST = floatPreferencesKey("display_filter_contrast")
         val FILTER_GRAYSCALE = booleanPreferencesKey("display_filter_grayscale")
         val FILTER_INVERT = booleanPreferencesKey("display_filter_invert")
         val FILTER_NIGHT_TINT = floatPreferencesKey("display_filter_night_tint")
+        val FILTER_COLOR_TONE = stringPreferencesKey("display_filter_color_tone")
+        val FILTER_BLEND_MODE = stringPreferencesKey("display_filter_blend_mode")
         val INCOGNITO = booleanPreferencesKey("incognito")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_SCHEME = stringPreferencesKey("color_scheme")

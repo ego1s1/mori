@@ -3,6 +3,8 @@ package com.mori.feature.reader.impl
 import com.mori.core.model.PageFit
 import com.mori.core.model.ReaderNavMode
 import com.mori.core.model.ReadingDirection
+import com.mori.core.model.FilterBlendMode
+import com.mori.core.model.FilterColorTone
 import com.mori.core.model.TapInvertMode
 
 /** User intentions in the reader. State changes flow through [ReaderViewModel.onAction]. */
@@ -62,9 +64,17 @@ sealed interface ReaderAction {
     data object ToggleDualInvert : ReaderAction
 
     /** Display-filter edits apply to this book as a per-comic override. */
+    data object ToggleFilterEnabled : ReaderAction
+
     data class SetFilterBrightness(val brightness: Float) : ReaderAction
 
+    data class SetFilterContrast(val contrast: Float) : ReaderAction
+
     data class SetFilterNightTint(val nightTint: Float) : ReaderAction
+
+    data class SetFilterColorTone(val colorTone: FilterColorTone) : ReaderAction
+
+    data class SetFilterBlendMode(val blendMode: FilterBlendMode) : ReaderAction
 
     data object ToggleFilterGrayscale : ReaderAction
 

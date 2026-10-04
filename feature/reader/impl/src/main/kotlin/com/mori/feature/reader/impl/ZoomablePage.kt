@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -401,55 +402,56 @@ private fun PageArt(
             contentAlignment = Alignment.Center,
             modifier = modifier.fillMaxSize(),
         ) {
-            Image(
-                painter = painter,
-                contentDescription = stringResource(R.string.reader_page_art, pageNumber),
-                colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer {
-                        // Decoded art eases in on the effects curve instead of
-                        // popping: same arrival language as every overlay.
-                        alpha = artAlpha
-                    },
-            )
-            // Deep-zoom sharpness: past 2x a higher-resolution decode fades
-            // in over the base art (same key family, Coil-cached). The base
-            // stays underneath until the hi-res lands, so there is no flash.
-            if (deepZoom) {
-                HiResOverlay(
-                    comicId = comicId,
-                    pageIndex = pageIndex,
-                    cropMargins = cropMargins,
-                    half = half,
-                    displayFilter = displayFilter,
+                    .then(
+                        if (displayFilter.enabled && !displayFilter.isNeutral) {
+                            val dim = dimAlphaFor(displayFilter.brightness)
+                            val lift = liftAlphaFor(displayFilter.brightness)
+                            val night = nightAlphaFor(displayFilter.nightTint)
+                            val toneColor = toneColorFor(displayFilter.colorTone)
+                            val blendMode = composeBlendModeFor(displayFilter.blendMode)
+                            Modifier.drawWithContent {
+                                drawContent()
+                                if (dim > 0f) {
+                                    drawRect(Color.Black.copy(alpha = dim))
+                                }
+                                if (lift > 0f) {
+                                    drawRect(Color.White.copy(alpha = lift))
+                                }
+                                if (night > 0f) {
+                                    drawRect(
+                                        color = toneColor.copy(alpha = night),
+                                        blendMode = blendMode,
+                                    )
+                                }
+                            }
+                        } else Modifier
+                    ),
+            ) {
+                Image(
+                    painter = painter,
+                    contentDescription = stringResource(R.string.reader_page_art, pageNumber),
+                    colorFilter = colorMatrixFor(displayFilter)?.let { ColorFilter.colorMatrix(it) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // Decoded art eases in on the effects curve instead of
+                            // popping: same arrival language as every overlay.
+                            alpha = artAlpha
+                        },
                 )
-            }
-            // Filter overlays ride above the art (inside the zoom transform):
-            // dim, lift, then night warmth. Skipped entirely when neutral.
-            if (!displayFilter.isNeutral) {
-                val dim = dimAlphaFor(displayFilter.brightness)
-                if (dim > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = dim)),
-                    )
-                }
-                val lift = liftAlphaFor(displayFilter.brightness)
-                if (lift > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.White.copy(alpha = lift)),
-                    )
-                }
-                val night = nightAlphaFor(displayFilter.nightTint)
-                if (night > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(NightTintColor.copy(alpha = night)),
+                // Deep-zoom sharpness: past 2x a higher-resolution decode fades
+                // in over the base art (same key family, Coil-cached). The base
+                // stays underneath until the hi-res lands, so there is no flash.
+                if (deepZoom) {
+                    HiResOverlay(
+                        comicId = comicId,
+                        pageIndex = pageIndex,
+                        cropMargins = cropMargins,
+                        half = half,
+                        displayFilter = displayFilter,
                     )
                 }
             }
@@ -639,5 +641,4 @@ private fun HiResOverlay(
     }
 }
 
-/** Warm overlay hue for the night filter (alpha carries the strength). */
-private val NightTintColor = Color(0xFFFFAB40)
+

@@ -1,5 +1,11 @@
 package com.mori.core.designsystem
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
@@ -83,6 +89,26 @@ object MoriMotion {
         stiffness = Spring.StiffnessMedium,
         dampingRatio = Spring.DampingRatioNoBouncy,
     )
+
+    /** Accordion expand: spring physics with gentle bounce for revealing sub-controls. */
+    fun <T> accordionEnterSpec(): FiniteAnimationSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMediumLow,
+    )
+
+    /** Accordion collapse: snappy physics without bounce so items collapse promptly. */
+    fun <T> accordionExitSpec(): FiniteAnimationSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium,
+    )
+
+    /** Accordion expand transition with expressive bounce and fade. */
+    fun accordionEnter(): EnterTransition =
+        expandVertically(accordionEnterSpec()) + fadeIn(defaultEffectsSpec())
+
+    /** Accordion collapse transition with clean physics and fade. */
+    fun accordionExit(): ExitTransition =
+        shrinkVertically(accordionExitSpec()) + fadeOut(defaultEffectsSpec())
 
     /** Playful expressive spring for hero moments (FABs, covers, toggles). */
     fun <T> heroSpring(): FiniteAnimationSpec<T> = spring(
