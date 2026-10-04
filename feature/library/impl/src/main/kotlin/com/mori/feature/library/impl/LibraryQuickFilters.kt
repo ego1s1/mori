@@ -3,7 +3,6 @@ package com.mori.feature.library.impl
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -58,7 +57,6 @@ internal fun LibraryQuickFilters(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .horizontalScroll(scrollState)
-            .padding(horizontal = 16.dp)
             .testTag(LibraryTestTags.QuickFilterCapsule),
     ) {
         FILTER_OPTIONS.forEach { option ->

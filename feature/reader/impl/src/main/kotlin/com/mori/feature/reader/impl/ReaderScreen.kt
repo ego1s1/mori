@@ -2,12 +2,14 @@ package com.mori.feature.reader.impl
 
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
@@ -904,7 +906,7 @@ private fun ReaderBottomChrome(
             }
         }
 
-        // Floating Action Dock
+        // Floating Action Dock - Single Elevated Segmented Dock
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
@@ -914,15 +916,17 @@ private fun ReaderBottomChrome(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
             ),
-            modifier = Modifier.widthIn(max = 480.dp),
+            modifier = Modifier
+                .widthIn(max = 480.dp)
+                .fillMaxWidth(),
         ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .padding(horizontal = 8.dp),
+                    .height(54.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 val directionLabel = stringResource(R.string.reader_reading_direction)
                 val directionState = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
@@ -930,6 +934,8 @@ private fun ReaderBottomChrome(
                 } else {
                     stringResource(R.string.reader_direction_ltr)
                 }
+                val segmentShape = RoundedCornerShape(14.dp)
+
                 FilledTonalIconButton(
                     onClick = {
                         haptics(MoriHaptic.Select)
@@ -939,13 +945,13 @@ private fun ReaderBottomChrome(
                         }
                         onAction(ReaderAction.SetDirection(next))
                     },
-                    shape = CircleShape,
+                    shape = segmentShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag(ReaderTestTags.DirectionButton)
                         .semantics {
                             onClick(label = directionLabel, action = null)
@@ -957,6 +963,8 @@ private fun ReaderBottomChrome(
                         contentDescription = directionLabel,
                     )
                 }
+
+                DockDivider()
 
                 val fitLabel = stringResource(R.string.reader_page_fit)
                 val fitState = when (pageFit) {
@@ -974,13 +982,13 @@ private fun ReaderBottomChrome(
                         }
                         onAction(ReaderAction.SetPageFit(next))
                     },
-                    shape = CircleShape,
+                    shape = segmentShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag(ReaderTestTags.FitButton)
                         .semantics {
                             onClick(label = fitLabel, action = null)
@@ -993,32 +1001,42 @@ private fun ReaderBottomChrome(
                     )
                 }
 
+                DockDivider()
+
                 val cropLabel = stringResource(R.string.reader_crop_margins)
                 val cropState = if (cropMargins) {
                     stringResource(R.string.reader_crop_subtitle)
                 } else {
                     stringResource(R.string.reader_crop_title)
                 }
+                val cropContainerColor by animateColorAsState(
+                    targetValue = if (cropMargins) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        Color.Transparent
+                    },
+                    label = "cropContainerColor",
+                )
+                val cropContentColor by animateColorAsState(
+                    targetValue = if (cropMargins) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    label = "cropContentColor",
+                )
                 FilledTonalIconButton(
                     onClick = {
                         haptics(MoriHaptic.Select)
                         onAction(ReaderAction.ToggleCrop)
                     },
-                    shape = CircleShape,
+                    shape = segmentShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = if (cropMargins) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            Color.Transparent
-                        },
-                        contentColor = if (cropMargins) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        containerColor = cropContainerColor,
+                        contentColor = cropContentColor,
                     ),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag(ReaderTestTags.CropButton)
                         .semantics {
                             onClick(label = cropLabel, action = null)
@@ -1031,18 +1049,20 @@ private fun ReaderBottomChrome(
                     )
                 }
 
+                DockDivider()
+
                 FilledTonalIconButton(
                     onClick = {
                         haptics(MoriHaptic.Select)
                         onAction(ReaderAction.OpenOverview)
                     },
-                    shape = CircleShape,
+                    shape = segmentShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag(ReaderTestTags.OverviewButton),
                 ) {
                     Icon(
@@ -1051,18 +1071,20 @@ private fun ReaderBottomChrome(
                     )
                 }
 
+                DockDivider()
+
                 FilledTonalIconButton(
                     onClick = {
                         haptics(MoriHaptic.Select)
                         onAction(ReaderAction.OpenSettings)
                     },
-                    shape = CircleShape,
+                    shape = segmentShape,
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag(ReaderTestTags.SettingsButton),
                 ) {
                     Icon(
@@ -1073,6 +1095,16 @@ private fun ReaderBottomChrome(
             }
         }
     }
+}
+
+@Composable
+private fun DockDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(20.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+    )
 }
 
 @ThemePreviews

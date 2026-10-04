@@ -64,6 +64,8 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriSettingSwitch
+import com.mori.core.designsystem.ScreenTitleLineHeight
+import com.mori.core.designsystem.ScreenTitleSize
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
@@ -142,7 +144,11 @@ internal fun DetailScreen(
                     title = {
                         Text(
                             text = readyComic.title,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = titleFont,
+                                fontSize = ScreenTitleSize,
+                                lineHeight = ScreenTitleLineHeight,
+                            ),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -166,7 +172,11 @@ internal fun DetailScreen(
                     title = {
                         Text(
                             text = stringResource(R.string.detail_title),
-                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = titleFont,
+                                fontSize = ScreenTitleSize,
+                                lineHeight = ScreenTitleLineHeight,
+                            ),
                         )
                     },
                     navigationIcon = {
@@ -366,10 +376,7 @@ private fun DetailContent(
             ) {
                 Text(
                     text = comic.title,
-                    style = MoriEmphasized.headlineSmall.copy(
-                        fontFamily = LocalAppFonts.current.displaySoft,
-                        fontWeight = FontWeight.Black,
-                    ),
+                    style = MoriEmphasized.headlineSmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -537,10 +544,8 @@ private fun ShelvesDialog(
         title = {
             Text(
                 text = stringResource(R.string.detail_shelves_title),
-                style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         },
         text = {
@@ -553,6 +558,7 @@ private fun ShelvesDialog(
                         text = stringResource(R.string.detail_shelves_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
                 shelves.collections.forEach { collection ->

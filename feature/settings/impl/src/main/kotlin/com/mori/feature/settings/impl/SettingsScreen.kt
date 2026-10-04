@@ -96,6 +96,10 @@ import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
+import com.mori.core.designsystem.screenEnter
+import com.mori.core.designsystem.screenExit
+import com.mori.core.designsystem.screenPopEnter
+import com.mori.core.designsystem.screenPopExit
 import com.mori.core.designsystem.MoriSettingRow
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
@@ -254,44 +258,10 @@ internal fun SettingsContent(
     NavHost(
         navController = settingsNav,
         startDestination = SettingsHub,
-        enterTransition = {
-            if (!expressiveMotion) {
-                fadeIn(animationSpec = MoriMotion.calmFade())
-            } else {
-                slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) {
-                    if (rtl) -it else it
-                }
-            }
-        },
-        exitTransition = {
-            if (!expressiveMotion) {
-                fadeOut(animationSpec = MoriMotion.calmFade())
-            } else {
-                fadeOut(animationSpec = MoriMotion.tabExitSpec()) +
-                    slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) {
-                        if (rtl) it / 4 else -it / 4
-                    }
-            }
-        },
-        popEnterTransition = {
-            if (!expressiveMotion) {
-                fadeIn(animationSpec = MoriMotion.calmFade())
-            } else {
-                fadeIn(animationSpec = MoriMotion.tabEnterSpec()) +
-                    slideInHorizontally(animationSpec = MoriMotion.tabEnterSpec()) {
-                        if (rtl) it / 4 else -it / 4
-                    }
-            }
-        },
-        popExitTransition = {
-            if (!expressiveMotion) {
-                fadeOut(animationSpec = MoriMotion.calmFade())
-            } else {
-                slideOutHorizontally(animationSpec = MoriMotion.tabExitSpec()) {
-                    if (rtl) -it else it
-                }
-            }
-        },
+        enterTransition = { screenEnter(expressiveMotion) },
+        exitTransition = { screenExit(expressiveMotion) },
+        popEnterTransition = { screenPopEnter(expressiveMotion) },
+        popExitTransition = { screenPopExit(expressiveMotion) },
         modifier = modifier,
     ) {
         composable<SettingsHub> {
@@ -1142,106 +1112,99 @@ private fun AboutSection(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-            // Cardfolio hero in a tonal container: app-mark plus a gradient
-            // Flex headline (primary to tertiary), version, and credit.
-            AnimatedVisibility(
-                visible = revealed > 0,
-                enter = MoriMotion.enter(MoriEnterKind.RISE),
-            ) {
+        // Unified Brand & Creator Hero element
+        AnimatedVisibility(
+            visible = revealed > 0,
+            enter = MoriMotion.enter(MoriEnterKind.RISE),
+        ) {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                ) {
-                    Icon(
-                        imageVector = MoriIcons.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(36.dp),
-                    )
-                }
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_about_app),
-                        style = MoriEmphasized.headlineSmall.copy(
-                            fontFamily = LocalAppFonts.current.displaySoft,
-                            fontWeight = FontWeight.Black,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                ),
-                            ),
-                        ),
-                        color = Color.Unspecified,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_about_version, appVersion),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontFamily = LocalAppFonts.current.topBarTitle,
-                            fontWeight = FontWeight.Black,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            }
-            }
-            RevealRow(visible = revealed > 1) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(20.dp),
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.dev_avatar),
-                        contentDescription = stringResource(R.string.settings_about_developer),
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape),
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 16.dp),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(
-                            text = stringResource(R.string.settings_about_developer),
-                            style = MoriEmphasized.titleLarge.copy(
-                                fontFamily = LocalAppFonts.current.displaySoft,
-                                fontWeight = FontWeight.Black,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.clickable(
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                        ) {
+                            Icon(
+                                imageVector = MoriIcons.MenuBook,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.settings_about_app),
+                                    style = MoriEmphasized.headlineMedium.copy(
+                                        fontFamily = LocalAppFonts.current.displaySoft,
+                                        fontWeight = FontWeight.Black,
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = MoriIcons.Sparkle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.settings_about_version, appVersion),
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontFamily = LocalAppFonts.current.topBarTitle,
+                                                fontWeight = FontWeight.Bold,
+                                            ),
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "A tranquil, high-craft comic reader",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Creator Credit: Spacious, minimal attribution with "by", avatar, developer name and handle
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
                                 onClickLabel = stringResource(R.string.settings_about_handle),
                                 onClick = {
                                     haptics(MoriHaptic.Select)
@@ -1249,32 +1212,59 @@ private fun AboutSection(
                                 },
                                 role = Role.Button,
                             ),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_github_mark),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(18.dp),
+                            Text(
+                                text = "by",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Image(
+                                painter = painterResource(R.drawable.dev_avatar),
+                                contentDescription = stringResource(R.string.settings_about_developer),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_about_developer),
+                                    style = MoriEmphasized.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
                                 )
                                 Text(
                                     text = stringResource(R.string.settings_about_handle),
-                                    style = MaterialTheme.typography.labelLarge.copy(
+                                    style = MaterialTheme.typography.bodySmall.copy(
                                         fontFamily = LocalAppFonts.current.topBarTitle,
                                     ),
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
                                 )
                             }
+                            Icon(
+                                painter = painterResource(R.drawable.ic_github_mark),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
                         }
                     }
                 }
             }
-            }
-            RevealRow(visible = revealed > 2) {
+        }
+
+        RevealRow(visible = revealed > 1) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_github),
                 subtitle = stringResource(R.string.settings_about_github_subtitle),
@@ -1292,8 +1282,9 @@ private fun AboutSection(
                     )
                 },
             )
-            }
-            RevealRow(visible = revealed > 3) {
+        }
+
+        RevealRow(visible = revealed > 2) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_issue),
                 subtitle = stringResource(R.string.settings_about_issue_subtitle),
@@ -1311,8 +1302,9 @@ private fun AboutSection(
                     )
                 },
             )
-            }
-            RevealRow(visible = revealed > 4) {
+        }
+
+        RevealRow(visible = revealed > 3) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_changelog),
                 subtitle = stringResource(R.string.settings_about_changelog_subtitle),
@@ -1330,8 +1322,9 @@ private fun AboutSection(
                     )
                 },
             )
-            }
-            RevealRow(visible = revealed > 5) {
+        }
+
+        RevealRow(visible = revealed > 4) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_privacy),
                 subtitle = stringResource(R.string.settings_about_privacy_subtitle),
@@ -1349,8 +1342,9 @@ private fun AboutSection(
                     )
                 },
             )
-            }
-            RevealRow(visible = revealed > 6) {
+        }
+
+        RevealRow(visible = revealed > 5) {
             MoriSettingRow(
                 title = stringResource(R.string.settings_about_licenses),
                 subtitle = stringResource(R.string.settings_about_licenses_subtitle),
@@ -1369,7 +1363,7 @@ private fun AboutSection(
                     )
                 },
             )
-            }
+        }
     }
     if (privacyOpen) {
         MoriAlertDialog(
@@ -1434,7 +1428,7 @@ private fun RevealRow(
 }
 
 /** Hero, dev card, and five link rows revealed one beat apart. */
-private const val AboutRevealSteps = 7
+private const val AboutRevealSteps = 6
 
 @Composable
 private fun OptionLabel(

@@ -34,6 +34,9 @@ scripts/build-apk.sh
 # Session transcripts: local agent logs, never committed.
 /session-*.md
 
+# Working plan: scratch file for in-flight UI/design planning, never committed.
+/plan.md
+
 # Local agent skill installs: reproducible via the skills CLI, machine-specific.
 /.agents/
 /.claude/

@@ -309,12 +309,12 @@ class LibraryScreenTest {
         }
 
         composeTestRule.onNodeWithText("Shelf").assertIsDisplayed()
-        // Both the shelf section and the status filter offer "All".
-        composeTestRule.onAllNodesWithText("All").assertCountEquals(2)
+        // Shelf "All" is the only "All" now that reading-state filters
+        // live exclusively as quick-filter chips in the grid.
+        composeTestRule.onAllNodesWithText("All").assertCountEquals(1)
         composeTestRule.onNodeWithText("Picks (1)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Filter").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Filter").assertDoesNotExist()
         composeTestRule.onNodeWithText("Sort by").assertIsDisplayed()
-        composeTestRule.onNodeWithText("In progress").assertIsDisplayed()
         composeTestRule.onNodeWithText("Recently added").assertIsDisplayed()
         composeTestRule.onNodeWithText("Display").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Grid columns").performScrollTo().assertIsDisplayed()
@@ -322,20 +322,20 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun filterChipDispatchesSelection() {
-        val actions = mutableListOf<LibraryAction>()
+    fun sheetHasNoReadingStateFilters() {
         composeTestRule.setContent {
             MoriTheme {
                 LibrarySortFilterContent(
                     query = LibraryQuery(),
-                    onAction = actions::add,
+                    onAction = {},
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Finished").performClick()
-
-        assert(actions.any { it is LibraryAction.FilterSelected })
+        // Reading-state filters are quick-filter chips only, not sheet rows.
+        composeTestRule.onNodeWithText("Finished").assertDoesNotExist()
+        composeTestRule.onNodeWithText("In progress").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Unread").assertDoesNotExist()
     }
 
     @Test

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
 /**
@@ -37,6 +38,7 @@ fun MoriSettingSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    titleStyle: TextStyle = MoriEmphasized.bodyLarge,
 ) {
     val haptics = rememberMoriHaptics()
     Row(
@@ -75,7 +77,7 @@ fun MoriSettingSwitch(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = titleStyle,
             )
             if (subtitle.isNotBlank()) {
                 Text(

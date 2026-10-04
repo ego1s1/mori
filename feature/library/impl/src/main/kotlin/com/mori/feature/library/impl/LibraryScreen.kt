@@ -297,6 +297,12 @@ private fun LibraryContent(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
+    // Filter switches rebuild the list (and the Now Reading hero appears /
+    // disappears). Reset scroll so the hero never lands half-scrolled under
+    // the floating search bar — the Unread -> All glitch.
+    LaunchedEffect(query.filter, query.text) {
+        gridState.scrollToItem(0)
+    }
     Column(modifier = modifier) {
         AnimatedVisibility(
             visible = indexProgress != null,
@@ -360,8 +366,9 @@ private fun LibraryContent(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            // Expressive floating capsule: search bar and quick filter chips
-            Column(
+            // Floating capsule: search bar only. Quick-filter chips live as
+            // the first grid row so they scroll out with the content.
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -423,14 +430,6 @@ private fun LibraryContent(
                             .testTag(LibraryTestTags.SearchField),
                     )
                 }
-
-
-                // Quick filter chips capsule
-                LibraryQuickFilters(
-                    selectedFilter = query.filter,
-                    onFilterSelect = { onAction(LibraryAction.FilterSelected(it)) },
-                    modifier = Modifier.padding(top = 6.dp),
-                )
             }
         }
     }
@@ -530,13 +529,24 @@ private fun LibraryBody(
     )
     Box(modifier = modifier.fillMaxWidth()) {
         if (comics.isEmpty()) {
-            LibraryEmptyState(
-                searching = query.text.isNotBlank(),
-                linked = linked,
-                onRefresh = { onAction(LibraryAction.Refresh) },
-                onChooseFolder = onChooseFolder,
-                modifier = Modifier.padding(top = SearchSlotTop),
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = SearchSlotTop)
+                    .padding(horizontal = 12.dp),
+            ) {
+                LibraryQuickFilters(
+                    selectedFilter = query.filter,
+                    onFilterSelect = { onAction(LibraryAction.FilterSelected(it)) },
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                LibraryEmptyState(
+                    searching = query.text.isNotBlank(),
+                    linked = linked,
+                    onRefresh = { onAction(LibraryAction.Refresh) },
+                    onChooseFolder = onChooseFolder,
+                )
+            }
         } else {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 // Expanded windows get roomier book cells; Compact/Medium
@@ -564,6 +574,20 @@ private fun LibraryBody(
                         .fillMaxSize()
                         .testTag(LibraryTestTags.Grid),
                 ) {
+                    // Quick filters scroll with the content (search alone floats).
+                    item(
+                        span = { GridItemSpan(maxLineSpan) },
+                        key = "quick_filters",
+                        contentType = "quickFilters",
+                    ) {
+                        LibraryQuickFilters(
+                            selectedFilter = query.filter,
+                            onFilterSelect = { onAction(LibraryAction.FilterSelected(it)) },
+                            // Grid supplies 12dp; +4dp matches the 16dp search inset.
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
+
                     // "Now Reading" Hero Spotlight Card
                     val nowReading = if (query.text.isBlank() && query.filter == LibraryFilter.ALL) {
                         comics.firstOrNull { it.isInProgress && it.error == null }
@@ -851,8 +875,8 @@ private fun previewComic(id: String, title: String, lastPage: Int, pages: Int) =
 
 private val GRID_CELL_MIN = 128.dp
 
-/** Fixed search & quick-filter geometry: 8dp top + 56dp field + 6dp gap + 36dp filters + 6dp bottom. */
-private val SearchPanelHeight = 112.dp
+/** Fixed floating search geometry: 8dp top + 56dp field. Chips scroll in-grid. */
+private val SearchPanelHeight = 64.dp
 
 /** Breathing room between the floating panel and the grid it covers. */
 private val SearchGridGap = 12.dp
