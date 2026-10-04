@@ -119,4 +119,20 @@
     <string name="settings_tap_invert_horizontal">Horizontal</string>
     <string name="settings_tap_invert_vertical">Vertical</string>
     <string name="settings_tap_invert_both">Both</string>
+    <string name="settings_filter_master_title">Enable filters</string>
+    <string name="settings_filter_master_subtitle">Master toggle for all color adjustments</string>
+    <string name="settings_filter_contrast">Contrast</string>
+    <string name="settings_filter_tone_title">Color tone</string>
+    <string name="settings_filter_tone_amber">Warm Amber</string>
+    <string name="settings_filter_tone_sepia">Sepia Paper</string>
+    <string name="settings_filter_tone_slate">Cool Slate</string>
+    <string name="settings_filter_tone_mint">Forest Mint</string>
+    <string name="settings_filter_tone_eink">E-Ink</string>
+    <string name="settings_filter_blend_title">Blend mode</string>
+    <string name="settings_filter_blend_default">Default</string>
+    <string name="settings_filter_blend_multiply">Multiply</string>
+    <string name="settings_filter_blend_screen">Screen</string>
+    <string name="settings_filter_blend_overlay">Overlay</string>
+    <string name="settings_filter_blend_lighten">Lighten</string>
+    <string name="settings_filter_blend_darken">Darken</string>
 </resources>

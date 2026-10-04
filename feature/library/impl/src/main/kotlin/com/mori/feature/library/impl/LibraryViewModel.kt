@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
+import kotlinx.coroutines.FlowPreview
+
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,

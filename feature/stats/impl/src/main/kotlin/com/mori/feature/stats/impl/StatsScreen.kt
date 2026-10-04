@@ -4,15 +4,10 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -66,8 +61,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,7 +80,6 @@ import com.mori.core.designsystem.MoriEmptyState
 import com.mori.core.designsystem.MoriEmphasized
 import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
-import com.mori.core.designsystem.MoriMorphingShape
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriSectionCard
 import com.mori.core.designsystem.MoriSectionHeader
@@ -194,7 +188,10 @@ private fun StatsContent(
                 TotalsGrid(totals = state.totals, buckets = state.buckets)
             }
             item("chart") {
-                MoriSectionCard(title = stringResource(R.string.stats_chart_title)) {
+                MoriSectionCard(
+                    title = stringResource(R.string.stats_chart_title),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ) {
                     RangeSelector(range = state.range, onSelect = { onAction(StatsAction.SelectRange(it)) })
                     ReadingBarChart(
                         buckets = state.buckets,
@@ -226,10 +223,10 @@ private fun StatsContent(
 }
 
 /**
- * Expressive Asymmetric Bento Grid:
- * 1. Spotlight Hero Card for reading time with staggered variable font typography
- * 2. Balanced companion cards for Pages Turned and Books Finished
- * 3. Expressive Sessions & Cadence Card with animated morphing geometry and mini rhythm graph
+ * Expressive Bento Grid adhering strictly to Material 3 Expressive contrast:
+ * 1. Spotlight Hero Card for reading time with primaryContainer & onPrimaryContainer
+ * 2. Balanced companion cards with contrasting secondaryContainer and tertiaryContainer
+ * 3. Centered Sessions & Cadence Card with surfaceContainerHigh & session rhythm spark-graph
  */
 @Composable
 private fun TotalsGrid(
@@ -241,7 +238,7 @@ private fun TotalsGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        // Spotlight Hero Card: Reading Time with Staggered Multi-size Variable Font Typography
+        // Spotlight Hero Card: Reading Time in primaryContainer with Staggered Multi-size Typography
         ReadingTimeHeroCard(
             durationMs = totals.totalDurationMs,
             label = stringResource(R.string.stats_total_time),
@@ -250,14 +247,14 @@ private fun TotalsGrid(
                 .testTag(StatsTestTags.totalFor(stringResource(R.string.stats_total_time))),
         )
 
-        // Bento Row 1: Pages Turned & Books Finished
+        // Bento Row 1: Pages Turned (secondaryContainer) & Books Finished (tertiaryContainer)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ExpressiveStatCard(
                 label = stringResource(R.string.stats_total_pages),
                 value = totals.totalPagesTurned.toString(),
                 icon = MoriIcons.MenuBook,
-                iconTint = MaterialTheme.colorScheme.primary,
-                iconBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(StatsTestTags.totalFor(stringResource(R.string.stats_total_pages))),
@@ -266,15 +263,15 @@ private fun TotalsGrid(
                 label = stringResource(R.string.stats_total_finished),
                 value = totals.booksFinished.toString(),
                 icon = MoriIcons.Trophy,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                iconBg = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(StatsTestTags.totalFor(stringResource(R.string.stats_total_finished))),
             )
         }
 
-        // Bento Row 2: Reading Sessions & Cadence Card with cool morphing shapes & animated mini-graph
+        // Bento Row 2: Reading Sessions & Cadence Card with centered layout & sparkline
         SessionsInsightCard(
             totals = totals,
             buckets = buckets,
@@ -285,7 +282,7 @@ private fun TotalsGrid(
     }
 }
 
-/** Featured Hero Bento card for total reading time with staggered variable font duration */
+/** Featured Hero Bento card for total reading time with primaryContainer & onPrimaryContainer */
 @Composable
 private fun ReadingTimeHeroCard(
     durationMs: Long,
@@ -294,52 +291,24 @@ private fun ReadingTimeHeroCard(
 ) {
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        tonalElevation = 2.dp,
         modifier = modifier,
     ) {
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(vertical = 24.dp, horizontal = 20.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(bottom = 6.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.Sparkle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(13.dp),
-                        )
-                        Text(
-                            text = "IMMERSION",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.8.sp,
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-
             StaggeredDurationHero(
                 durationMs = durationMs,
                 label = label,
+                primaryColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                secondaryColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                labelColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.80f),
+                horizontalAlignment = Alignment.CenterHorizontally,
             )
         }
     }
@@ -347,9 +316,9 @@ private fun ReadingTimeHeroCard(
 
 /**
  * Staggered duration display leveraging Google Sans Flex variable font axes:
- * - Huge displayFlex for primary hours (wide 125, black 900, slant -10)
- * - Compact displayUnit for 'h' and 'm' unit labels (width 95, bold 700, slant -4)
- * - Staggered intermediate displayFlexMedium for minutes (width 115, extra bold 800, slant -8)
+ * - Huge displayFlex for primary hours (wide 125, black 900, upright)
+ * - Compact displayUnit for 'h' and 'm' unit labels (width 95, bold 700, upright)
+ * - Staggered intermediate displayFlexMedium for minutes (width 115, extra bold 800, upright)
  * - Expressive baseline alignment and optical sizing
  */
 @Composable
@@ -357,6 +326,10 @@ private fun StaggeredDurationHero(
     durationMs: Long,
     label: String,
     modifier: Modifier = Modifier,
+    primaryColor: Color = MaterialTheme.colorScheme.primary,
+    secondaryColor: Color = MaterialTheme.colorScheme.secondary,
+    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
 ) {
     val totalSeconds = durationMs.coerceAtLeast(0L) / 1000L
     val hours = totalSeconds / 3600L
@@ -364,7 +337,10 @@ private fun StaggeredDurationHero(
     val seconds = totalSeconds % 60L
     val fonts = LocalAppFonts.current
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        horizontalAlignment = horizontalAlignment,
+        modifier = modifier.fillMaxWidth(),
+    ) {
         AnimatedContent(
             targetState = Triple(hours, minutes, seconds),
             transitionSpec = {
@@ -375,85 +351,77 @@ private fun StaggeredDurationHero(
         ) { (h, m, s) ->
             Row(
                 verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = if (horizontalAlignment == Alignment.CenterHorizontally) Arrangement.Center else Arrangement.Start,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (h > 0) {
-                    // Hours numeral: Large displayFlex
+                    // Hours numeral: Large displayFlex upright
                     Text(
                         text = "$h",
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontFamily = fonts.displayFlex,
                             fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
                             fontSize = if (h >= 100) 44.sp else 52.sp,
                             lineHeight = if (h >= 100) 44.sp else 52.sp,
-                            letterSpacing = (-1).sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = primaryColor,
                     )
-                    // Hours unit: Staggered smaller displayUnit
+                    // Hours unit: Staggered smaller displayUnit upright
                     Text(
                         text = "h",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontFamily = fonts.displayUnit,
                             fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 20.sp,
                             lineHeight = 20.sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                        color = primaryColor.copy(alpha = 0.72f),
                         modifier = Modifier.padding(bottom = 6.dp, start = 2.dp, end = 10.dp),
                     )
-                    // Minutes numeral: Staggered intermediate displayFlexMedium
+                    // Minutes numeral: Staggered intermediate displayFlexMedium upright
                     Text(
                         text = "$m",
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontFamily = fonts.displayFlexMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            fontStyle = FontStyle.Italic,
                             fontSize = if (h >= 100) 34.sp else 38.sp,
                             lineHeight = if (h >= 100) 34.sp else 38.sp,
-                            letterSpacing = (-0.5).sp,
                         ),
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = secondaryColor,
                     )
-                    // Minutes unit: Staggered compact displayUnit
+                    // Minutes unit: Staggered compact displayUnit upright
                     Text(
                         text = "m",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = fonts.displayUnit,
                             fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 17.sp,
                             lineHeight = 17.sp,
                         ),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.65f),
+                        color = secondaryColor.copy(alpha = 0.72f),
                         modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
                     )
                 } else if (m > 0) {
-                    // Minutes only: Large displayFlex
+                    // Minutes only: Large displayFlex upright
                     Text(
                         text = "$m",
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontFamily = fonts.displayFlex,
                             fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 52.sp,
                             lineHeight = 52.sp,
-                            letterSpacing = (-1).sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = primaryColor,
                     )
                     Text(
                         text = "m",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontFamily = fonts.displayUnit,
                             fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 20.sp,
                             lineHeight = 20.sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                        color = primaryColor.copy(alpha = 0.72f),
                         modifier = Modifier.padding(bottom = 6.dp, start = 2.dp, end = 10.dp),
                     )
                     if (s > 0) {
@@ -462,22 +430,20 @@ private fun StaggeredDurationHero(
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontFamily = fonts.displayFlexMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontStyle = FontStyle.Italic,
                                 fontSize = 38.sp,
                                 lineHeight = 38.sp,
                             ),
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = secondaryColor,
                         )
                         Text(
                             text = "s",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontFamily = fonts.displayUnit,
                                 fontWeight = FontWeight.Bold,
-                                fontStyle = FontStyle.Italic,
                                 fontSize = 17.sp,
                                 lineHeight = 17.sp,
                             ),
-                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.65f),
+                            color = secondaryColor.copy(alpha = 0.72f),
                             modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
                         )
                     }
@@ -488,22 +454,20 @@ private fun StaggeredDurationHero(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontFamily = fonts.displayFlex,
                             fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 52.sp,
                             lineHeight = 52.sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = primaryColor,
                     )
                     Text(
                         text = "s",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontFamily = fonts.displayUnit,
                             fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
                             fontSize = 20.sp,
                             lineHeight = 20.sp,
                         ),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                        color = primaryColor.copy(alpha = 0.72f),
                         modifier = Modifier.padding(bottom = 6.dp, start = 2.dp),
                     )
                 }
@@ -513,19 +477,21 @@ private fun StaggeredDurationHero(
         Text(
             text = label,
             style = MoriEmphasized.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
+            textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
+            color = labelColor,
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .then(if (horizontalAlignment == Alignment.CenterHorizontally) Modifier.fillMaxWidth() else Modifier),
         )
     }
 }
 
 /**
  * Expressive Sessions Bento Card:
- * Transforms the single-numeral sessions box into an interactive activity cadence hub:
- * - Animated morphing geometric shape badge (M3E bloom/star)
- * - Hero sessions count with variable flex font
- * - Rhythm metadata pills (average session duration & average pages/session)
- * - Integrated animated session cadence spark-graph across recent days with glowing nodes
+ * Fully centered, clean layout adhering strictly to Material 3 Expressive standards:
+ * - Centered icon pill, hero numeral, and label
+ * - Subtle cadence pill in surfaceContainerHighest
+ * - Centered 7-day Session Rhythm Spark Graph
  */
 @Composable
 private fun SessionsInsightCard(
@@ -533,111 +499,77 @@ private fun SessionsInsightCard(
     buckets: List<DailyReadingStat>,
     modifier: Modifier = Modifier,
 ) {
-    val expressiveMotion = LocalExpressiveMotionEnabled.current
     val avgSessionMs = if (totals.totalSessions > 0) totals.totalDurationMs / totals.totalSessions else 0L
     val avgPages = if (totals.totalSessions > 0) totals.totalPagesTurned / totals.totalSessions else 0
 
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 1.dp,
         modifier = modifier,
     ) {
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(vertical = 20.dp, horizontal = 20.dp),
         ) {
-            // Header: Morphing bloom badge + Cadence title + avg session chip
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = CircleShape,
+                    ),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        MoriMorphingShape(
-                            modifier = Modifier.size(30.dp),
-                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f),
-                            active = expressiveMotion,
-                        )
-                        Icon(
-                            imageVector = MoriIcons.TrendingUp,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.size(15.dp),
-                        )
-                    }
-
-                    Text(
-                        text = stringResource(R.string.stats_sessions_cadence).uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-
-                if (avgSessionMs > 0L) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.stats_avg_session, formatDuration(avgSessionMs)),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Body: Split between Hero Stat (left) and Session Rhythm Mini-Graph (right)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                // Left Column: Total Sessions + Pages/sess
-                Column(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    HeroNumber(
-                        value = totals.totalSessions.toString(),
-                        label = stringResource(R.string.stats_total_sessions),
-                    )
-
-                    if (avgPages > 0) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = stringResource(R.string.stats_avg_pages, avgPages),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        )
-                    }
-                }
-
-                // Right Column: Session Cadence Mini-Graph with animated wave & bars
-                SessionRhythmSparkGraph(
-                    buckets = buckets,
-                    modifier = Modifier
-                        .weight(1.4f)
-                        .height(84.dp),
+                Icon(
+                    imageVector = MoriIcons.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            HeroNumber(
+                value = totals.totalSessions.toString(),
+                label = stringResource(R.string.stats_total_sessions),
+                numberColor = MaterialTheme.colorScheme.onSurface,
+                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            )
+
+            if (avgSessionMs > 0L || avgPages > 0) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                ) {
+                    Text(
+                        text = buildString {
+                            if (avgSessionMs > 0L) append(formatDuration(avgSessionMs) + " / sess")
+                            if (avgSessionMs > 0L && avgPages > 0) append("  •  ")
+                            if (avgPages > 0) append("$avgPages pgs / sess")
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Centered 7-day Session Rhythm Spark Graph
+            SessionRhythmSparkGraph(
+                buckets = buckets,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+            )
         }
     }
 }
@@ -648,7 +580,7 @@ private fun SessionsInsightCard(
  * - Animated vertical rhythm capsules (proportional to daily sessions)
  * - Flowing spline/bezier curve with translucent gradient underfill
  * - Glowing accent nodes for peak sessions
- * - Day initials underneath
+ * - Day initials underneath in chronological order
  */
 @Composable
 private fun SessionRhythmSparkGraph(
@@ -658,7 +590,7 @@ private fun SessionRhythmSparkGraph(
     val expressiveMotion = LocalExpressiveMotionEnabled.current
     // Take chronological recent days (up to 7)
     val recent = remember(buckets) {
-        buckets.take(7).reversed()
+        buckets.takeLast(7)
     }
     val maxSessions = remember(recent) {
         recent.maxOfOrNull { it.sessions }?.coerceAtLeast(1) ?: 1
@@ -678,7 +610,6 @@ private fun SessionRhythmSparkGraph(
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
     val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
@@ -694,31 +625,35 @@ private fun SessionRhythmSparkGraph(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
         ) {
-            val count = recent.size
-            if (count == 0) return@Canvas
-
-            val availableWidth = size.width
-            val availableHeight = size.height - 12.dp.toPx()
-            val stepX = if (count > 1) availableWidth / (count - 1) else availableWidth / 2f
             val progress = animProgress.value
+            if (recent.isEmpty()) return@Canvas
 
-            // 1. Calculate points
-            val points = recent.indices.map { i ->
-                val ratio = (recent[i].sessions.toFloat() / maxSessions.toFloat()).coerceIn(0f, 1f)
-                val x = if (count > 1) i * stepX else availableWidth / 2f
-                val y = size.height - (ratio * availableHeight * progress) - 4.dp.toPx()
-                Offset(x, y)
-            }
+            val count = recent.size
+            if (count > 1) {
+                val dx = size.width / (count - 1)
+                val points = recent.indices.map { i ->
+                    val stat = recent[i]
+                    val ratio = (stat.sessions.toFloat() / maxSessions.toFloat()).coerceIn(0f, 1f)
+                    val y = size.height - (ratio * (size.height - 12.dp.toPx()) * progress) - 6.dp.toPx()
+                    Offset(i * dx, y)
+                }
 
-            // 2. Draw smooth curved gradient area under the spline
-            if (count > 1 && points.isNotEmpty()) {
+                // 1. Draw subtle grid baseline
+                drawLine(
+                    color = outlineVariant.copy(alpha = 0.25f),
+                    start = Offset(0f, size.height - 2.dp.toPx()),
+                    end = Offset(size.width, size.height - 2.dp.toPx()),
+                    strokeWidth = 1.dp.toPx(),
+                )
+
+                // 2. Smooth cubic bezier spline fill
                 val fillPath = Path().apply {
                     moveTo(points[0].x, size.height)
                     lineTo(points[0].x, points[0].y)
@@ -736,8 +671,8 @@ private fun SessionRhythmSparkGraph(
                     path = fillPath,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            tertiaryColor.copy(alpha = 0.28f * progress),
-                            tertiaryColor.copy(alpha = 0.02f),
+                            primaryColor.copy(alpha = 0.22f * progress),
+                            primaryColor.copy(alpha = 0.02f),
                         ),
                         startY = 0f,
                         endY = size.height,
@@ -756,50 +691,50 @@ private fun SessionRhythmSparkGraph(
                 }
                 drawPath(
                     path = strokePath,
-                    color = tertiaryColor.copy(alpha = 0.75f * progress),
+                    color = primaryColor.copy(alpha = 0.70f * progress),
                     style = Stroke(
                         width = 2.dp.toPx(),
                         cap = StrokeCap.Round,
                     ),
                 )
-            }
 
-            // 3. Draw rhythm capsule bars & glowing node dots
-            val barWidth = 6.dp.toPx()
-            recent.indices.forEach { i ->
-                val pt = points[i]
-                val stat = recent[i]
-                if (stat.sessions > 0) {
-                    val barHeight = (size.height - pt.y).coerceAtLeast(6.dp.toPx())
-                    // Draw rounded bar capsule
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(primaryColor, tertiaryColor),
-                            startY = pt.y,
-                            endY = size.height,
-                        ),
-                        topLeft = Offset(pt.x - barWidth / 2f, pt.y),
-                        size = Size(barWidth, barHeight),
-                        cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
-                    )
-                    // Glowing node cap
-                    drawCircle(
-                        color = primaryColor,
-                        radius = 3.5.dp.toPx() * progress,
-                        center = pt,
-                    )
-                    drawCircle(
-                        color = surfaceContainerHigh,
-                        radius = 1.5.dp.toPx() * progress,
-                        center = pt,
-                    )
-                } else {
-                    // Inactive day baseline tick dot
-                    drawCircle(
-                        color = outlineVariant.copy(alpha = 0.4f),
-                        radius = 2.dp.toPx(),
-                        center = Offset(pt.x, size.height - 2.dp.toPx()),
-                    )
+                // 3. Draw rhythm capsule bars & glowing node dots
+                val barWidth = 6.dp.toPx()
+                recent.indices.forEach { i ->
+                    val pt = points[i]
+                    val stat = recent[i]
+                    if (stat.sessions > 0) {
+                        val barHeight = (size.height - pt.y).coerceAtLeast(6.dp.toPx())
+                        // Draw rounded bar capsule
+                        drawRoundRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(primaryColor, primaryColor.copy(alpha = 0.5f)),
+                                startY = pt.y,
+                                endY = size.height,
+                            ),
+                            topLeft = Offset(pt.x - barWidth / 2f, pt.y),
+                            size = Size(barWidth, barHeight),
+                            cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
+                        )
+                        // Glowing node cap
+                        drawCircle(
+                            color = primaryColor,
+                            radius = 3.5.dp.toPx() * progress,
+                            center = pt,
+                        )
+                        drawCircle(
+                            color = surfaceContainerHigh,
+                            radius = 1.5.dp.toPx() * progress,
+                            center = pt,
+                        )
+                    } else {
+                        // Inactive day baseline tick dot
+                        drawCircle(
+                            color = outlineVariant.copy(alpha = 0.4f),
+                            radius = 2.dp.toPx(),
+                            center = Offset(pt.x, size.height - 2.dp.toPx()),
+                        )
+                    }
                 }
             }
         }
@@ -823,50 +758,52 @@ private fun SessionRhythmSparkGraph(
     }
 }
 
-/** Expressive Bento companion stat card with dedicated icon token badge */
+/** Expressive Bento companion stat card with dedicated container colorScheme and centered typography */
 @Composable
 private fun ExpressiveStatCard(
     label: String,
     value: String,
     icon: ImageVector,
-    iconTint: Color,
-    iconBg: Color,
+    containerColor: Color,
+    contentColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(24.dp),
+        color = containerColor,
+        tonalElevation = 2.dp,
         modifier = modifier,
     ) {
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(vertical = 20.dp, horizontal = 16.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(contentColor.copy(alpha = 0.12f), shape = CircleShape),
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(iconBg, shape = RoundedCornerShape(10.dp)),
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp),
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            HeroNumber(value = value, label = label)
+            HeroNumber(
+                value = value,
+                label = label,
+                numberColor = contentColor,
+                labelColor = contentColor.copy(alpha = 0.85f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            )
         }
     }
 }
@@ -944,62 +881,105 @@ private fun StreakCard(
     streak: StreakInfo,
     modifier: Modifier = Modifier,
 ) {
-    MoriSectionCard(
-        title = stringResource(R.string.stats_streak_title),
-        modifier = modifier.testTag(StatsTestTags.Streak),
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(StatsTestTags.Streak),
     ) {
-        HeroNumber(
-            value = stringResource(R.string.stats_streak_current, streak.current),
-            label = stringResource(R.string.stats_streak_longest, streak.longest),
-        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_streak_title),
+                    style = MoriEmphasized.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(10.dp),
+                        ),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.Fire,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            HeroNumber(
+                value = stringResource(R.string.stats_streak_current, streak.current),
+                label = stringResource(R.string.stats_streak_longest, streak.longest),
+                numberColor = MaterialTheme.colorScheme.primary,
+                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
 /** Hero numeral + caption shared by stat and streak cards.
  *
- * Reference-panel language: one oversized black-italic Flex numeral in the
- * wallpaper-driven primary (dynamic tint), tight-tracked, auto-shrunk to
- * never clip long counts. Units ride matched-caps inside the numeral
- * ("3H 20M", "4 DAYS"); bare counts are unaffected by the casing.
+ * Upright bold Google Sans Flex numeral with optical sizing and shrink-to-fit
+ * to never clip long counts.
  */
 @Composable
 private fun HeroNumber(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
+    numberColor: Color = MaterialTheme.colorScheme.primary,
+    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        // Shrink-to-fit: heroes never clip long counts. Steps down 10% per
-        // overflowing layout pass, floored well above body text.
-        var heroSize by remember(value) { mutableStateOf(HeroMaxSize) }
+    var heroSize by remember(value) { mutableStateOf(HeroMaxSize) }
+    Column(
+        horizontalAlignment = horizontalAlignment,
+        modifier = modifier.fillMaxWidth(),
+    ) {
         Text(
-            text = value.uppercase(),
+            text = value,
             style = MaterialTheme.typography.displayLarge.copy(
                 fontFamily = LocalAppFonts.current.displayFlex,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.ExtraBold,
                 fontSize = heroSize,
                 lineHeight = heroSize,
-                letterSpacing = (-0.5).sp,
             ),
+            textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
             onTextLayout = { layout ->
                 if (layout.hasVisualOverflow && heroSize > HeroMinSize) {
                     heroSize *= 0.9f
                 }
             },
-            color = MaterialTheme.colorScheme.primary,
+            color = numberColor,
             maxLines = 1,
+            modifier = if (horizontalAlignment == Alignment.CenterHorizontally) Modifier.fillMaxWidth() else Modifier,
         )
         Text(
             text = label,
             style = MoriEmphasized.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
+            textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
+            color = labelColor,
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .then(if (horizontalAlignment == Alignment.CenterHorizontally) Modifier.fillMaxWidth() else Modifier),
         )
     }
 }
 
-private val HeroMaxSize = 64.sp
+private val HeroMaxSize = 56.sp
 private val HeroMinSize = 28.sp
 
 @Composable

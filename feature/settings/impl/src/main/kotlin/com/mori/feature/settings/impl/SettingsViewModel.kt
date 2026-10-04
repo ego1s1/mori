@@ -134,11 +134,23 @@ internal class SettingsViewModel @Inject constructor(
             SettingsAction.ToggleCropMargins -> updateReader { it.copy(cropMargins = !it.cropMargins) }
             SettingsAction.TogglePageCounter -> updateReader { it.copy(showPageCounter = !it.showPageCounter) }
             SettingsAction.ToggleSwipeToTurn -> updateReader { it.copy(swipeToTurn = !it.swipeToTurn) }
+            SettingsAction.ToggleDisplayFilterEnabled -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(enabled = !it.displayFilter.enabled))
+            }
             is SettingsAction.SetDisplayBrightness -> updateReader {
                 it.copy(displayFilter = it.displayFilter.copy(brightness = action.brightness).coerce())
             }
+            is SettingsAction.SetDisplayContrast -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(contrast = action.contrast).coerce())
+            }
             is SettingsAction.SetDisplayNightTint -> updateReader {
                 it.copy(displayFilter = it.displayFilter.copy(nightTint = action.nightTint).coerce())
+            }
+            is SettingsAction.SetDisplayColorTone -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(colorTone = action.colorTone))
+            }
+            is SettingsAction.SetDisplayBlendMode -> updateReader {
+                it.copy(displayFilter = it.displayFilter.copy(blendMode = action.blendMode))
             }
             SettingsAction.ToggleDisplayGrayscale -> updateReader {
                 it.copy(displayFilter = it.displayFilter.copy(grayscale = !it.displayFilter.grayscale))

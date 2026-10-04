@@ -1,5 +1,6 @@
 package com.mori.core.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -17,10 +18,18 @@ import kotlinx.coroutines.flow.Flow
 @Entity(tableName = "display_filter_overrides")
 data class DisplayFilterOverrideEntity(
     @PrimaryKey val comicId: String,
+    @ColumnInfo(defaultValue = "1")
+    val enabled: Boolean = true,
     val brightness: Float,
+    @ColumnInfo(defaultValue = "0.0")
+    val contrast: Float = 0f,
     val grayscale: Boolean,
     val invert: Boolean,
     val nightTint: Float,
+    @ColumnInfo(defaultValue = "WARM_AMBER")
+    val colorTone: String = "WARM_AMBER",
+    @ColumnInfo(defaultValue = "DEFAULT")
+    val blendMode: String = "DEFAULT",
     val updatedAt: Long,
 )
 

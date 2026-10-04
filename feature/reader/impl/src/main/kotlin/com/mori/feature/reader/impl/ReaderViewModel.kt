@@ -416,8 +416,12 @@ internal class ReaderViewModel @Inject constructor(
             ReaderAction.ToggleCrop -> updatePrefs { it.copy(cropMargins = !it.cropMargins) }
             ReaderAction.ToggleVolumeKeys -> updatePrefs { it.copy(volumeKeys = !it.volumeKeys) }
             ReaderAction.ToggleVolumeKeysInverted -> updatePrefs { it.copy(volumeKeysInverted = !it.volumeKeysInverted) }
+            ReaderAction.ToggleFilterEnabled -> writeFilter { it.copy(enabled = !it.enabled) }
             is ReaderAction.SetFilterBrightness -> writeFilter { it.copy(brightness = action.brightness) }
+            is ReaderAction.SetFilterContrast -> writeFilter { it.copy(contrast = action.contrast) }
             is ReaderAction.SetFilterNightTint -> writeFilter { it.copy(nightTint = action.nightTint) }
+            is ReaderAction.SetFilterColorTone -> writeFilter { it.copy(colorTone = action.colorTone) }
+            is ReaderAction.SetFilterBlendMode -> writeFilter { it.copy(blendMode = action.blendMode) }
             ReaderAction.ToggleFilterGrayscale -> writeFilter { it.copy(grayscale = !it.grayscale) }
             ReaderAction.ToggleFilterInvert -> writeFilter { it.copy(invert = !it.invert) }
             ReaderAction.ResetDisplayFilter -> clearFilter()

@@ -7,6 +7,8 @@ import com.mori.core.model.ReaderPreferences
 import com.mori.core.model.ReadingDirection
 import com.mori.core.model.TapInvertMode
 import com.mori.core.model.UserCollection
+import com.mori.core.model.FilterBlendMode
+import com.mori.core.model.FilterColorTone
 import com.mori.core.model.ColorSchemeChoice
 import com.mori.core.model.MotionStyle
 import com.mori.core.model.StorageUsage
@@ -72,9 +74,17 @@ sealed interface SettingsAction {
 
     data object ToggleSwipeToTurn : SettingsAction
 
+    data object ToggleDisplayFilterEnabled : SettingsAction
+
     data class SetDisplayBrightness(val brightness: Float) : SettingsAction
 
+    data class SetDisplayContrast(val contrast: Float) : SettingsAction
+
     data class SetDisplayNightTint(val nightTint: Float) : SettingsAction
+
+    data class SetDisplayColorTone(val colorTone: FilterColorTone) : SettingsAction
+
+    data class SetDisplayBlendMode(val blendMode: FilterBlendMode) : SettingsAction
 
     data object ToggleDisplayGrayscale : SettingsAction
 

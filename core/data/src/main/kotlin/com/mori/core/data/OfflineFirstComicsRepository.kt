@@ -18,6 +18,8 @@ import com.mori.core.model.Comic
 import com.mori.core.model.ComicError
 import com.mori.core.model.ComicFormat
 import com.mori.core.model.DisplayFilter
+import com.mori.core.model.FilterBlendMode
+import com.mori.core.model.FilterColorTone
 import com.mori.core.model.ImportReport
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.MAX_COLLECTION_NAME
@@ -247,10 +249,14 @@ internal class OfflineFirstComicsRepository @Inject constructor(
                 filterDao.upsert(
                     DisplayFilterOverrideEntity(
                         comicId = id,
+                        enabled = coerced.enabled,
                         brightness = coerced.brightness,
+                        contrast = coerced.contrast,
                         grayscale = coerced.grayscale,
                         invert = coerced.invert,
                         nightTint = coerced.nightTint,
+                        colorTone = coerced.colorTone.name,
+                        blendMode = coerced.blendMode.name,
                         updatedAt = System.currentTimeMillis(),
                     ),
                 )
@@ -398,10 +404,14 @@ internal class OfflineFirstComicsRepository @Inject constructor(
         }
 
     private fun DisplayFilterOverrideEntity.toModel(): DisplayFilter = DisplayFilter(
+        enabled = enabled,
         brightness = brightness,
+        contrast = contrast,
         grayscale = grayscale,
         invert = invert,
         nightTint = nightTint,
+        colorTone = runCatching { FilterColorTone.valueOf(colorTone) }.getOrDefault(FilterColorTone.WARM_AMBER),
+        blendMode = runCatching { FilterBlendMode.valueOf(blendMode) }.getOrDefault(FilterBlendMode.DEFAULT),
     )
 
     /**
