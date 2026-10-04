@@ -8,6 +8,9 @@
     <string name="stats_total_pages">Pages turned</string>
     <string name="stats_total_finished">Books finished</string>
     <string name="stats_total_sessions">Sessions</string>
+    <string name="stats_sessions_cadence">Activity Cadence</string>
+    <string name="stats_avg_session">~%1$s / sess</string>
+    <string name="stats_avg_pages">~%1$d pgs / sess</string>
     <string name="stats_chart_title">Reading time</string>
     <string name="stats_chart_desc">Bar chart of daily reading time</string>
     <string name="stats_streak_title">Streak</string>

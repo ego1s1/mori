@@ -1,32 +1,39 @@
 package com.mori.feature.library.impl
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -36,11 +43,19 @@ import androidx.compose.ui.unit.dp
 import com.mori.core.designsystem.MoriCoverArt
 import com.mori.core.designsystem.MoriHaptic
 import com.mori.core.designsystem.MoriIcons
+import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.MoriScrimPill
 import com.mori.core.designsystem.rememberMoriHaptics
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.model.Comic
+
+/** Cached singleton brush for the book spine crease highlight along cover edges. */
+internal val BookSpineBrush = Brush.horizontalGradient(
+    0.0f to Color.Black.copy(alpha = 0.22f),
+    0.025f to Color.White.copy(alpha = 0.08f),
+    0.06f to Color.Transparent,
+)
 
 /**
  * Compact grid cell: full-bleed 2:3 cover with the
@@ -74,13 +89,27 @@ internal fun ComicCard(
             onDetails(comic)
         }
     }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = MoriMotion.defaultSpatialSpec(),
+        label = "comicCardScale",
+    )
     val bookmarkedLabel = stringResource(R.string.library_card_bookmarked)
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = if (isPressed) 2.dp else 0.dp,
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .testTag(cardTag)
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
                 onClick = click,
                 onClickLabel = stringResource(R.string.library_card_read, comic.title),
                 onLongClick = longClick,
@@ -99,6 +128,13 @@ internal fun ComicCard(
                 MoriCoverArt(
                     coverPath = comic.coverPath,
                     contentDescription = null,
+                )
+
+                // Subtle physical book spine crease/highlight along the left edge
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(BookSpineBrush),
                 )
 
                 if (comic.error != null) {
@@ -148,14 +184,14 @@ internal fun ComicCard(
             }
 
             Column(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             ) {
                 Text(
                     text = comic.title,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
-                    minLines = 1,
+                    minLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (comic.isInProgress || comic.isFinished) {
@@ -171,6 +207,7 @@ internal fun ComicCard(
     }
 }
 
+/** 2:3 standard comic-book cover aspect ratio. */
 private const val COVER_ASPECT = 2f / 3f
 
 
@@ -225,6 +262,13 @@ internal fun ComfortableComicCard(
                 MoriCoverArt(
                     coverPath = comic.coverPath,
                     contentDescription = null,
+                )
+
+                // Subtle physical book spine crease/highlight along the left edge
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(BookSpineBrush),
                 )
 
                 if (comic.error != null) {
@@ -345,25 +389,33 @@ internal fun CoverOnlyComicCard(
             MoriCoverArt(
                 coverPath = comic.coverPath,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
             )
 
-            // Scrim title gradient at bottom
+            // Subtle physical book spine crease/highlight along the left edge
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(BookSpineBrush),
+            )
+
+            // Bottom title overlay with gradient scrim
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                            0f to Color.Transparent,
+                            0.5f to Color.Black.copy(alpha = 0.5f),
+                            1f to Color.Black.copy(alpha = 0.85f),
                         ),
                     )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(8.dp),
             ) {
                 Column {
                     Text(
                         text = comic.title,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -423,8 +475,7 @@ internal fun CoverOnlyComicCard(
 }
 
 /**
- * List row cell: horizontal row with compact cover thumbnail, title,
- * metadata subtitle, and badges.
+ * List row: horizontal layout with thumbnail, title, metadata, and progress.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -443,12 +494,7 @@ internal fun ComicListRow(
             onDetails(comic)
         }
     }
-    val subtitle = listOfNotNull(
-        comic.series?.takeIf { it.isNotBlank() },
-        comic.number?.takeIf { it.isNotBlank() }?.let { "#$it" },
-    ).joinToString(" ").ifBlank {
-        if (comic.pageCount > 0) "${comic.pageCount} pages" else null
-    }
+    val bookmarkedLabel = stringResource(R.string.library_card_bookmarked)
 
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -476,7 +522,6 @@ internal fun ComicListRow(
                 MoriCoverArt(
                     coverPath = comic.coverPath,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
@@ -485,14 +530,20 @@ internal fun ComicListRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = comic.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (subtitle != null) {
+                val info = listOfNotNull(
+                    comic.series?.takeIf { it.isNotBlank() },
+                    if (comic.pageCount > 0) "${comic.pageCount}p" else null,
+                    if (comic.isInProgress) "${comic.pagesLeft} left" else null,
+                ).joinToString(" • ")
+
+                if (info.isNotBlank()) {
                     Text(
-                        text = subtitle,
+                        text = info,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -510,29 +561,14 @@ internal fun ComicListRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            if (comic.error != null) {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.errorContainer,
-                ) {
-                    Text(
-                        text = stringResource(R.string.library_card_unreadable),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
-            } else if (comic.isInProgress) {
-                MoriScrimPill(
-                    text = stringResource(R.string.library_card_pages_left, comic.pagesLeft),
-                )
-            } else if (comic.bookmarked) {
+            if (comic.bookmarked) {
                 Icon(
                     imageVector = MoriIcons.Bookmark,
-                    contentDescription = stringResource(R.string.library_card_bookmarked),
+                    contentDescription = bookmarkedLabel,
                     tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .size(20.dp),
                 )
             }
         }

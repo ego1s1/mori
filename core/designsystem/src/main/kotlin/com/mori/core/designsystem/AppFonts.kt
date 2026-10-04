@@ -14,37 +14,41 @@ import androidx.compose.ui.unit.sp
  * Named display faces on top of the variable [R.font.google_sans_flex] family.
  *
  * Google Sans Flex exposes weight, width (25–151), grade, optical size,
- * roundness (ROND) and slant axes; the faces below pin them per role.
- * Italics resolve to the true slanted file variation (slnt −10), never a
- * synthetic oblique. Roundness is reserved for hero faces; chrome stays
- * sharp. Grade lifts heroes in dark themes only.
+ * roundness (ROND) and slant axes. Per minimalist guidance, normal 100% width
+ * is maintained across the application, with wide 125% width reserved strictly
+ * for hero numerals in reading stats, accompanied by staggered intermediate
+ * widths for minutes and units.
  */
 data class AppFonts(
-    /** Heavy, wide face for top-bar titles. */
+    /** Standard-width heavy face for top-bar titles. */
     val topBarTitle: FontFamily,
     /** Regular + semibold pair used inside annotated strings. */
     val annotatedString: FontFamily,
-    /** Wide, heavy display face for hero numerals. */
+    /** Wide, heavy display face reserved strictly for stats hero numerals. */
     val displayFlex: FontFamily,
-    /** Soft display face: max width + full roundness, for hero moments. */
+    /** Soft display face: normal width + full roundness, for hero moments. */
     val displaySoft: FontFamily,
+    /** Staggered intermediate face for secondary numerals (e.g. minutes in reading stats). */
+    val displayFlexMedium: FontFamily = displayFlex,
+    /** Staggered compact unit face (e.g. 'h' and 'm' unit badges in stats). */
+    val displayUnit: FontFamily = topBarTitle,
 )
 
-/** Google Sans Flex, weight 900 at 112.5% width — the widest, heaviest display face. */
+/** Google Sans Flex, weight 900 at standard 100% width for clean, minimal top bars. */
 private val GoogleSansFlexTopBar = FontFamily(
     Font(
         resId = R.font.google_sans_flex,
         weight = FontWeight.Black,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
-            FontVariation.width(112.5f),
+            FontVariation.width(100f),
             FontVariation.grade(0),
             FontVariation.opticalSizing(32.sp),
         ),
     ),
 )
 
-/** Google Sans Flex, weight 900 at 125% width — hero numerals at display sizes. */
+/** Google Sans Flex, weight 900 at wide 125% width — reserved strictly for stats page hero numerals. */
 private fun flexDisplay(grade: Int) = FontFamily(
     Font(
         resId = R.font.google_sans_flex,
@@ -72,14 +76,66 @@ private fun flexDisplay(grade: Int) = FontFamily(
     ),
 )
 
-/** Google Sans Flex soft display: wide 135% width, full ROND roundness. */
+/** Google Sans Flex, weight 800 at width 115% for staggered minutes numerals. */
+private fun flexMediumDisplay(grade: Int) = FontFamily(
+    Font(
+        resId = R.font.google_sans_flex,
+        weight = FontWeight.ExtraBold,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(800),
+            FontVariation.width(115f),
+            FontVariation.grade(grade),
+            FontVariation.opticalSizing(38.sp),
+        ),
+    ),
+    Font(
+        resId = R.font.google_sans_flex,
+        weight = FontWeight.ExtraBold,
+        style = FontStyle.Italic,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(800),
+            FontVariation.width(115f),
+            FontVariation.grade(grade),
+            FontVariation.opticalSizing(38.sp),
+            FontVariation.slant(-8f),
+        ),
+    ),
+)
+
+/** Google Sans Flex, weight 700 at width 95% with slight slant for staggered duration units ('h', 'm', 's'). */
+private fun flexUnit(grade: Int) = FontFamily(
+    Font(
+        resId = R.font.google_sans_flex,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(700),
+            FontVariation.width(95f),
+            FontVariation.grade(grade),
+            FontVariation.opticalSizing(18.sp),
+        ),
+    ),
+    Font(
+        resId = R.font.google_sans_flex,
+        weight = FontWeight.Bold,
+        style = FontStyle.Italic,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(700),
+            FontVariation.width(95f),
+            FontVariation.grade(grade),
+            FontVariation.opticalSizing(18.sp),
+            FontVariation.slant(-4f),
+        ),
+    ),
+)
+
+/** Google Sans Flex soft display: standard 100% width, full ROND roundness. */
 private fun softDisplay(grade: Int) = FontFamily(
     Font(
         resId = R.font.google_sans_flex,
         weight = FontWeight.Black,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
-            FontVariation.width(135f),
+            FontVariation.width(100f),
             FontVariation.grade(grade),
             FontVariation.opticalSizing(48.sp),
             FontVariation.Setting("ROND", 100f),
@@ -91,7 +147,7 @@ private fun softDisplay(grade: Int) = FontFamily(
         style = FontStyle.Italic,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(900),
-            FontVariation.width(135f),
+            FontVariation.width(100f),
             FontVariation.grade(grade),
             FontVariation.opticalSizing(48.sp),
             FontVariation.Setting("ROND", 100f),
@@ -132,6 +188,8 @@ internal fun appFonts(darkTheme: Boolean): AppFonts {
         topBarTitle = GoogleSansFlexTopBar,
         annotatedString = GoogleSansFlexAnnotated,
         displayFlex = flexDisplay(grade),
+        displayFlexMedium = flexMediumDisplay(grade),
+        displayUnit = flexUnit(grade),
         displaySoft = softDisplay(grade),
     )
 }

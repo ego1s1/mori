@@ -11,10 +11,11 @@ import androidx.compose.animation.fadeOut
  * emphasized curves so screen changes carry one motion personality. Called
  * from NavHost transition lambdas, whose receiver is the content scope.
  *
- * NavHost lambdas are not composable, so they cannot read
- * [LocalExpressiveMotionEnabled]: callers thread the resolved setting through
- * [expressive] (MoriApp reads it at the NavHost call site). Calm motion
- * drops the lateral slide and keeps the fade.
+ * Pop transitions mirror the reference app and Settings: full-width slide-out
+ * with no fade (so Android 14+ system predictive-back gesture scrubs the pop
+ * natively like a physical surface) over a 1/4 parallax fade-in.
+ * Push mirrors it: full-width slide-in over a 1/4 parallax fade-out.
+ * Calm motion keeps the plain fade.
  */
 fun AnimatedContentTransitionScope<*>.screenEnter(expressive: Boolean = true): EnterTransition =
     if (!expressive) {
@@ -33,6 +34,7 @@ fun AnimatedContentTransitionScope<*>.screenExit(expressive: Boolean = true): Ex
         fadeOut(animationSpec = MoriMotion.screenExitSpec()) + slideOutOfContainer(
             animationSpec = MoriMotion.screenExitSpec(),
             towards = AnimatedContentTransitionScope.SlideDirection.Start,
+            targetOffset = { it / 4 },
         )
     }
 
@@ -43,6 +45,7 @@ fun AnimatedContentTransitionScope<*>.screenPopEnter(expressive: Boolean = true)
         fadeIn(animationSpec = MoriMotion.screenEnterSpec()) + slideIntoContainer(
             animationSpec = MoriMotion.screenEnterSpec(),
             towards = AnimatedContentTransitionScope.SlideDirection.End,
+            initialOffset = { it / 4 },
         )
     }
 
@@ -50,7 +53,10 @@ fun AnimatedContentTransitionScope<*>.screenPopExit(expressive: Boolean = true):
     if (!expressive) {
         fadeOut(animationSpec = MoriMotion.calmFade())
     } else {
-        fadeOut(animationSpec = MoriMotion.screenExitSpec()) + slideOutOfContainer(
+        // No fade out on expressive pop exit: system predictive back scrubs
+        // this transition directly, keeping the surface fully opaque as it
+        // pulls away to reveal the parent beneath.
+        slideOutOfContainer(
             animationSpec = MoriMotion.screenExitSpec(),
             towards = AnimatedContentTransitionScope.SlideDirection.End,
         )

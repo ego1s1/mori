@@ -1,5 +1,7 @@
 package com.mori.feature.library.impl
 
+import com.mori.core.model.LibraryFilter
+
 /** Test tags for the library screen. */
 object LibraryTestTags {
     const val Grid = "libraryGrid"
@@ -12,6 +14,13 @@ object LibraryTestTags {
     const val EmptyRescan = "libraryEmptyRescan"
     const val EmptyChooseFolder = "libraryEmptyChooseFolder"
     const val Snackbar = "librarySnackbar"
+
+    const val NowReadingHero = "libraryNowReadingHero"
+    const val HeroResume = "libraryHeroResume"
+    const val HeroDetails = "libraryHeroDetails"
+
+    const val QuickFilterCapsule = "libraryQuickFilterCapsule"
+    fun quickFilterChip(filter: LibraryFilter): String = "libraryQuickFilter:${filter.name}"
 
     fun cardFor(id: String): String = "libraryCard:$id"
 

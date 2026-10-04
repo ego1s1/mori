@@ -64,10 +64,18 @@ import com.mori.core.designsystem.MoriIcons
 import com.mori.core.designsystem.MoriLoading
 import com.mori.core.designsystem.MoriMotion
 import com.mori.core.designsystem.MoriSettingSwitch
+import com.mori.core.designsystem.ScreenTitleLineHeight
+import com.mori.core.designsystem.ScreenTitleSize
 import com.mori.core.designsystem.enter
 import com.mori.core.designsystem.exit
 import com.mori.core.designsystem.MoriProgressBar
 import com.mori.core.designsystem.rememberMoriHaptics
+import com.mori.core.designsystem.MoriAlertDialog
+import com.mori.core.designsystem.MoriConfirmDialog
+import com.mori.core.designsystem.MoriFilledTonalIconButton
+import com.mori.core.designsystem.MoriPrimaryButton
+import com.mori.core.designsystem.MoriTextButton
+import com.mori.core.designsystem.MoriTonalButton
 import com.mori.core.designsystem.MoriTheme
 import com.mori.core.designsystem.sharedCoverModifier
 import com.mori.core.designsystem.ThemePreviews
@@ -136,13 +144,17 @@ internal fun DetailScreen(
                     title = {
                         Text(
                             text = readyComic.title,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = titleFont,
+                                fontSize = ScreenTitleSize,
+                                lineHeight = ScreenTitleLineHeight,
+                            ),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     },
                     navigationIcon = {
-                        FilledTonalIconButton(onClick = onBackClick) {
+                        MoriFilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -160,11 +172,15 @@ internal fun DetailScreen(
                     title = {
                         Text(
                             text = stringResource(R.string.detail_title),
-                            style = MaterialTheme.typography.headlineSmall.copy(fontFamily = titleFont),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = titleFont,
+                                fontSize = ScreenTitleSize,
+                                lineHeight = ScreenTitleLineHeight,
+                            ),
                         )
                     },
                     navigationIcon = {
-                        FilledTonalIconButton(onClick = onBackClick) {
+                        MoriFilledTonalIconButton(onClick = onBackClick) {
                             Icon(imageVector = MoriIcons.Back, contentDescription = stringResource(R.string.detail_back))
                         }
                     },
@@ -360,10 +376,7 @@ private fun DetailContent(
             ) {
                 Text(
                     text = comic.title,
-                    style = MoriEmphasized.headlineSmall.copy(
-                        fontFamily = LocalAppFonts.current.displaySoft,
-                        fontWeight = FontWeight.Black,
-                    ),
+                    style = MoriEmphasized.headlineSmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -409,7 +422,7 @@ private fun DetailContent(
             )
         } else {
             val startPage = comic.resumeIndex
-            Button(
+            MoriPrimaryButton(
                 onClick = { onReadClick(comic.id, startPage) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -423,7 +436,7 @@ private fun DetailContent(
                     },
                 )
             }
-            FilledTonalButton(
+            MoriTonalButton(
                 onClick = { onAction(DetailAction.OpenShelves) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -501,45 +514,19 @@ private fun RemoveDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.detail_remove_title),
-                style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
-            )
+    val haptics = rememberMoriHaptics()
+    MoriConfirmDialog(
+        title = stringResource(R.string.detail_remove_title),
+        message = stringResource(R.string.detail_remove_body, title),
+        confirmLabel = stringResource(R.string.detail_remove_confirm),
+        onConfirm = {
+            haptics(MoriHaptic.Confirm)
+            onConfirm()
         },
-        text = {
-            Text(
-                text = stringResource(R.string.detail_remove_body, title),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        confirmButton = {
-            val haptics = rememberMoriHaptics()
-            Button(
-                onClick = {
-                    haptics(MoriHaptic.Confirm)
-                    onConfirm()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-                modifier = Modifier.testTag(DetailTestTags.ConfirmRemove),
-            ) {
-                Text(stringResource(R.string.detail_remove_confirm))
-            }
-        },
-        dismissButton = {
-            FilledTonalButton(onClick = onDismiss) {
-                Text(stringResource(R.string.detail_remove_cancel))
-            }
-        },
+        dismissLabel = stringResource(R.string.detail_remove_cancel),
+        onDismiss = onDismiss,
+        destructive = true,
+        confirmTestTag = DetailTestTags.ConfirmRemove,
         modifier = modifier.testTag(DetailTestTags.RemoveDialog),
     )
 }
@@ -552,15 +539,13 @@ private fun ShelvesDialog(
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    MoriAlertDialog(
         onDismissRequest = { onAction(DetailAction.CloseShelves) },
         title = {
             Text(
                 text = stringResource(R.string.detail_shelves_title),
-                style = MoriEmphasized.headlineSmall.copy(
-                    fontFamily = LocalAppFonts.current.displaySoft,
-                    fontWeight = FontWeight.Black,
-                ),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         },
         text = {
@@ -573,6 +558,7 @@ private fun ShelvesDialog(
                         text = stringResource(R.string.detail_shelves_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
                 shelves.collections.forEach { collection ->
@@ -598,7 +584,7 @@ private fun ShelvesDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            MoriTextButton(
                 onClick = {
                     // Kept on failure: the VM messages ShelfFailed and the
                     // typed name survives for a corrected retry.
@@ -611,7 +597,7 @@ private fun ShelvesDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = { onAction(DetailAction.CloseShelves) }) {
+            MoriTextButton(onClick = { onAction(DetailAction.CloseShelves) }) {
                 Text(stringResource(R.string.detail_shelves_close))
             }
         },

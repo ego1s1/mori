@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -28,14 +27,14 @@ import com.mori.core.designsystem.MoriFilterPills
 import com.mori.core.designsystem.MoriSettingSwitch
 import com.mori.core.designsystem.MoriSheet
 import com.mori.core.model.LibraryDisplayMode
-import com.mori.core.model.LibraryFilter
 import com.mori.core.model.LibraryQuery
 import com.mori.core.model.LibrarySortOrder
 import com.mori.core.model.UserCollection
 
 /**
- * Tab-less Filter/Sort/Display sheet as a single scrolling M3 sheet:
- * shelf, filter chips, sort chips, and display switches.
+ * Tab-less Sort/Display sheet as a single scrolling M3 sheet:
+ * shelf, sort chips, and display switches. Reading-state filters live
+ * as quick-filter chips in the grid and are intentionally not duplicated here.
  */
 @Composable
 internal fun LibrarySortFilterSheet(
@@ -110,19 +109,6 @@ internal fun LibrarySortFilterContent(
         )
 
         Text(
-            text = stringResource(R.string.library_sheet_filter),
-            style = MoriEmphasized.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { heading() },
-        )
-        MoriChoiceGroup(
-            options = LibraryFilter.entries.map { MoriChoiceOption(label = filterLabel(it)) },
-            selectedIndex = LibraryFilter.entries.indexOf(query.filter),
-            onSelect = { onAction(LibraryAction.FilterSelected(LibraryFilter.entries[it])) },
-            fillWidth = false,
-        )
-
-        Text(
             text = stringResource(R.string.library_sheet_sort_by),
             style = MoriEmphasized.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
@@ -182,17 +168,6 @@ internal fun LibrarySortFilterContent(
 }
 
 private fun shelfLabel(name: String, count: Int): String = "$name ($count)"
-
-@Composable
-private fun filterLabel(filter: LibraryFilter): String = stringResource(
-    when (filter) {
-        LibraryFilter.ALL -> R.string.library_filter_all
-        LibraryFilter.IN_PROGRESS -> R.string.library_filter_in_progress
-        LibraryFilter.UNREAD -> R.string.library_filter_unread
-        LibraryFilter.FINISHED -> R.string.library_filter_finished
-        LibraryFilter.FAVORITES -> R.string.library_filter_favorites
-    },
-)
 
 @Composable
 private fun sortLabel(sort: LibrarySortOrder): String = stringResource(

@@ -2,12 +2,14 @@ package com.mori.feature.reader.impl
 
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
@@ -736,6 +738,7 @@ private fun ReaderBottomChrome(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
+            .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
             .fillMaxWidth()
             .swallowTaps()
             .padding(horizontal = 16.dp)
@@ -750,11 +753,11 @@ private fun ReaderBottomChrome(
             visible = scrub != null,
             enter = fadeIn(MoriMotion.defaultEffectsSpec()) + scaleIn(
                 MoriMotion.defaultSpatialSpec(),
-                initialScale = 0.85f
+                initialScale = 0.85f,
             ),
             exit = fadeOut(MoriMotion.defaultEffectsSpec()) + scaleOut(
                 MoriMotion.defaultSpatialSpec(),
-                targetScale = 0.85f
+                targetScale = 0.85f,
             ),
         ) {
             Surface(
@@ -772,280 +775,336 @@ private fun ReaderBottomChrome(
             }
         }
 
-        // Unified Floating Expressive Pill Bar Container
-        Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-            ),
-            modifier = Modifier
-                .widthIn(max = EXPANDED_CONTENT_MAX_WIDTH)
-                .fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Scrubber Row: Steppers + Continuous Slider with Live Page Indicator
-                if (pageCount > 1) {
-                    CompositionLocalProvider(LocalLayoutDirection provides rowDirection) {
+        // Mihon-inspired Floating Scrubber Island (when more than 1 page)
+        if (pageCount > 1) {
+            CompositionLocalProvider(LocalLayoutDirection provides rowDirection) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            haptics(MoriHaptic.Select)
+                            onAction(leadingAction.first)
+                        },
+                        enabled = isNavigationEnabled(leadingAction.first, pageIndex, pageCount),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        ),
+                        modifier = Modifier
+                            .size(CHROME_CONTROL_SIZE)
+                            .testTag(ReaderTestTags.Prev)
+                            .semantics {
+                                onClick(label = leadingAction.third, action = null)
+                            },
+                    ) {
+                        Icon(
+                            imageVector = leadingAction.second,
+                            contentDescription = leadingAction.third,
+                        )
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                        tonalElevation = 4.dp,
+                        shadowElevation = 6.dp,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                        ),
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
                         ) {
-                            FilledTonalIconButton(
-                                onClick = {
-                                    haptics(MoriHaptic.Select)
-                                    onAction(leadingAction.first)
-                                },
-                                enabled = isNavigationEnabled(leadingAction.first, pageIndex, pageCount),
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                modifier = Modifier
-                                    .size(CHROME_CONTROL_SIZE)
-                                    .testTag(ReaderTestTags.Prev)
-                                    .semantics {
-                                        onClick(label = leadingAction.third, action = null)
-                                    },
-                            ) {
-                                Icon(
-                                    imageVector = leadingAction.second,
-                                    contentDescription = leadingAction.third,
+                            Box(contentAlignment = Alignment.CenterEnd) {
+                                Text(
+                                    text = ((scrub ?: pageIndex) + 1).toString(),
+                                    style = MoriEmphasized.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = pageCount.toString(),
+                                    style = MoriEmphasized.titleMedium,
+                                    color = Color.Transparent,
+                                    modifier = Modifier.semantics { hideFromAccessibility() },
                                 )
                             }
-
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
-                                ) {
-                                    // Live current page number with ghost placeholder for layout stability
-                                    Box(contentAlignment = Alignment.CenterEnd) {
-                                        Text(
-                                            text = ((scrub ?: pageIndex) + 1).toString(),
-                                            style = MoriEmphasized.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                        Text(
-                                            text = pageCount.toString(),
-                                            style = MoriEmphasized.titleMedium,
-                                            color = Color.Transparent,
-                                            modifier = Modifier.semantics { hideFromAccessibility() },
-                                        )
-                                    }
-                                    val scrubDescription = stringResource(
-                                        R.string.reader_pager_description,
-                                        (scrub ?: pageIndex) + 1,
-                                        pageCount,
-                                    )
-                                    // Slider stays LTR even inside mirrored RTL row
-                                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                        Slider(
-                                            value = (scrub ?: pageIndex).toFloat(),
-                                            onValueChange = {
-                                                val nextScrub = it.roundToInt()
-                                                if (nextScrub != scrub) {
-                                                    haptics(MoriHaptic.FrequentTick)
-                                                }
-                                                scrub = nextScrub
-                                            },
-                                            onValueChangeFinished = {
-                                                haptics(MoriHaptic.Select)
-                                                scrub?.let { onAction(ReaderAction.SeekPage(it)) }
-                                                scrub = null
-                                            },
-                                            valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
-                                            steps = 0,
-                                            interactionSource = sliderInteraction,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .testTag(ReaderTestTags.Slider)
-                                                .semantics {
-                                                    contentDescription = scrubDescription
-                                                },
-                                        )
-                                    }
-                                    Text(
-                                        text = pageCount.toString(),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-
-                            FilledTonalIconButton(
-                                onClick = {
-                                    haptics(MoriHaptic.Select)
-                                    onAction(trailingAction.first)
-                                },
-                                enabled = isNavigationEnabled(trailingAction.first, pageIndex, pageCount),
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                modifier = Modifier
-                                    .size(CHROME_CONTROL_SIZE)
-                                    .testTag(ReaderTestTags.Next)
-                                    .semantics {
-                                        onClick(label = trailingAction.third, action = null)
+                            val scrubDescription = stringResource(
+                                R.string.reader_pager_description,
+                                (scrub ?: pageIndex) + 1,
+                                pageCount,
+                            )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Slider(
+                                    value = (scrub ?: pageIndex).toFloat(),
+                                    onValueChange = {
+                                        val nextScrub = it.roundToInt()
+                                        if (nextScrub != scrub) {
+                                            haptics(MoriHaptic.FrequentTick)
+                                        }
+                                        scrub = nextScrub
                                     },
-                            ) {
-                                Icon(
-                                    imageVector = trailingAction.second,
-                                    contentDescription = trailingAction.third,
+                                    onValueChangeFinished = {
+                                        haptics(MoriHaptic.Select)
+                                        scrub?.let { onAction(ReaderAction.SeekPage(it)) }
+                                        scrub = null
+                                    },
+                                    valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
+                                    steps = 0,
+                                    interactionSource = sliderInteraction,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag(ReaderTestTags.Slider)
+                                        .semantics {
+                                            contentDescription = scrubDescription
+                                        },
                                 )
                             }
+                            Text(
+                                text = pageCount.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
-                }
 
-                // Quick Action Controls Row: Direction, Fit, Crop, Overview, Settings
-                Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CHROME_CONTROL_SIZE),
-                ) {
-                    val directionLabel = stringResource(R.string.reader_reading_direction)
-                    val directionState = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
-                        stringResource(R.string.reader_direction_rtl)
-                    } else {
-                        stringResource(R.string.reader_direction_ltr)
-                    }
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = {
                             haptics(MoriHaptic.Select)
-                            val next = when (direction) {
-                                ReadingDirection.LEFT_TO_RIGHT -> ReadingDirection.RIGHT_TO_LEFT
-                                ReadingDirection.RIGHT_TO_LEFT -> ReadingDirection.LEFT_TO_RIGHT
-                            }
-                            onAction(ReaderAction.SetDirection(next))
+                            onAction(trailingAction.first)
                         },
+                        enabled = isNavigationEnabled(trailingAction.first, pageIndex, pageCount),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        ),
                         modifier = Modifier
-                            .size(48.dp)
-                            .testTag(ReaderTestTags.DirectionButton)
+                            .size(CHROME_CONTROL_SIZE)
+                            .testTag(ReaderTestTags.Next)
                             .semantics {
-                                onClick(label = directionLabel, action = null)
-                                stateDescription = directionState
+                                onClick(label = trailingAction.third, action = null)
                             },
                     ) {
                         Icon(
-                            imageVector = MoriIcons.ScreenRotation,
-                            contentDescription = directionLabel,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    val fitLabel = stringResource(R.string.reader_page_fit)
-                    val fitState = when (pageFit) {
-                        PageFit.WIDTH -> stringResource(R.string.reader_fit_width)
-                        PageFit.HEIGHT -> stringResource(R.string.reader_fit_height)
-                        PageFit.ORIGINAL -> stringResource(R.string.reader_fit_original)
-                    }
-                    IconButton(
-                        onClick = {
-                            haptics(MoriHaptic.Select)
-                            val next = when (pageFit) {
-                                PageFit.WIDTH -> PageFit.HEIGHT
-                                PageFit.HEIGHT -> PageFit.ORIGINAL
-                                PageFit.ORIGINAL -> PageFit.WIDTH
-                            }
-                            onAction(ReaderAction.SetPageFit(next))
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag(ReaderTestTags.FitButton)
-                            .semantics {
-                                onClick(label = fitLabel, action = null)
-                                stateDescription = fitState
-                            },
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.FitScreen,
-                            contentDescription = fitLabel,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    val cropLabel = stringResource(R.string.reader_crop_margins)
-                    val cropState = if (cropMargins) {
-                        stringResource(R.string.reader_crop_subtitle)
-                    } else {
-                        stringResource(R.string.reader_crop_title)
-                    }
-                    IconButton(
-                        onClick = {
-                            haptics(MoriHaptic.Select)
-                            onAction(ReaderAction.ToggleCrop)
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag(ReaderTestTags.CropButton)
-                            .semantics {
-                                onClick(label = cropLabel, action = null)
-                                stateDescription = cropState
-                            },
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.Crop,
-                            contentDescription = cropLabel,
-                            tint = if (cropMargins) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            haptics(MoriHaptic.Select)
-                            onAction(ReaderAction.OpenOverview)
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag(ReaderTestTags.OverviewButton),
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.GridView,
-                            contentDescription = stringResource(R.string.reader_overview_button),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            haptics(MoriHaptic.Select)
-                            onAction(ReaderAction.OpenSettings)
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag(ReaderTestTags.SettingsButton),
-                    ) {
-                        Icon(
-                            imageVector = MoriIcons.Settings,
-                            contentDescription = stringResource(R.string.reader_settings),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            imageVector = trailingAction.second,
+                            contentDescription = trailingAction.third,
                         )
                     }
                 }
             }
         }
+
+        // Floating Action Dock - Single Elevated Segmented Dock
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+            tonalElevation = 4.dp,
+            shadowElevation = 6.dp,
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+            ),
+            modifier = Modifier
+                .widthIn(max = 480.dp)
+                .fillMaxWidth(),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                val directionLabel = stringResource(R.string.reader_reading_direction)
+                val directionState = if (direction == ReadingDirection.RIGHT_TO_LEFT) {
+                    stringResource(R.string.reader_direction_rtl)
+                } else {
+                    stringResource(R.string.reader_direction_ltr)
+                }
+                val segmentShape = RoundedCornerShape(14.dp)
+
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics(MoriHaptic.Select)
+                        val next = when (direction) {
+                            ReadingDirection.LEFT_TO_RIGHT -> ReadingDirection.RIGHT_TO_LEFT
+                            ReadingDirection.RIGHT_TO_LEFT -> ReadingDirection.LEFT_TO_RIGHT
+                        }
+                        onAction(ReaderAction.SetDirection(next))
+                    },
+                    shape = segmentShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag(ReaderTestTags.DirectionButton)
+                        .semantics {
+                            onClick(label = directionLabel, action = null)
+                            stateDescription = directionState
+                        },
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.ScreenRotation,
+                        contentDescription = directionLabel,
+                    )
+                }
+
+                DockDivider()
+
+                val fitLabel = stringResource(R.string.reader_page_fit)
+                val fitState = when (pageFit) {
+                    PageFit.WIDTH -> stringResource(R.string.reader_fit_width)
+                    PageFit.HEIGHT -> stringResource(R.string.reader_fit_height)
+                    PageFit.ORIGINAL -> stringResource(R.string.reader_fit_original)
+                }
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics(MoriHaptic.Select)
+                        val next = when (pageFit) {
+                            PageFit.WIDTH -> PageFit.HEIGHT
+                            PageFit.HEIGHT -> PageFit.ORIGINAL
+                            PageFit.ORIGINAL -> PageFit.WIDTH
+                        }
+                        onAction(ReaderAction.SetPageFit(next))
+                    },
+                    shape = segmentShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag(ReaderTestTags.FitButton)
+                        .semantics {
+                            onClick(label = fitLabel, action = null)
+                            stateDescription = fitState
+                        },
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.FitScreen,
+                        contentDescription = fitLabel,
+                    )
+                }
+
+                DockDivider()
+
+                val cropLabel = stringResource(R.string.reader_crop_margins)
+                val cropState = if (cropMargins) {
+                    stringResource(R.string.reader_crop_subtitle)
+                } else {
+                    stringResource(R.string.reader_crop_title)
+                }
+                val cropContainerColor by animateColorAsState(
+                    targetValue = if (cropMargins) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        Color.Transparent
+                    },
+                    label = "cropContainerColor",
+                )
+                val cropContentColor by animateColorAsState(
+                    targetValue = if (cropMargins) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    label = "cropContentColor",
+                )
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics(MoriHaptic.Select)
+                        onAction(ReaderAction.ToggleCrop)
+                    },
+                    shape = segmentShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = cropContainerColor,
+                        contentColor = cropContentColor,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag(ReaderTestTags.CropButton)
+                        .semantics {
+                            onClick(label = cropLabel, action = null)
+                            stateDescription = cropState
+                        },
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.Crop,
+                        contentDescription = cropLabel,
+                    )
+                }
+
+                DockDivider()
+
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics(MoriHaptic.Select)
+                        onAction(ReaderAction.OpenOverview)
+                    },
+                    shape = segmentShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag(ReaderTestTags.OverviewButton),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.GridView,
+                        contentDescription = stringResource(R.string.reader_overview_button),
+                    )
+                }
+
+                DockDivider()
+
+                FilledTonalIconButton(
+                    onClick = {
+                        haptics(MoriHaptic.Select)
+                        onAction(ReaderAction.OpenSettings)
+                    },
+                    shape = segmentShape,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag(ReaderTestTags.SettingsButton),
+                ) {
+                    Icon(
+                        imageVector = MoriIcons.Settings,
+                        contentDescription = stringResource(R.string.reader_settings),
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun DockDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(20.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+    )
 }
 
 @ThemePreviews
