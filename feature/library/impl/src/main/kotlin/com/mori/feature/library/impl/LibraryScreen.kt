@@ -603,7 +603,11 @@ private fun LibraryBody(
                                 comic = nowReading,
                                 onResume = onCardRead,
                                 onDetails = onCardDetails,
-                                modifier = Modifier.animateItem(),
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = null,
+                                    fadeOutSpec = null,
+                                    placementSpec = MoriMotion.defaultSpatialSpec(),
+                                ),
                             )
                         }
                     }
@@ -623,7 +627,11 @@ private fun LibraryBody(
                                             LibraryAction.ToggleShelfCollapsed(section.id),
                                         )
                                     },
-                                    modifier = Modifier.animateItem(),
+                                    modifier = Modifier.animateItem(
+                                        fadeInSpec = null,
+                                        fadeOutSpec = null,
+                                        placementSpec = MoriMotion.defaultSpatialSpec(),
+                                    ),
                                 )
                             }
                             comicItems(
@@ -653,9 +661,15 @@ private fun LibraryBody(
 }
 
 /**
- * Grid book cells shared by flat and sectioned grids: stable keys plus the
- * variant bitmask bucket, so error/in-progress/finished variants never
- * cross-recycle.
+ * Grid book cells shared by flat and sectioned grids: stable keys plus
+ * layout-structural content types, ensuring LazyVerticalGrid reuses composable
+ * instances seamlessly across scroll cycles.
+ *
+ * Performance-optimized:
+ * - Single content type per [displayMode] maximizes slot recycling in LazyVerticalGrid
+ *   instead of fragmenting the pool across arbitrary book flags.
+ * - [animateItem] uses [placementSpec] for reordering/insertions/deletions, but nulls
+ *   [fadeInSpec] and [fadeOutSpec] so rapid flings do not spin up alpha transitions.
  */
 private fun LazyGridScope.comicItems(
     comics: List<Comic>,
@@ -670,41 +684,40 @@ private fun LazyGridScope.comicItems(
     items(
         comics,
         key = { comic -> "$keyPrefix-${comic.id}" },
-        contentType = { comic ->
-            displayMode.ordinal * 16 +
-                (if (comic.error != null) 4 else 0) +
-                (if (comic.isInProgress) 2 else 0) +
-                (if (comic.isFinished) 1 else 0) +
-                (if (comic.bookmarked) 8 else 0)
-        },
+        contentType = { displayMode },
     ) { comic ->
+        val itemModifier = Modifier.animateItem(
+            fadeInSpec = null,
+            fadeOutSpec = null,
+            placementSpec = MoriMotion.defaultSpatialSpec(),
+        )
         when (displayMode) {
             LibraryDisplayMode.COMPACT_GRID -> ComicCard(
                 comic = comic,
                 onRead = onCardRead,
                 onDetails = onCardDetails,
                 sharedCover = launchingId == comic.id,
-                modifier = Modifier.animateItem(),
+                modifier = itemModifier,
             )
             LibraryDisplayMode.COMFORTABLE_GRID -> ComfortableComicCard(
                 comic = comic,
                 onRead = onCardRead,
                 onDetails = onCardDetails,
                 sharedCover = launchingId == comic.id,
-                modifier = Modifier.animateItem(),
+                modifier = itemModifier,
             )
             LibraryDisplayMode.COVER_ONLY_GRID -> CoverOnlyComicCard(
                 comic = comic,
                 onRead = onCardRead,
                 onDetails = onCardDetails,
                 sharedCover = launchingId == comic.id,
-                modifier = Modifier.animateItem(),
+                modifier = itemModifier,
             )
             LibraryDisplayMode.LIST -> ComicListRow(
                 comic = comic,
                 onRead = onCardRead,
                 onDetails = onCardDetails,
-                modifier = Modifier.animateItem(),
+                modifier = itemModifier,
             )
         }
     }

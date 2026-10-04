@@ -24,20 +24,28 @@ import javax.inject.Singleton
  * Covers load from generated thumbnail files through Coil's default fetchers; reader
  * pages load through [ComicPageFetcher] with resolution-bounded backend decoding.
  *
- * Decode/fetch parallelism is capped: Coil otherwise spawns a thread per load,
- * and a fast grid fling would churn threads and the GC into visible stutter.
+ * Performance-optimized:
+ * - Decode parallelism scales with available hardware CPU cores on [Dispatchers.Default]
+ *   (CPU-bound bitmap decompression) instead of bottlenecking on a fixed 2 threads.
+ * - Fetch parallelism operates on [Dispatchers.IO] to handle file and archive reads.
+ * - Memory cache holds decoded thumbnails across rapid grid flings with strong references.
  */
 class MoriImageLoaderFactory @Inject constructor(
     @ApplicationContext private val context: Context,
     private val pageFetcherFactory: ComicPageFetcher.Factory,
 ) : SingletonImageLoader.Factory {
 
-    override fun newImageLoader(context: Context): ImageLoader =
-        ImageLoader.Builder(context)
+    override fun newImageLoader(context: Context): ImageLoader {
+        val processorCount = Runtime.getRuntime().availableProcessors()
+        val decodeParallelism = (processorCount - 1).coerceIn(4, 8)
+        val fetchParallelism = (processorCount * 2).coerceIn(8, 16)
+
+        return ImageLoader.Builder(context)
             .components { add(pageFetcherFactory) }
             .memoryCache {
                 MemoryCache.Builder()
                     .maxSizePercent(context, IMAGE_MEMORY_PERCENT)
+                    .strongReferencesEnabled(true)
                     .build()
             }
             .diskCache {
@@ -46,16 +54,15 @@ class MoriImageLoaderFactory @Inject constructor(
                     .maxSizeBytes(IMAGE_DISK_BYTES)
                     .build()
             }
-            .fetcherCoroutineContext(Dispatchers.IO.limitedParallelism(IMAGE_FETCH_PARALLELISM))
-            .decoderCoroutineContext(Dispatchers.IO.limitedParallelism(IMAGE_DECODE_PARALLELISM))
+            .fetcherCoroutineContext(Dispatchers.IO.limitedParallelism(fetchParallelism))
+            .decoderCoroutineContext(Dispatchers.Default.limitedParallelism(decodeParallelism))
             .crossfade(true)
             .build()
+    }
 
     private companion object {
-        const val IMAGE_MEMORY_PERCENT = 0.25
+        const val IMAGE_MEMORY_PERCENT = 0.30
         const val IMAGE_DISK_BYTES = 256L * 1024 * 1024
-        const val IMAGE_FETCH_PARALLELISM = 4
-        const val IMAGE_DECODE_PARALLELISM = 2
     }
 }
 
